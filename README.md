@@ -3,6 +3,12 @@ Master Thesis
 
 Code repository for thesis on handpose estimation
 
+Setup
+------------
+```make env      # to make a virtual environment ```
+```make requirements  # to install all the requirements and setting up of githooks```
+``` source master_thesis_env/bin/activate  #to activate the environment```
+
 Project Organization
 ------------
 
