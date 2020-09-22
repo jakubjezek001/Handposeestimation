@@ -1,14 +1,12 @@
 import pytorch_lightning as pl
 import torch
 import torchvision
-
-# from pytorch_lightning import loggers as pl_loggers
 from pytorch_lightning.core.lightning import LightningModule
 from torch.nn import functional as F
 
 
 class BaselineModel(LightningModule):
-    def __init__(self, freeze_resnet=True):
+    def __init__(self, freeze_resnet: bool = True):
         super().__init__()
 
         self.resnet18 = torchvision.models.resnet18(pretrained=True)
@@ -35,9 +33,7 @@ class BaselineModel(LightningModule):
         x, y = batch["image"], batch["joints"]
         prediction = self(x)
         loss = F.mse_loss(prediction, y)
-        result = pl.TrainResult(loss)
-        result.log("train_loss", loss)
-        return result
+        return {"loss": loss}
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=1e-3)
