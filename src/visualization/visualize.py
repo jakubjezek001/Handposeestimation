@@ -1,7 +1,7 @@
 import json
 import os
 
-import matplotlib.pyplot
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
@@ -10,10 +10,7 @@ from src.utils import read_json
 
 
 def plot_hand(
-    axis: matplotlib.pyplot.Axes,
-    coords_hand: np.array,
-    plot_3d: bool = False,
-    linewidth: str = "1",
+    axis: plt.Axes, coords_hand: np.array, plot_3d: bool = False, linewidth: str = "1"
 ):
     """Makes a hand stick figure from the coordinates wither in uv plane or xyz plane on the passed axes object.
     Code adapted from:  https://github.com/lmb-freiburg/freihand/blob/master/utils/eval_util.py
@@ -65,5 +62,17 @@ def plot_hand(
             axis.plot(coords_hand[i, 1], coords_hand[i, 0], "o", color=colors[i, :])
 
 
+def plot_truth_vs_prediction(y_pred: torch.tensor, y_true: torch.tensor, experiment):
+    fig = plt.figure(figsize=(5, 5))
+    ax1 = fig.add_subplot(121)
+    ax2 = fig.add_subplot(122)
+    plot_hand(ax1, y_true)
+    ax1.title.set_text("True joints")
+    plot_hand(ax2, y_pred)
+    ax1.title.set_text("Predicted joints")
+    experiment.log_figure(figure=plt)
+
+
 def plot_hand_image(image: torch.tensor):
+    # TODO: for plotting image from a tensor.
     pass
