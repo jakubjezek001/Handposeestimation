@@ -37,9 +37,10 @@ class BaselineModel(LightningModule):
         train_metrics = self.calculate_metrics(prediction, y, step="train")
         comet_experiment = self.logger.experiment
         comet_experiment.log_metrics({**{"loss": loss}, **train_metrics})
-        plot_truth_vs_prediction(
-            prediction[0].detach().numpy(), y[0].detach().numpy(), comet_experiment
-        )
+        if batch_idx == 1:
+            plot_truth_vs_prediction(
+                prediction[0].detach().numpy(), y[0].detach().numpy(), comet_experiment
+            )
         return {**{"loss": loss}, **train_metrics}
 
     def configure_optimizers(self):

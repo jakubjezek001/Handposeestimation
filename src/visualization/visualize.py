@@ -65,11 +65,11 @@ def plot_hand(
 def plot_truth_vs_prediction(y_pred: torch.tensor, y_true: torch.tensor, experiment):
     fig = plt.figure(figsize=(5, 5))
     ax1 = fig.add_subplot(121)
-    ax2 = fig.add_subplot(122)
     plot_hand(ax1, y_true)
     ax1.title.set_text("True joints")
+    ax2 = fig.add_subplot(122)
     plot_hand(ax2, y_pred)
-    ax1.title.set_text("Predicted joints")
+    ax2.title.set_text("Predicted joints")
     experiment.log_figure(figure=plt)
 
 
