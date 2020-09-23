@@ -78,7 +78,6 @@ class BaselineModel(LightningModule):
         # TODO:  Ask Adrian if it is the mean of the median distance between each hand.
         # TODO: Problems in unit of these errors as they are scaled versions.
         # or overall median distance between that batch
-        print(y_pred.shape)
         distance_joints = (
             torch.sum(((y_pred - y_true) ** 2), 2) ** 0.5
         )  # shape: (batch, 21)
