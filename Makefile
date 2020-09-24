@@ -32,7 +32,7 @@ ifdef VIRTUAL_ENV
 	jupyter nbextension enable toc2/main
 	python3 -m pip install jupyterthemes
 	python3 -m pip install --upgrade jupyterthemes
-	jt -t onedork -fs 95 -altp -tfs 11 -nfs 115 -cellw 88%
+	jt -t onedork -fs 95 -altp -tfs 11 -nfs 115 -cellw 88% -T
 	pre-commit install
 else
 	@echo "Please create your virtual environment and activate it first (make env; source  master_thesis_env/bin/activate)."
