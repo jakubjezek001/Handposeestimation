@@ -15,11 +15,14 @@ def main():
     from src.data_loader.freihand_loader import F_DB
     from src.data_loader.utils import convert_2_5D_to_3D
     from src.models.baseline_model import BaselineModel
+    from src.experiments.utils import get_experiement_args
+
+    gpu_use = get_experiement_args()
 
     BASE_DIR = os.environ.get("MASTER_THESIS_PATH")
     comet_logger = CometLogger(
         api_key=os.environ.get("COMET_API_KEY"),
-        project_name="baseline",
+        project_name="master-thesis",
         workspace="dahiyaaneesh",
         save_dir=os.path.join(BASE_DIR, "models"),
     )
@@ -40,7 +43,12 @@ def main():
     train_data_loader = DataLoader(train, batch_size=16)
     val_data_loader = DataLoader(val, batch_size=4)
     model = BaselineModel()
-    trainer = Trainer(max_epochs=10, logger=comet_logger)
+    if gpu_use:
+        print("GPU Training ativated")
+        trainer = Trainer(max_epochs=10, logger=comet_logger, gpus=-1)
+    else:
+        print("CPU Training ativated")
+        trainer = Trainer(max_epochs=10, logger=comet_logger)
     trainer.fit(model, train_data_loader, val_data_loader)
 
 
