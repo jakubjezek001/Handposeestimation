@@ -25,6 +25,7 @@ After logging into the cluster do the following.
 ```export COMET_API_KEY=<COMET_API_KEY>```
 ```module load python_gpu/3.7.1```
 ```source $MASTER_THESIS_PATH/master_thesis_env/bin/activate```
+```export PYTHONPATH="$MASTER_THESIS_PATH"```
 
 #### Submitting jobs :
 - For all options check this : [LSF mini ref](https://scicomp.ethz.ch/wiki/LSF_mini_reference)
