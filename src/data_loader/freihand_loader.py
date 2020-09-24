@@ -55,7 +55,13 @@ class F_DB(Dataset):
         camera_param = torch.tensor(self.camera_param[idx]).float()
         joints25D, scale = convert_to_2_5D(camera_param, joints3D)
 
-        sample = {"image": img, "joints": joints25D, "scale": scale, "K": camera_param}
+        sample = {
+            "image": img,
+            "joints": joints25D,
+            "scale": scale,
+            "K": camera_param,
+            "joints_3D": joints3D,
+        }
         if self.transform:
             sample["image"] = self.transform(sample["image"])
         return sample
