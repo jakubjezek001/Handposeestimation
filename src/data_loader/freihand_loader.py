@@ -2,7 +2,7 @@ import json
 import os
 
 import torch
-from skimage import io
+from PIL import Image
 from torch.utils.data import Dataset
 
 from src.data_loader.utils import convert_to_2_5D
@@ -14,19 +14,13 @@ class F_DB(Dataset):
     """
 
     def __init__(
-        self,
-        root_dir: str,
-        labels_path: str,
-        camera_param_path: str,
-        gray: bool,
-        transform,
+        self, root_dir: str, labels_path: str, camera_param_path: str, transform
     ):
         self.root_dir = root_dir
         self.labels = self.get_labels(labels_path)
         self.camera_param = self.get_camera_param(camera_param_path)
         self.img_names = self.get_image_names()
         self.transform = transform
-        self.gray = gray
 
     def get_image_names(self):
         img_names = next(os.walk(self.root_dir))[2]
@@ -50,7 +44,7 @@ class F_DB(Dataset):
             idx = idx.tolist()
 
         img_name = os.path.join(self.root_dir, self.img_names[idx])
-        img = io.imread(img_name, as_gray=self.gray)
+        img = Image.open(img_name)
         joints3D = torch.tensor(self.labels[idx]).float()
         camera_param = torch.tensor(self.camera_param[idx]).float()
         joints25D, scale = convert_to_2_5D(camera_param, joints3D)
