@@ -6,8 +6,37 @@ Code repository for thesis on handpose estimation
 Setup
 ------------
 ```make env      # to make a virtual environment ```
+
 ```make requirements  # to install all the requirements and setting up of githooks```
+
 ``` source master_thesis_env/bin/activate  #to activate the environment```
+
+Leonhard setup
+------------
+After logging into the cluster do the following.
+#### One Time instructions:
+
+1. Load Modules.
+ ```module load python_gpu/3.7.1```
+ 2.  Follow the setup instructions above.
+ 3. Add following to ~/.bashrc  file
+
+```export MASTER_THESIS_PATH='/path/to/the/thesis/direcorty'```
+```export COMET_API_KEY=<COMET_API_KEY>```
+```module load python_gpu/3.7.1```
+```source $MASTER_THESIS_PATH/master_thesis_env/bin/activate```
+
+#### Submitting jobs :
+- For all options check this : [LSF mini ref](https://scicomp.ethz.ch/wiki/LSF_mini_reference)
+- For basic GPU usage with the cluster : [Getting started with GPU](https://scicomp.ethz.ch/wiki/Getting_started_with_GPUs)
+Quick bsub commands
+1. WITHOUT  GPU:
+```bsub -o output_logs.log python src/experiments/baseline_experiment.py```
+
+2. WITH GPU:
+```bsub -o output_logs.log  -R  "rusage[ngpus_excl_p=1]"  python src/experiments/baseline_experiment.py --gpu```
+
+
 
 Project Organization
 ------------
