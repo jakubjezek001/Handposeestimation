@@ -28,7 +28,6 @@ def main():
         labels_path=os.path.join(FREIHAND_DATA, "training_xyz.json"),
         camera_param_path=os.path.join(FREIHAND_DATA, "training_K.json"),
         transform=transforms.Compose([transforms.ToTensor()]),
-        gray=False,
     )
     train_percentage = 90
     train, val = torch.utils.data.random_split(
