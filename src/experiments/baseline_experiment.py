@@ -1,8 +1,8 @@
 import os
 import sys
 
-import torch
 import pytorch_lightning as pl
+import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import CometLogger
 from torch.utils.data import DataLoader
@@ -10,13 +10,13 @@ from torchvision import transforms
 
 
 def main():
-    sys.path.append("/home/aneesh/Documents/master_thesis")
+    sys.path.append(os.environ.get("MASTER_THESIS_PATH"))
+    from src.constants import FREIHAND_DATA
     from src.data_loader.freihand_loader import F_DB
     from src.data_loader.utils import convert_2_5D_to_3D
     from src.models.baseline_model import BaselineModel
-    from src.constants import FREIHAND_DATA
 
-    BASE_DIR = "/home/aneesh/Documents/master_thesis/"
+    BASE_DIR = os.environ.get("MASTER_THESIS_PATH")
     comet_logger = CometLogger(
         api_key=os.environ.get("COMET_API_KEY"),
         project_name="baseline",
