@@ -3,7 +3,6 @@ import sys
 
 import torch
 import pytorch_lightning as pl
-from comet_ml import Experiment
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import CometLogger
 from torch.utils.data import DataLoader
