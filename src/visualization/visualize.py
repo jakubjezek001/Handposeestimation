@@ -7,6 +7,9 @@ import torch
 
 from src.constants import MASTER_THESIS_DIR
 from src.utils import read_json
+from src.data_loader.joints import Joints
+
+joints = Joints()
 
 
 def plot_hand(
@@ -17,16 +20,17 @@ def plot_hand(
 
     Args:
         axis (plt.Axes): Matlplotlib axes, for 3D plots pass axes with 3D projection
-        coords_hand (np.array): 21 coordinates of hand as numpy array. (21 x 3)
+        coords_hand (np.array): 21 coordinates of hand as numpy array. (21 x 3). Expects AIT format.
         plot_3d (bool, optional): Pass this as true for using the the depth parameter to plot the hand. Defaults to False.
         linewidth (str, optional): Linewidth to be used for drawing connecting bones. Defaults to "1".
     """
+
     colors = np.array(
         read_json(
             os.path.join(MASTER_THESIS_DIR, "src", "visualization", "joint_color.json")
         )["joint_colors"]
     )
-
+    coords_hand = joints.ait_to_freihand(coords_hand)
     # define connections and colors of the bones
     bones = [
         ((i, i + 1), colors[1 + i, :]) if i % 4 != 0 else ((0, i + 1), colors[1 + i, :])
