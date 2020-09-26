@@ -36,9 +36,18 @@ class BaselineModel(LightningModule):
         comet_experiment = self.logger.experiment
         comet_experiment.log_metrics({**{"loss": loss}, **train_metrics})
         if batch_idx == 1:
-            plot_truth_vs_prediction(
-                prediction[0].detach().numpy(), y[0].detach().numpy(), comet_experiment
-            )
+            if self.config.gpu:
+                pred_label = prediction.data[0].numpy()
+                try:
+                    true_label = y[0].detach().numpy()
+                except Exception as e:
+                    print(e)
+                    true_label = y.data[0].detach().numpy()
+            else:
+                pred_label = prediction[0].detach().numpy()
+                true_label = y[0].detach().numpy()
+
+            plot_truth_vs_prediction(pred_label, true_label, comet_experiment)
         return {**{"loss": loss}, **train_metrics}
 
     def configure_optimizers(self):
@@ -72,17 +81,11 @@ class BaselineModel(LightningModule):
         }
 
     def calculate_metrics(self, y_pred, y_true, step: str = "train"):
-        # Mean distance between predicted and true joint.
-        # TODO: Question: Also should these metrics be calculated with prdicted 3D joints or 2.5D predictions?
-        # TODO:  Ask Adrian if it is the mean of the median distance between each hand.
-        # TODO: Problems in unit of these errors as they are scaled versions.
-        # or overall median distance between that batch
         distance_joints = (
             torch.sum(((y_pred - y_true) ** 2), 2) ** 0.5
         )  # shape: (batch, 21)
         mean_distance = torch.mean(distance_joints)
-        # mean of the median distances.
-        median_distance = torch.median(distance_joints, 1)
+        median_distance = torch.median(distance_joints)
         return {
             f"EPE_mean_{step}": mean_distance,
             f"EPE_median_{step}": median_distance,
