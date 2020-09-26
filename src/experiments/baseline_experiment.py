@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import CometLogger
-from src.constants import FREIHAND_DATA
+from src.constants import FREIHAND_DATA, DATA_PATH
 from src.data_loader.freihand_loader import F_DB
 from src.experiments.utils import get_experiement_args, process_experiment_args
 from src.models.baseline_model import BaselineModel
@@ -14,7 +14,6 @@ from torchvision import transforms
 
 
 def main():
-    BASE_DIR = os.environ.get("MASTER_THESIS_PATH")
     args = get_experiement_args()
     train_param = process_experiment_args(args)
     np.random.seed(train_param.seed)
@@ -40,7 +39,7 @@ def main():
         api_key=os.environ.get("COMET_API_KEY"),
         project_name="master-thesis",
         workspace="dahiyaaneesh",
-        save_dir=os.path.join(BASE_DIR, "models"),
+        save_dir=os.path.join(DATA_PATH, "models"),
     )
     train_data_loader = DataLoader(
         train, batch_size=train_param.batch_size, num_workers=train_param.num_workers
