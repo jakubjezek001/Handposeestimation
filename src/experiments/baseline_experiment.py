@@ -6,19 +6,16 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import CometLogger
 from src.constants import FREIHAND_DATA
 from src.data_loader.freihand_loader import F_DB
-from src.experiments.utils import get_experiement_args
+from src.experiments.utils import get_experiement_args, process_experiment_args
 from src.models.baseline_model import BaselineModel
-from src.utils import read_json
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
 
 def main():
     BASE_DIR = os.environ.get("MASTER_THESIS_PATH")
-    gpu_use = get_experiement_args()
-    training_hyper_param = read_json(
-        os.path.join(BASE_DIR, "src", "experiments", "training_config.json")
-    )
+    args = get_experiement_args()
+    train_param = process_experiment_args(args)
 
     f_db = F_DB(
         root_dir=os.path.join(FREIHAND_DATA, "training", "rgb"),
@@ -26,7 +23,7 @@ def main():
         camera_param_path=os.path.join(FREIHAND_DATA, "training_K.json"),
         transform=transforms.Compose([transforms.ToTensor()]),
     )
-    train_percentage = int(training_hyper_param["train_ratio"] * 100)
+    train_percentage = int(train_param.train_ratio * 100)
     train, val = torch.utils.data.random_split(
         f_db,
         [
@@ -40,20 +37,16 @@ def main():
         workspace="dahiyaaneesh",
         save_dir=os.path.join(BASE_DIR, "models"),
     )
-    train_data_loader = DataLoader(train, batch_size=training_hyper_param["batch_size"])
-    val_data_loader = DataLoader(val, batch_size=training_hyper_param["batch_size"])
-    model = BaselineModel(config=training_hyper_param)
-    if gpu_use:
+    train_data_loader = DataLoader(train, batch_size=train_param.batch_size)
+    val_data_loader = DataLoader(val, batch_size=train_param.batch_size)
+    model = BaselineModel(config=train_param)
+    if train_param.gpu:
         print("GPU Training ativated")
-        trainer = Trainer(
-            max_epochs=training_hyper_param["epochs"], logger=comet_logger, gpus=-1
-        )
+        trainer = Trainer(max_epochs=train_param.epochs, logger=comet_logger, gpus=-1)
     else:
         print("CPU Training ativated")
-        trainer = Trainer(
-            max_epochs=training_hyper_param["epochs"], logger=comet_logger
-        )
-    trainer.logger.experiment.log_parameters(training_hyper_param)
+        trainer = Trainer(max_epochs=train_param.epochs, logger=comet_logger)
+    trainer.logger.experiment.log_parameters(train_param)
     trainer.fit(model, train_data_loader, val_data_loader)
 
 
