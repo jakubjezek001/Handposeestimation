@@ -37,8 +37,12 @@ def main():
         workspace="dahiyaaneesh",
         save_dir=os.path.join(BASE_DIR, "models"),
     )
-    train_data_loader = DataLoader(train, batch_size=train_param.batch_size)
-    val_data_loader = DataLoader(val, batch_size=train_param.batch_size)
+    train_data_loader = DataLoader(
+        train, batch_size=train_param.batch_size, num_workers=train_param.num_workers
+    )
+    val_data_loader = DataLoader(
+        val, batch_size=train_param.batch_size, num_workers=train_param.num_workers
+    )
     model = BaselineModel(config=train_param)
     if train_param.gpu:
         print("GPU Training ativated")
