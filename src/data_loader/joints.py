@@ -3,7 +3,7 @@ from easydict import EasyDict as edict
 import numpy as np
 from src.types import JOINTS_3D
 from src.utils import read_json
-from src.constants import FREIHAND_DATA, MASTER_THESIS_DIR
+from src.constants import MASTER_THESIS_DIR
 
 
 class Joints:
