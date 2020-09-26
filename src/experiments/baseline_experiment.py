@@ -42,7 +42,7 @@ def main():
     )
     train_data_loader = DataLoader(train, batch_size=training_hyper_param["batch_size"])
     val_data_loader = DataLoader(val, batch_size=training_hyper_param["batch_size"])
-    model = BaselineModel(freeze_resnet=training_hyper_param["resnet_trainable"])
+    model = BaselineModel(config=training_hyper_param)
     if gpu_use:
         print("GPU Training ativated")
         trainer = Trainer(
