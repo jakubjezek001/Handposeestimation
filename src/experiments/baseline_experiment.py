@@ -1,6 +1,7 @@
 import os
+import random
 
-import pytorch_lightning as pl
+import numpy as np
 import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import CometLogger
@@ -16,6 +17,10 @@ def main():
     BASE_DIR = os.environ.get("MASTER_THESIS_PATH")
     args = get_experiement_args()
     train_param = process_experiment_args(args)
+    np.random.seed(train_param.seed)
+    random.seed(train_param.seed)
+    torch.manual_seed(train_param.seed)
+    torch.cuda.manual_seed_all(train_param.seed)
 
     f_db = F_DB(
         root_dir=os.path.join(FREIHAND_DATA, "training", "rgb"),
