@@ -1,8 +1,12 @@
 from typing import Tuple
 
 import torch
-from src.constants import CHILD_JOINT, PARENT_JOINT
 from src.types import CAMERA_PARAM, JOINTS_3D, JOINTS_25D, SCALE
+from src.data_loader.joints import Joints
+
+JOINTS = Joints()
+PARENT_JOINT = JOINTS.mapping.ait.wrist
+CHILD_JOINT = JOINTS.mapping.ait.index_mcp
 
 
 def convert_to_2_5D(K: CAMERA_PARAM, joints_3D: JOINTS_3D) -> Tuple[JOINTS_25D, SCALE]:
