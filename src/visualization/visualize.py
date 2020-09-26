@@ -4,7 +4,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-
+from torchvision import transforms
 from src.constants import MASTER_THESIS_DIR
 from src.utils import read_json
 from src.data_loader.joints import Joints
@@ -66,17 +66,17 @@ def plot_hand(
             axis.plot(coords_hand[i, 1], coords_hand[i, 0], "o", color=colors[i, :])
 
 
-def plot_truth_vs_prediction(y_pred: torch.tensor, y_true: torch.tensor, experiment):
-    fig = plt.figure(figsize=(5, 5))
-    ax1 = fig.add_subplot(121)
+def plot_truth_vs_prediction(
+    y_pred: torch.tensor, y_true: torch.tensor, image: torch.tensor, experiment
+):
+    fig = plt.figure(figsize=(10, 10))
+    ax0 = fig.add_subplot(131)
+    plt.imshow(transforms.ToPILImage()(image))
+    ax0.title.set_text("Input image")
+    ax1 = fig.add_subplot(132)
     plot_hand(ax1, y_true)
     ax1.title.set_text("True joints")
-    ax2 = fig.add_subplot(122)
+    ax2 = fig.add_subplot(133)
     plot_hand(ax2, y_pred)
     ax2.title.set_text("Predicted joints")
     experiment.log_figure(figure=plt)
-
-
-def plot_hand_image(image: torch.tensor):
-    # TODO: for plotting image from a tensor.
-    pass

@@ -47,7 +47,7 @@ class BaselineModel(LightningModule):
                 pred_label = prediction[0].detach().numpy()
                 true_label = y[0].detach().numpy()
 
-            plot_truth_vs_prediction(pred_label, true_label, comet_experiment)
+            plot_truth_vs_prediction(pred_label, true_label, x[0], comet_experiment)
         return {**{"loss": loss}, **train_metrics}
 
     def configure_optimizers(self):

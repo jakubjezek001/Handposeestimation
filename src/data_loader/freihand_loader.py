@@ -1,13 +1,18 @@
-import json
 import os
 
+from torch.nn.functional import cross_entropy
+from src.types import JOINTS_25D
+import numpy as np
 import torch
+from torchvision import transforms
 from PIL import Image
 from src.data_loader.utils import convert_to_2_5D
 from src.data_loader.joints import Joints
 from torch.utils.data import Dataset
 from typing import List
 from src.utils import read_json
+
+CROP_MARGIN = 1.5
 
 
 class F_DB(Dataset):
@@ -60,7 +65,7 @@ class F_DB(Dataset):
         return read_json(lables_path)
 
     def get_camera_param(self, camera_param_path: str) -> list:
-        """[summary]
+        """Extacts the camera parameters from the camera_param_json at camera_param_path.
 
         Args:
             camera_param_path (str): Path to json containing camera paramters.
@@ -94,6 +99,33 @@ class F_DB(Dataset):
             "K": camera_param,
             "joints_3D": joints3D,
         }
+        sample["image"] = self.image_cropper(sample["image"], joints25D, CROP_MARGIN)
+
         if self.transform:
             sample["image"] = self.transform(sample["image"])
         return sample
+
+    def image_cropper(
+        self, image: Image, joints: JOINTS_25D, crop_margin: float
+    ) -> Image:
+        """Uses the image coordinates to extract the location of the hand and then cropping around the handpose.
+
+        Args:
+            image (PIL.Image): A PIL image.
+            joints (JOINTS_25D): tensor of all 21 keypoints
+            crop_margin (float): The amount by which the crop box should be scaled. valid range 1 to 2. Other values will be clipped
+
+        Returns:
+            Image:  A cropped PIL image.
+        """
+        crop_margin = np.clip(crop_margin, 1.0, 2.0)
+        top, left = torch.min(joints[:, 1]), torch.min(joints[:, 0])
+        bottom, right = torch.max(joints[:, 1]), torch.max(joints[:, 0])
+        height, width = bottom - top, right - left
+        return transforms.functional.crop(
+            image,
+            top=int(top - height * (crop_margin - 1) / 2),
+            left=int(left - width * (crop_margin - 1) / 2),
+            height=int(height * crop_margin),
+            width=int(width * crop_margin),
+        )
