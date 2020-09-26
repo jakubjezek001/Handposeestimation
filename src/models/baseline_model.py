@@ -7,16 +7,14 @@ from src.visualization.visualize import plot_truth_vs_prediction
 
 
 class BaselineModel(LightningModule):
-    def __init__(self, freeze_resnet: bool = True):
+    def __init__(self, config: dict):
         super().__init__()
-
+        self.config = config
         self.resnet18 = torchvision.models.resnet18(pretrained=True)
-
-        if freeze_resnet:
+        if ~self.config["resnet_trainable"]:
             for param in self.resnet18.parameters():
                 param.requires_grad = False
         self.resnet18.fc = torch.nn.Linear(self.resnet18.fc.in_features, 128)
-
         self.layer_1 = torch.nn.Linear(128, 128)
         self.output_layer = torch.nn.Linear(128, 21 * 3)
 
@@ -44,7 +42,7 @@ class BaselineModel(LightningModule):
         return {**{"loss": loss}, **train_metrics}
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=1e-3)
+        return torch.optim.Adam(self.parameters(), lr=self.config["learning_rate"])
 
     def validation_step(self, batch, batch_idx):
         x, y = batch["image"], batch["joints"]
@@ -84,7 +82,7 @@ class BaselineModel(LightningModule):
         )  # shape: (batch, 21)
         mean_distance = torch.mean(distance_joints)
         # mean of the median distances.
-        median_distance = torch.mean(torch.median(distance_joints, 1)[0])
+        median_distance = torch.median(distance_joints, 1)
         return {
             f"EPE_mean_{step}": mean_distance,
             f"EPE_median_{step}": median_distance,
