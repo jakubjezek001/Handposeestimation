@@ -35,19 +35,17 @@ class BaselineModel(LightningModule):
         train_metrics = self.calculate_metrics(prediction, y, step="train")
         comet_experiment = self.logger.experiment
         comet_experiment.log_metrics({**{"loss": loss}, **train_metrics})
-        if batch_idx == 1:
+        if batch_idx == 1 or batch_idx == 4:
             if self.config.gpu:
-                pred_label = prediction.data[0].numpy()
-                try:
-                    true_label = y[0].detach().numpy()
-                except Exception as e:
-                    print(e)
-                    true_label = y.data[0].detach().numpy()
+                pred_label = prediction.data[0].cpu().numpy()
+                true_label = y.data[0].cpu().detach().numpy()
             else:
                 pred_label = prediction[0].detach().numpy()
                 true_label = y[0].detach().numpy()
 
-            plot_truth_vs_prediction(pred_label, true_label, x[0], comet_experiment)
+            plot_truth_vs_prediction(
+                pred_label, true_label, x.data[0].cpu(), comet_experiment
+            )
         return {**{"loss": loss}, **train_metrics}
 
     def configure_optimizers(self):

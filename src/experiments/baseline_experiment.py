@@ -51,10 +51,10 @@ def main():
     )
     model = BaselineModel(config=train_param)
     if train_param.gpu:
-        print("GPU Training ativated")
+        print("GPU Training activated")
         trainer = Trainer(max_epochs=train_param.epochs, logger=comet_logger, gpus=-1)
     else:
-        print("CPU Training ativated")
+        print("CPU Training activated")
         trainer = Trainer(max_epochs=train_param.epochs, logger=comet_logger)
     trainer.logger.experiment.log_parameters(train_param)
     trainer.fit(model, train_data_loader, val_data_loader)
