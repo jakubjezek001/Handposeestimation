@@ -1,8 +1,8 @@
 {
     "freihand": {
-        " wrist": 0,
+        "wrist": 0,
         "thumb_mcp": 1,
-        " index_mcp": 2,
+        "index_mcp": 2,
         "middle_mcp": 3,
         "ring_mcp": 4,
         "pinky_mcp": 5,
@@ -23,9 +23,9 @@
         "pinky_tip": 20
     },
     "ait": {
-        " wrist": 0,
+        "wrist": 0,
         "thumb_mcp": 1,
-        " index_mcp": 5,
+        "index_mcp": 5,
         "middle_mcp": 9,
         "ring_mcp": 13,
         "pinky_mcp": 17,

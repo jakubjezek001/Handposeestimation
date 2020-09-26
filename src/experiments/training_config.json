@@ -3,5 +3,6 @@
     "epochs": 100,
     "train_ratio": 0.9,
     "resnet_trainable": true,
-    "learning_rate":0.0001
+    "learning_rate":0.0001,
+    "gpu":false
 }
