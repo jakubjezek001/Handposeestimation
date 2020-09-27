@@ -21,21 +21,27 @@ After logging into the cluster do the following.
  2.  Follow the setup instructions above.
  3. Add following to ~/.bashrc  file
 
-```export MASTER_THESIS_PATH='/path/to/the/thesis/direcorty'```
-```export COMET_API_KEY=<COMET_API_KEY>```
-```module load python_gpu/3.7.1```
-```source $MASTER_THESIS_PATH/master_thesis_env/bin/activate```
-```export PYTHONPATH="$MASTER_THESIS_PATH"```
+```export MASTER_THESIS_PATH='/path/to/the/thesis/direcorty'```  
+```export COMET_API_KEY=<COMET_API_KEY>``` 
+```module load gcc/4.8.5``` 
+```module load python_gpu/3.6.4``` 
+```module load  cuda/10.1.243``` 
+```module load  cudnn/7.6.4``` 
+```module load  eth_proxy``` 
+```source $MASTER_THESIS_PATH/master_thesis_env/bin/activate``` 
+```export PYTHONPATH="$MASTER_THESIS_PATH"``` 
+```export DATA_PATH="/cluster/scratch//adahiya/data"``` 
 
 #### Submitting jobs :
 - For all options check this : [LSF mini ref](https://scicomp.ethz.ch/wiki/LSF_mini_reference)
 - For basic GPU usage with the cluster : [Getting started with GPU](https://scicomp.ethz.ch/wiki/Getting_started_with_GPUs)
-Quick bsub commands
+Quick bsub commands 
+Note: Do not submit without specifying the memory otherwise the job fails.
 1. WITHOUT  GPU:
-```bsub -o output_logs.log python src/experiments/baseline_experiment.py```
+```bsub -W 12:00 -o /cluster/scratch//adahiya/exp1_logs.out -B  python src/experiments/baseline_experiment.py --gpu -batch_size 32 -epochs 1000```
 
 2. WITH GPU:
-```bsub -o output_logs.log  -R  "rusage[ngpus_excl_p=1]"  python src/experiments/baseline_experiment.py --gpu```
+```bsub -W 12:00 -o /cluster/scratch//adahiya/exp1_logs.out -B -R "rusage[mem=4096, ngpus_excl_p=1]" python src/experiments/baseline_experiment.py --gpu -batch_size 32 -epochs 1000```
 
 
 
