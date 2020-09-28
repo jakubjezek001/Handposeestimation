@@ -84,6 +84,18 @@ class BaselineModel(LightningModule):
         prediction = self(x)
         loss = F.mse_loss(prediction, y)
         val_metrics = self.calculate_metrics(prediction, y, step="val")
+        comet_experiment = self.logger.experiment
+        if batch_idx == 1 or batch_idx == 4:
+            if self.config.gpu:
+                pred_label = prediction.data[0].cpu().numpy()
+                true_label = y.data[0].cpu().detach().numpy()
+            else:
+                pred_label = prediction[0].detach().numpy()
+                true_label = y[0].detach().numpy()
+
+            plot_truth_vs_prediction(
+                pred_label, true_label, x.data[0].cpu(), comet_experiment
+            )
         return {**{"val_loss": loss}, **val_metrics}
 
     def validation_epoch_end(self, outputs: List[dict]) -> dict:
