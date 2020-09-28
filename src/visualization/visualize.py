@@ -1,13 +1,16 @@
 import json
 import os
+from typing import Union
 
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from torchvision import transforms
+from comet_ml import Experiment
 from src.constants import MASTER_THESIS_DIR
-from src.utils import read_json
 from src.data_loader.joints import Joints
+from src.types import JOINTS_3D, JOINTS_25D
+from src.utils import read_json
+from torchvision import transforms
 
 joints = Joints()
 
@@ -67,8 +70,19 @@ def plot_hand(
 
 
 def plot_truth_vs_prediction(
-    y_pred: torch.tensor, y_true: torch.tensor, image: torch.tensor, experiment
+    y_pred: Union[JOINTS_25D, JOINTS_3D],
+    y_true: Union[JOINTS_25D, JOINTS_3D],
+    image: torch.Tensor,
+    experiment: Experiment,
 ):
+    """Generates the graphics with input image, predicetd labels and the ground truth.
+
+    Args:
+        y_pred (Union[JOINTS_25D, JOINTS_3D]): Output from the model as a tensor. shape (21 x 3)
+        y_true (Union[JOINTS_25D, JOINTS_3D]): ground truth. shape(21 x 3)
+        image (torch.Tensor): Input image to the model.
+        experiment (Experiment): Comet ml experiment object.
+    """
     fig = plt.figure(figsize=(10, 10))
     ax0 = fig.add_subplot(131)
     plt.imshow(transforms.ToPILImage()(image))

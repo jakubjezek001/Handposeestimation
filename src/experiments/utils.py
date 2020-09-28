@@ -1,11 +1,8 @@
 import argparse
-import os
 
 from easydict import EasyDict as edict
-from torch.utils.data.sampler import BatchSampler
 from src.constants import TRAINING_CONFIG_PATH
 from src.utils import read_json
-from torch.utils.data.dataloader import default_collate
 
 
 def get_experiement_args() -> argparse.Namespace:

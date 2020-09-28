@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import CometLogger
-from src.constants import FREIHAND_DATA, DATA_PATH
+from src.constants import DATA_PATH, FREIHAND_DATA
 from src.data_loader.freihand_loader import F_DB
 from src.experiments.utils import get_experiement_args, process_experiment_args
 from src.models.baseline_model import BaselineModel
