@@ -1,16 +1,15 @@
 import os
+from typing import List
 
-from torch.nn.functional import cross_entropy
-from src.types import JOINTS_25D
 import numpy as np
 import torch
-from torchvision import transforms
 from PIL import Image
-from src.data_loader.utils import convert_to_2_5D
 from src.data_loader.joints import Joints
-from torch.utils.data import Dataset
-from typing import List
+from src.data_loader.utils import convert_to_2_5D
+from src.types import JOINTS_25D
 from src.utils import read_json
+from torch.utils.data import Dataset
+from torchvision import transforms
 
 CROP_MARGIN = 1.5
 

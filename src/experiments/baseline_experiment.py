@@ -5,12 +5,13 @@ import numpy as np
 import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import CometLogger
-from src.constants import DATA_PATH, FREIHAND_DATA
-from src.data_loader.freihand_loader import F_DB
+from src.constants import DATA_PATH
+from src.data_loader.data_set import Data_Set
 from src.experiments.utils import get_experiement_args, process_experiment_args
 from src.models.baseline_model import BaselineModel
 from torch.utils.data import DataLoader
 from torchvision import transforms
+import copy
 
 
 def main():
@@ -21,22 +22,16 @@ def main():
     torch.manual_seed(train_param.seed)
     torch.cuda.manual_seed_all(train_param.seed)
 
-    f_db = F_DB(
-        root_dir=os.path.join(FREIHAND_DATA, "training", "rgb"),
-        labels_path=os.path.join(FREIHAND_DATA, "training_xyz.json"),
-        camera_param_path=os.path.join(FREIHAND_DATA, "training_K.json"),
-        transform=transforms.Compose(
+    train_data = Data_Set(
+        config=train_param,
+        transforms=transforms.Compose(
             [transforms.Resize((128, 128)), transforms.ToTensor()]
         ),
+        train_set=True,
     )
-    train_percentage = int(train_param.train_ratio * 100)
-    train, val = torch.utils.data.random_split(
-        f_db,
-        [
-            len(f_db) * train_percentage // 100,
-            len(f_db) - len(f_db) * train_percentage // 100,
-        ],
-    )
+    val_data = copy.copy(train_data)
+    val_data.is_training(False)
+
     comet_logger = CometLogger(
         api_key=os.environ.get("COMET_API_KEY"),
         project_name="master-thesis",
@@ -44,10 +39,12 @@ def main():
         save_dir=os.path.join(DATA_PATH, "models"),
     )
     train_data_loader = DataLoader(
-        train, batch_size=train_param.batch_size, num_workers=train_param.num_workers
+        train_data,
+        batch_size=train_param.batch_size,
+        num_workers=train_param.num_workers,
     )
     val_data_loader = DataLoader(
-        val, batch_size=train_param.batch_size, num_workers=train_param.num_workers
+        val_data, batch_size=train_param.batch_size, num_workers=train_param.num_workers
     )
     model = BaselineModel(config=train_param)
     if train_param.gpu:
