@@ -10,6 +10,7 @@ Setup
 ```make requirements  # to install all the requirements and setting up of githooks```
 
 ``` source master_thesis_env/bin/activate  #to activate the environment```
+TODO: Add instruction for installing pytorch, pytorch_lightening, comet_ml and easydict.
 
 Leonhard setup
 ------------
@@ -17,7 +18,7 @@ After logging into the cluster do the following.
 #### One Time instructions:
 
 1. Load Modules.
- ```module load python_gpu/3.7.1```
+ ```module load python_gpu/3.6.4```
  2.  Follow the setup instructions above.
  3. Add following to ~/.bashrc  file
 
@@ -31,6 +32,8 @@ After logging into the cluster do the following.
 ```source $MASTER_THESIS_PATH/master_thesis_env/bin/activate``` 
 ```export PYTHONPATH="$MASTER_THESIS_PATH"``` 
 ```export DATA_PATH="/cluster/scratch//adahiya/data"``` 
+
+4. Open a new terminal. The environment for GPU computation is established.
 
 #### Submitting jobs :
 - For all options check this : [LSF mini ref](https://scicomp.ethz.ch/wiki/LSF_mini_reference)
@@ -71,21 +74,27 @@ Project Organization
     │
     ├── setup.py           <- makes project pip installable (pip install -e .) so src can be imported
     ├── src                <- Source code for use in this project.
-    │   ├── __init__.py    <- Makes src a Python module
+    │   ├── __init__.py    <- Makes src a Python module.
+    │   ├── utils.py    <- File containig utils function to be used by all the scripts in src and its sub folders.
+    │   ├── constants.py    <- File containig constants  to be used by all the scripts in src and its sub folders.
     │   │
-    │   ├── data           <- Scripts to download or generate data
-    │   │   └── make_dataset.py
+    │   ├── data_loader          <- Scripts to load/prepare data to be used in experiments.
+    │   │   └──freihand_loader.py <- Python class to read the Freihand data from data/raw.
     │   │
-    │   ├── features       <- Scripts to turn raw data into features for modeling
-    │   │   └── build_features.py
+    │   ├── experiment       <- Scripts to run experiments with models in src/models
+    │   │   ├── baseline_experiment.py <- script to run experiment with baseline model.
+    │   │   ├── training_config.json <- Json containng the default training parameters.
+    │   │   ├── utils.py <- File containg utility functions for experiment scripts.
     │   │
-    │   ├── models         <- Scripts to train models and then use trained models to make
-    │   │   │                 predictions
-    │   │   ├── predict_model.py
-    │   │   └── train_model.py
+    │   ├── models         <- Folder containing all the models for experimentation
+    │   │   |
+    │   │   ├── baseline_model.py <- Python class containing the baseline supervised model.
+    │   │   └── ....
     │   │
-    │   └── visualization  <- Scripts to create exploratory and results oriented visualizations
-    │       └── visualize.py
+    │   └── visualization  <- Scripts to generate visualizations/graphics for logging and reporting.
+    │       ├── visualize.py <- File containg fucntion to visualize the joints and the image for logging during an experiment.
+    │       ├── joint_color.json <- Json file containing the color information for all the joints.
+    │   
     │
     └── tox.ini            <- tox file with settings for running tox; see tox.readthedocs.io
 
