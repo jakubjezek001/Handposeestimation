@@ -6,6 +6,7 @@ from easydict import EasyDict as edict
 from pytorch_lightning.core.lightning import LightningModule
 from src.visualization.visualize import plot_truth_vs_prediction
 from torch.nn import functional as F
+from src.models.utils import cal_l1_loss
 
 
 class BaselineModel(LightningModule):
@@ -50,7 +51,8 @@ class BaselineModel(LightningModule):
         """
         x, y = batch["image"], batch["joints"]
         prediction = self(x)
-        loss = F.mse_loss(prediction, y)
+        # loss = F.mse_loss(prediction, y)
+        loss = cal_l1_loss(prediction, y, self.config.alpha)
         train_metrics = self.calculate_metrics(prediction, y, step="train")
         comet_experiment = self.logger.experiment
         comet_experiment.log_metrics({**{"loss": loss}, **train_metrics})
@@ -82,7 +84,8 @@ class BaselineModel(LightningModule):
         """
         x, y = batch["image"], batch["joints"]
         prediction = self(x)
-        loss = F.mse_loss(prediction, y)
+        # loss = F.mse_loss(prediction, y)
+        loss = cal_l1_loss(prediction, y, self.config.alpha)
         val_metrics = self.calculate_metrics(prediction, y, step="val")
         comet_experiment = self.logger.experiment
         if batch_idx == 1 or batch_idx == 4:
