@@ -1,13 +1,16 @@
 import json
 import os
+from typing import Union
 
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-
+from comet_ml import Experiment
 from src.constants import MASTER_THESIS_DIR
-from src.utils import read_json
 from src.data_loader.joints import Joints
+from src.types import JOINTS_3D, JOINTS_25D
+from src.utils import read_json
+from torchvision import transforms
 
 joints = Joints()
 
@@ -66,17 +69,28 @@ def plot_hand(
             axis.plot(coords_hand[i, 1], coords_hand[i, 0], "o", color=colors[i, :])
 
 
-def plot_truth_vs_prediction(y_pred: torch.tensor, y_true: torch.tensor, experiment):
-    fig = plt.figure(figsize=(5, 5))
-    ax1 = fig.add_subplot(121)
+def plot_truth_vs_prediction(
+    y_pred: Union[JOINTS_25D, JOINTS_3D],
+    y_true: Union[JOINTS_25D, JOINTS_3D],
+    image: torch.Tensor,
+    experiment: Experiment,
+):
+    """Generates the graphics with input image, predicetd labels and the ground truth.
+
+    Args:
+        y_pred (Union[JOINTS_25D, JOINTS_3D]): Output from the model as a tensor. shape (21 x 3)
+        y_true (Union[JOINTS_25D, JOINTS_3D]): ground truth. shape(21 x 3)
+        image (torch.Tensor): Input image to the model.
+        experiment (Experiment): Comet ml experiment object.
+    """
+    fig = plt.figure(figsize=(10, 10))
+    ax0 = fig.add_subplot(131)
+    plt.imshow(transforms.ToPILImage()(image))
+    ax0.title.set_text("Input image")
+    ax1 = fig.add_subplot(132)
     plot_hand(ax1, y_true)
     ax1.title.set_text("True joints")
-    ax2 = fig.add_subplot(122)
+    ax2 = fig.add_subplot(133)
     plot_hand(ax2, y_pred)
     ax2.title.set_text("Predicted joints")
     experiment.log_figure(figure=plt)
-
-
-def plot_hand_image(image: torch.tensor):
-    # TODO: for plotting image from a tensor.
-    pass

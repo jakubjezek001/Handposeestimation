@@ -1,8 +1,8 @@
 from typing import Tuple
 
 import torch
-from src.types import CAMERA_PARAM, JOINTS_3D, JOINTS_25D, SCALE
 from src.data_loader.joints import Joints
+from src.types import CAMERA_PARAM, JOINTS_3D, JOINTS_25D, SCALE
 
 JOINTS = Joints()
 PARENT_JOINT = JOINTS.mapping.ait.wrist

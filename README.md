@@ -10,6 +10,7 @@ Setup
 ```make requirements  # to install all the requirements and setting up of githooks```
 
 ``` source master_thesis_env/bin/activate  #to activate the environment```
+TODO: Add instruction for installing pytorch, pytorch_lightening, comet_ml and easydict.
 
 Leonhard setup
 ------------
@@ -17,25 +18,33 @@ After logging into the cluster do the following.
 #### One Time instructions:
 
 1. Load Modules.
- ```module load python_gpu/3.7.1```
+ ```module load python_gpu/3.6.4```
  2.  Follow the setup instructions above.
  3. Add following to ~/.bashrc  file
 
-```export MASTER_THESIS_PATH='/path/to/the/thesis/direcorty'```
-```export COMET_API_KEY=<COMET_API_KEY>```
-```module load python_gpu/3.7.1```
-```source $MASTER_THESIS_PATH/master_thesis_env/bin/activate```
-```export PYTHONPATH="$MASTER_THESIS_PATH"```
+```export MASTER_THESIS_PATH='/path/to/the/thesis/direcorty'```  
+```export COMET_API_KEY=<COMET_API_KEY>``` 
+```module load gcc/4.8.5``` 
+```module load python_gpu/3.6.4``` 
+```module load  cuda/10.1.243``` 
+```module load  cudnn/7.6.4``` 
+```module load  eth_proxy``` 
+```source $MASTER_THESIS_PATH/master_thesis_env/bin/activate``` 
+```export PYTHONPATH="$MASTER_THESIS_PATH"``` 
+```export DATA_PATH="/cluster/scratch//adahiya/data"``` 
+
+4. Open a new terminal. The environment for GPU computation is established.
 
 #### Submitting jobs :
 - For all options check this : [LSF mini ref](https://scicomp.ethz.ch/wiki/LSF_mini_reference)
 - For basic GPU usage with the cluster : [Getting started with GPU](https://scicomp.ethz.ch/wiki/Getting_started_with_GPUs)
-Quick bsub commands
+Quick bsub commands 
+Note: Do not submit without specifying the memory otherwise the job fails.
 1. WITHOUT  GPU:
-```bsub -o output_logs.log python src/experiments/baseline_experiment.py```
+```bsub -W 12:00 -o /cluster/scratch//adahiya/exp1_logs.out -B  python src/experiments/baseline_experiment.py --gpu -batch_size 32 -epochs 1000```
 
 2. WITH GPU:
-```bsub -o output_logs.log  -R  "rusage[ngpus_excl_p=1]"  python src/experiments/baseline_experiment.py --gpu```
+```bsub -W 12:00 -o /cluster/scratch//adahiya/exp1_logs.out -B -R "rusage[mem=4096, ngpus_excl_p=1]" python src/experiments/baseline_experiment.py --gpu -batch_size 32 -epochs 1000```
 
 
 
@@ -65,21 +74,27 @@ Project Organization
     │
     ├── setup.py           <- makes project pip installable (pip install -e .) so src can be imported
     ├── src                <- Source code for use in this project.
-    │   ├── __init__.py    <- Makes src a Python module
+    │   ├── __init__.py    <- Makes src a Python module.
+    │   ├── utils.py    <- File containig utils function to be used by all the scripts in src and its sub folders.
+    │   ├── constants.py    <- File containig constants  to be used by all the scripts in src and its sub folders.
     │   │
-    │   ├── data           <- Scripts to download or generate data
-    │   │   └── make_dataset.py
+    │   ├── data_loader          <- Scripts to load/prepare data to be used in experiments.
+    │   │   └──freihand_loader.py <- Python class to read the Freihand data from data/raw.
     │   │
-    │   ├── features       <- Scripts to turn raw data into features for modeling
-    │   │   └── build_features.py
+    │   ├── experiment       <- Scripts to run experiments with models in src/models
+    │   │   ├── baseline_experiment.py <- script to run experiment with baseline model.
+    │   │   ├── training_config.json <- Json containng the default training parameters.
+    │   │   ├── utils.py <- File containg utility functions for experiment scripts.
     │   │
-    │   ├── models         <- Scripts to train models and then use trained models to make
-    │   │   │                 predictions
-    │   │   ├── predict_model.py
-    │   │   └── train_model.py
+    │   ├── models         <- Folder containing all the models for experimentation
+    │   │   |
+    │   │   ├── baseline_model.py <- Python class containing the baseline supervised model.
+    │   │   └── ....
     │   │
-    │   └── visualization  <- Scripts to create exploratory and results oriented visualizations
-    │       └── visualize.py
+    │   └── visualization  <- Scripts to generate visualizations/graphics for logging and reporting.
+    │       ├── visualize.py <- File containg fucntion to visualize the joints and the image for logging during an experiment.
+    │       ├── joint_color.json <- Json file containing the color information for all the joints.
+    │   
     │
     └── tox.ini            <- tox file with settings for running tox; see tox.readthedocs.io
 
