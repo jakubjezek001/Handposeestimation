@@ -43,6 +43,7 @@ def convert_2_5D_to_3D(
     Z_root, K_inv = get_root_depth(joints_25D, K)
     Z_coord = (joints_25D[:, -1:] + Z_root) * scale
     camera_projection = joints_25D.clone()
+    # print(joints_25D)
     camera_projection[:, -1] = 1
     joints_3D = ((K_inv @ (camera_projection.T)).T) * Z_coord
     return joints_3D
@@ -90,20 +91,17 @@ def get_root_depth(
     return Z_root, K_inv
 
 
-def error_in_conversion(true_joints_3D: JOINTS_3D, K: CAMERA_PARAM) -> float:
-    """Calculates maximum percentage error between original 3D coordinates and
+def error_in_conversion(true_joints_3D: JOINTS_3D, cal_joints_3D: JOINTS_3D) -> float:
+    """Calculates absolutes error between original 3D coordinates and
      the ones recovered from 2.5 Dimensions.
 
     Args:
         true_joints_3D (JOINTS_3D): Original 3D coordinares from the data, unscaled
-        K (CAMERA_PARAM): camera parameters for those coordinates.
+        cal_joints_3D (JOINTS_3D): Calculated 3D coordinares from the 2.5D coordinates, unscaled
 
     Returns:
         float: Maximum percentage error between the conversion and the original.
     """
-    joints25D, scale = convert_to_2_5D(K, true_joints_3D)
-    error_percentage = (
-        torch.abs((convert_2_5D_to_3D(joints25D, scale, K) - true_joints_3D))
-        / true_joints_3D
-    )
-    return torch.max(error_percentage) * 100
+    error = torch.abs(cal_joints_3D - true_joints_3D)
+    # error = torch.sum((cal_joints_3D - true_joints_3D)**2, 0)**0.5
+    return torch.max(error)
