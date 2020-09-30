@@ -1,0 +1,6 @@
+{
+    "alpha": 5,
+    "gpu": true,
+    "resnet_trainable": true,
+    "learning_rate":0.0001
+}
