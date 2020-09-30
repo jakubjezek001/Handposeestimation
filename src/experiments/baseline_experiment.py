@@ -16,7 +16,7 @@ import copy
 
 def main():
     args = get_experiement_args()
-    train_param = process_experiment_args(args)
+    train_param, model_param = process_experiment_args(args)
     np.random.seed(train_param.seed)
     random.seed(train_param.seed)
     torch.manual_seed(train_param.seed)
@@ -46,14 +46,15 @@ def main():
     val_data_loader = DataLoader(
         val_data, batch_size=train_param.batch_size, num_workers=train_param.num_workers
     )
-    model = BaselineModel(config=train_param)
+    model = BaselineModel(config=model_param)
     if train_param.gpu:
         print("GPU Training activated")
         trainer = Trainer(max_epochs=train_param.epochs, logger=comet_logger, gpus=-1)
     else:
         print("CPU Training activated")
         trainer = Trainer(max_epochs=train_param.epochs, logger=comet_logger)
-    trainer.logger.experiment.log_parameters(train_param)
+    trainer.logger.experiment.log_parameters({"train_param": train_param})
+    trainer.logger.experiment.log_parameters({"model_param": model_param})
     trainer.fit(model, train_data_loader, val_data_loader)
 
 
