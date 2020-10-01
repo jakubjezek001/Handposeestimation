@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import CometLogger
-from src.constants import DATA_PATH
+from src.constants import DATA_PATH, MASTER_THESIS_DIR
 from src.data_loader.data_set import Data_Set
 from src.experiments.utils import get_experiement_args, process_experiment_args
 from src.models.baseline_model import BaselineModel
@@ -54,6 +54,10 @@ def main():
         print("CPU Training activated")
         trainer = Trainer(max_epochs=train_param.epochs, logger=comet_logger)
     trainer.logger.experiment.log_parameters({"train_param": train_param})
+    trainer.logger.experiment.set_code(
+        overwrite=True,
+        filename=os.path.join(MASTER_THESIS_DIR, "src", "models", "baseline_model.py"),
+    )
     trainer.logger.experiment.log_parameters({"model_param": model_param})
     trainer.fit(model, train_data_loader, val_data_loader)
 

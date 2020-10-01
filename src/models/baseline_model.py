@@ -55,18 +55,20 @@ class BaselineModel(LightningModule):
         loss = cal_l1_loss(prediction, y, self.config.alpha)
         train_metrics = self.calculate_metrics(prediction, y, step="train")
         comet_experiment = self.logger.experiment
-        comet_experiment.log_metrics({**{"loss": loss}, **train_metrics})
-        if batch_idx == 1 or batch_idx == 4:
-            if self.config.gpu:
-                pred_label = prediction.data[0].cpu().numpy()
-                true_label = y.data[0].cpu().detach().numpy()
-            else:
-                pred_label = prediction[0].detach().numpy()
-                true_label = y[0].detach().numpy()
+        with comet_experiment.train():
+            comet_experiment.set_epoch(self.current_epoch)
+            comet_experiment.log_metrics({**{"loss": loss}, **train_metrics})
+            if batch_idx == 1 or batch_idx == 4:
+                if self.config.gpu:
+                    pred_label = prediction.data[0].cpu().numpy()
+                    true_label = y.data[0].cpu().detach().numpy()
+                else:
+                    pred_label = prediction[0].detach().numpy()
+                    true_label = y[0].detach().numpy()
 
-            plot_truth_vs_prediction(
-                pred_label, true_label, x.data[0].cpu(), comet_experiment
-            )
+                plot_truth_vs_prediction(
+                    pred_label, true_label, x.data[0].cpu(), comet_experiment
+                )
         return {**{"loss": loss}, **train_metrics}
 
     def configure_optimizers(self) -> torch.optim.Adam:
@@ -114,17 +116,18 @@ class BaselineModel(LightningModule):
         val_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
         val_epe_mean = torch.stack([x["EPE_mean_val"] for x in outputs]).mean()
         val_epe_median = torch.stack([x["EPE_median_val"] for x in outputs]).mean()
-        self.logger.experiment.log_metrics(
-            {
-                "val_loss": val_loss,
-                "val_epe_mean": val_epe_mean,
-                "val_epe_median": val_epe_median,
-            }
-        )
+        with self.logger.experiment.validate():
+            self.logger.experiment.log_metrics(
+                {
+                    "loss": val_loss,
+                    "epe_mean": val_epe_mean,
+                    "epe_median": val_epe_median,
+                }
+            )
         return {
-            "val_loss": val_loss,
-            "val_epe_mean": val_epe_mean,
-            "val_epe_median": val_epe_median,
+            "loss": val_loss,
+            "epe_mean": val_epe_mean,
+            "epe_median": val_epe_median,
         }
 
     def calculate_metrics(
