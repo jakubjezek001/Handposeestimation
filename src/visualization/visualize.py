@@ -105,13 +105,17 @@ def plot_truth_vs_prediction(
         image (torch.Tensor): Input image to the model.
         experiment (Experiment): Comet ml experiment object.
     """
+    img = transforms.ToPILImage()(image)
+    width, height = img.size
     fig = plt.figure(figsize=(10, 10))
     ax1 = fig.add_subplot(121)
-    plt.imshow(transforms.ToPILImage()(image))
+    plt.imshow(img)
     plot_hand(ax1, y_true)
     ax1.title.set_text("True joints")
-    ax2 = fig.add_subplot(133)
+    ax2 = fig.add_subplot(122)
     plot_hand(ax2, y_true, alpha=0.2, linestyle=":")
     plot_hand(ax2, y_pred)
+    ax2.set_xlim([0, width])
+    ax2.set_ylim([height, 0])
     ax2.title.set_text("Predicted joints")
     experiment.log_figure(figure=plt)
