@@ -1,8 +1,12 @@
 from typing import Tuple
+from matplotlib.transforms import TransformNode
 
 import torch
 from src.types import CAMERA_PARAM, JOINTS_3D, JOINTS_25D, SCALE
 from src.data_loader.joints import Joints
+from PIL import Image
+from math import pi, sin, cos
+from torchvision import transforms
 
 JOINTS = Joints()
 PARENT_JOINT = JOINTS.mapping.ait.wrist
@@ -105,3 +109,97 @@ def error_in_conversion(true_joints_3D: JOINTS_3D, cal_joints_3D: JOINTS_3D) -> 
     error = torch.abs(cal_joints_3D - true_joints_3D)
     # error = torch.sum((cal_joints_3D - true_joints_3D)**2, 0)**0.5
     return torch.max(error)
+
+
+def get_rotation_matrix(angle) -> torch.Tensor:
+    """Retursn 2D rotation matrix
+
+    Args:
+        angle (int): Angle in degrees. Measured counterclockwise from the x axis.
+
+    Returns:
+        torch.Tensor: A 2x2 Rotation tensor.
+    """
+    deg = pi / 180
+    return torch.tensor(
+        [[cos(angle * deg), -sin(angle * deg)], [sin(angle * deg), cos(angle * deg)]]
+    )
+
+
+def sample_rotator(
+    image: Image.Image, joints: JOINTS_25D, angle: int
+) -> Tuple[Image.Image, JOINTS_25D]:
+    """Rotates the sample image and the 2D keypoints by 'angle' in degrees counter clockwise to x axis around
+    the image center. The relative depth is not changed.
+
+
+    Args:
+        image (Image.Image): a PIL image, preferable uncropped
+        joints (JOINTS_25D): Tensor of all 2.5 D coordinates.
+        angle (int): Angle in degrees.
+
+    Returns:
+        Tuple[Image.Image, JOINTS_25D]: Rotated image and keypoints.
+    """
+    rot_mat = get_rotation_matrix(angle)
+    joints_rotated = joints.clone()
+    # centering joints at image center.
+    joints_rotated[:, :-1] = joints_rotated[:, :-1] - image.size[0] / 2
+    joints_rotated[:, :-1] = (rot_mat @ joints_rotated[:, :-1].T).T
+    # reverting back to original origin i,e. top left corner.
+    joints_rotated[:, :-1] = joints_rotated[:, :-1] + image.size[0] / 2
+    # Rotate image by the same angle, make sure expand is set to False.
+    # Also angle here is measured in clockwise direction make sure to add a minus sign.
+    image_rotated = transforms.functional.rotate(image, -angle, expand=False)
+    return image_rotated, joints_rotated
+
+
+def sample_cropper(
+    image: Image.Image,
+    joints: JOINTS_25D,
+    crop_margin: float = 1.5,
+    crop_joints: bool = True,
+) -> Tuple[Image.Image, JOINTS_25D]:
+    top, left = torch.min(joints[:, 1]), torch.min(joints[:, 0])
+    bottom, right = torch.max(joints[:, 1]), torch.max(joints[:, 0])
+    height, width = bottom - top, right - left
+    origin_x = int(left - width * (crop_margin - 1) / 2)
+    origin_y = int(top - height * (crop_margin - 1) / 2)
+    joints_cropped = joints.clone()
+    img_crop = transforms.functional.crop(
+        image,
+        top=origin_y,
+        left=origin_x,
+        height=int(height * crop_margin),
+        width=int(width * crop_margin),
+    )
+    if crop_joints:
+        joints_cropped[:, 0] = joints_cropped[:, 0] - origin_x
+        joints_cropped[:, 1] = joints_cropped[:, 1] - origin_y
+    return img_crop, joints_cropped
+
+
+def sample_resizer(
+    image: Image.Image,
+    joints: JOINTS_25D,
+    shape: Tuple = (128, 128),
+    resize_joints: bool = True,
+) -> Tuple[Image.Image, JOINTS_25D]:
+    """Resizes the sample to given size.
+
+    Args:
+        image (Image.Image): A PIL image
+        joints (JOINTS_25D): 2.5D joints. The depth is kept as is.
+        shape (Tuple, optional): Size to which the image should be reshaped. Defaults to (128, 128).
+        resize_joints (bool, optional): To resize the joints along with the image.. Defaults to True.
+
+    Returns:
+        Tuple[Image.Image, JOINTS_25D]: REsized image and keypoints.
+    """
+    width, height = image.size
+    image = transforms.functional.resize(image, shape)
+    joints_resized = joints.clone()
+    if resize_joints:
+        joints_resized[:, 0] = joints_resized[:, 0] * 128 / (width)
+        joints_resized[:, 1] = joints_resized[:, 1] * 128 / (height)
+    return image, joints_resized

@@ -1,4 +1,5 @@
 import argparse
+from typing import List
 
 from easydict import EasyDict as edict
 from src.constants import MODEL_CONFIG_PATH, TRAINING_CONFIG_PATH
@@ -22,9 +23,22 @@ def get_experiement_args() -> argparse.Namespace:
     parser.add_argument(
         "-train_ratio", type=float, help="Ratio of train:validation split."
     )
+    parser.add_argument(
+        "-crop", type=bool, help="To crop the image around hand coordinates,"
+    )
+    parser.add_argument(
+        "-crop_keypoints", type=bool, help="To crop the joints IF image is cropped,"
+    )
+    parser.add_argument(
+        "-crop_margin",
+        type=float,
+        help="To enlarge the crop box, values will be clipped between 1 and 2",
+    )
+    parser.add_argument("--rotate", type=bool, help="To rotate samples randomly")
     parser.add_argument("-learning_rate", type=float, help="Learning _rate.")
     parser.add_argument("-batch_size", type=int, help="Batch size")
     parser.add_argument("-epochs", type=int, help="Number of epochs")
+    parser.add_argument("-seed", type=int, help="To add random seed")
     parser.add_argument(
         "-num_workers", type=int, help="Number of workers for Dataloader."
     )
@@ -66,16 +80,42 @@ def update_train_params(args: argparse.Namespace, train_param: edict) -> edict:
     """
     if args.train_ratio is not None:
         train_param.data.train_ratio = (args.train_ratio * 100 % 100) / 100.0
-    if args.batch_size is not None:
-        train_param.batch_size = args.batch_size
-    if args.epochs is not None:
-        train_param.epochs = args.epochs
-    if args.num_workers is not None:
-        train_param.num_workers = args.num_workers
-
-    train_param.resnet_trainable = args.resnet_trainable
+    train_param = update_param(
+        args,
+        train_param,
+        [
+            "batch_size",
+            "epochs",
+            "train_ratio",
+            "num_workers",
+            "seed",
+            "rotate",
+            "crop",
+            "crop_margin",
+            "crop_keypoints",
+            "resnet_trainable",
+        ],
+    )
     train_param.gpu = True if args.cpu is not True else False
     return train_param
+
+
+def update_param(args: argparse.Namespace, config: edict, params: List[str]) -> edict:
+    """Update the config according to the argument.
+
+    Args:
+        args (edict): script arguments
+        config (edict): configuration as read from json
+        params (List[str]): Name of paramters that must be edited.
+
+    Returns:
+        edict: Updated config.
+    """
+    args_dict = vars(args)
+    for param in params:
+        if args_dict[param] is not None:
+            config[param] = args_dict[param]
+    return config
 
 
 def update_model_params(args: argparse.Namespace, model_param: edict) -> edict:
@@ -88,9 +128,6 @@ def update_model_params(args: argparse.Namespace, model_param: edict) -> edict:
     Returns:
         edict:Updated model parameters.
     """
-    if args.resnet_trainable is not None:
-        model_param.resnet_trainable = args.resnet_trainable
-    if args.learning_rate is not None:
-        model_param.learning_rate = args.learning_rate
+    model_param = update_param(args, model_param, ["resnet_trainable", "learning_rate"])
     model_param.gpu = True if args.cpu is not True else False
     return model_param

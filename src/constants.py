@@ -9,3 +9,4 @@ TRAINING_CONFIG_PATH = os.path.join(
 MODEL_CONFIG_PATH = os.path.join(
     MASTER_THESIS_DIR, "src", "experiments", "model_config.json"
 )
+ANGLES = [i for i in range(10, 360, 10)]

@@ -4,5 +4,12 @@
     "train_ratio": 0.9,
     "gpu":true,
     "num_workers":1,
-    "seed":5
+    "seed":5,
+    "rotate":true,
+    "crop":true,
+    "crop_margin":1.5,
+    "crop_keypoints":true,
+    "resize":true,
+    "resize_shape":[128,128],
+    "resize_keypoints":true
 }
