@@ -91,6 +91,7 @@ class BaselineModel(LightningModule):
         val_metrics = self.calculate_metrics(prediction, y, step="val")
         comet_experiment = self.logger.experiment
         if batch_idx == 1 or batch_idx == 4:
+
             if self.config.gpu:
                 pred_label = prediction.data[0].cpu().numpy()
                 true_label = y.data[0].cpu().detach().numpy()
@@ -117,6 +118,7 @@ class BaselineModel(LightningModule):
         val_epe_mean = torch.stack([x["EPE_mean_val"] for x in outputs]).mean()
         val_epe_median = torch.stack([x["EPE_median_val"] for x in outputs]).mean()
         with self.logger.experiment.validate():
+            self.logger.experiment.set_epoch(self.current_epoch)
             self.logger.experiment.log_metrics(
                 {
                     "loss": val_loss,
