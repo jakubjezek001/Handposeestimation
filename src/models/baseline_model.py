@@ -6,7 +6,7 @@ from easydict import EasyDict as edict
 from pytorch_lightning.core.lightning import LightningModule
 from src.visualization.visualize import plot_truth_vs_prediction
 from torch.nn import functional as F
-from src.models.utils import cal_l1_loss
+from src.models.utils import cal_l1_loss, log_metrics, log_image
 
 
 class BaselineModel(LightningModule):
@@ -19,7 +19,7 @@ class BaselineModel(LightningModule):
         """
         super().__init__()
         self.config = config
-        self.resnet18 = torchvision.models.resnet18(pretrained=True)
+        self.resnet18 = torchvision.models.resnet18(pretrained=False)
         if ~self.config["resnet_trainable"]:
             for param in self.resnet18.parameters():
                 param.requires_grad = False
@@ -30,6 +30,7 @@ class BaselineModel(LightningModule):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         batch_size, channel, width, height = x.size()
         x = self.resnet18(x)
+        x = F.relu(x)
         x = self.layer_1(x)
         x = F.relu(x)
         x = self.output_layer(x)
@@ -51,25 +52,15 @@ class BaselineModel(LightningModule):
         """
         x, y = batch["image"], batch["joints"]
         prediction = self(x)
-        # loss = F.mse_loss(prediction, y)
-        loss = cal_l1_loss(prediction, y, self.config.alpha)
-        train_metrics = self.calculate_metrics(prediction, y, step="train")
-        comet_experiment = self.logger.experiment
-        with comet_experiment.train():
-            comet_experiment.set_epoch(self.current_epoch)
-            comet_experiment.log_metrics({**{"loss": loss}, **train_metrics})
-            if batch_idx == 1 or batch_idx == 4:
-                if self.config.gpu:
-                    pred_label = prediction.data[0].cpu().numpy()
-                    true_label = y.data[0].cpu().detach().numpy()
-                else:
-                    pred_label = prediction[0].detach().numpy()
-                    true_label = y[0].detach().numpy()
-
-                plot_truth_vs_prediction(
-                    pred_label, true_label, x.data[0].cpu(), comet_experiment
-                )
-        return {**{"loss": loss}, **train_metrics}
+        loss_2d, loss_z = cal_l1_loss(prediction, y)
+        loss = loss_2d + self.config.alpha * loss_z
+        context_val = False
+        comet_logger = self.logger.experiment
+        metrics = {"loss": loss, "loss_z": loss_z, "loss_2d": loss_2d}
+        log_metrics(metrics, comet_logger, self.current_epoch, context_val)
+        if batch_idx == 1 or batch_idx == 4:
+            log_image(prediction, y, x, self.config.gpu, context_val, comet_logger)
+        return metrics
 
     def configure_optimizers(self) -> torch.optim.Adam:
         return torch.optim.Adam(self.parameters(), lr=self.config["learning_rate"])
@@ -86,23 +77,14 @@ class BaselineModel(LightningModule):
         """
         x, y = batch["image"], batch["joints"]
         prediction = self(x)
-        # loss = F.mse_loss(prediction, y)
-        loss = cal_l1_loss(prediction, y, self.config.alpha)
-        val_metrics = self.calculate_metrics(prediction, y, step="val")
-        comet_experiment = self.logger.experiment
+        loss_2d, loss_z = cal_l1_loss(prediction, y)
+        loss = loss_2d + self.config.alpha * loss_z
+        context_val = False
+        comet_logger = self.logger.experiment
+        metrics = {"loss": loss, "loss_z": loss_z, "loss_2d": loss_2d}
         if batch_idx == 1 or batch_idx == 4:
-
-            if self.config.gpu:
-                pred_label = prediction.data[0].cpu().numpy()
-                true_label = y.data[0].cpu().detach().numpy()
-            else:
-                pred_label = prediction[0].detach().numpy()
-                true_label = y[0].detach().numpy()
-
-            plot_truth_vs_prediction(
-                pred_label, true_label, x.data[0].cpu(), comet_experiment
-            )
-        return {**{"val_loss": loss}, **val_metrics}
+            log_image(prediction, y, x, self.config.gpu, context_val, comet_logger)
+        return metrics
 
     def validation_epoch_end(self, outputs: List[dict]) -> dict:
         """This function called at the end of the validation epoch, i.e. passing through all the
@@ -114,45 +96,11 @@ class BaselineModel(LightningModule):
         Returns:
             dict: Dictionary containing all the parameters from validation_step() averaged.
         """
-        val_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
-        val_epe_mean = torch.stack([x["EPE_mean_val"] for x in outputs]).mean()
-        val_epe_median = torch.stack([x["EPE_median_val"] for x in outputs]).mean()
-        with self.logger.experiment.validate():
-            self.logger.experiment.set_epoch(self.current_epoch)
-            self.logger.experiment.log_metrics(
-                {
-                    "loss": val_loss,
-                    "epe_mean": val_epe_mean,
-                    "epe_median": val_epe_median,
-                }
-            )
-        return {
-            "loss": val_loss,
-            "epe_mean": val_epe_mean,
-            "epe_median": val_epe_median,
-        }
-
-    def calculate_metrics(
-        self, y_pred: torch.Tensor, y_true: torch.Tensor, step: str = "train"
-    ) -> dict:
-        """Calculates the metrics on a batch of predicted and true labels.
-
-        Args:
-            y_pred (torch.Tensor): Batch of predicted labels.
-            y_true (torch.Tensor): Batch of True labesl.
-            step (str, optional): This argument specifies whether the metrics are caclulated for
-                train or val set. Appends suitable name to the keys in returned dictionary.
-                Defaults to "train".
-
-        Returns:
-            dict: Calculated metrics as a dictionary.
-        """
-        distance_joints = (
-            torch.sum(((y_pred - y_true) ** 2), 2) ** 0.5
-        )  # shape: (batch, 21)
-        mean_distance = torch.mean(distance_joints)
-        median_distance = torch.median(distance_joints)
-        return {
-            f"EPE_mean_{step}": mean_distance,
-            f"EPE_median_{step}": median_distance,
-        }
+        loss = torch.stack([x["loss"] for x in outputs]).mean()
+        loss_z = torch.stack([x["loss_z"] for x in outputs]).mean()
+        loss_2d = torch.stack([x["loss_2d"] for x in outputs]).mean()
+        metrics = {"loss": loss, "loss_z": loss_z, "loss_2d": loss_2d}
+        comet_logger = self.logger.experiment
+        context_val = True
+        log_metrics(metrics, comet_logger, self.current_epoch, context_val)
+        return metrics

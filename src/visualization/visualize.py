@@ -118,4 +118,5 @@ def plot_truth_vs_prediction(
     ax2.set_xlim([0, width])
     ax2.set_ylim([height, 0])
     ax2.title.set_text("Predicted joints")
-    experiment.log_figure(figure=plt)
+    if experiment is not None:
+        experiment.log_figure(figure=plt)
