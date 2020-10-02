@@ -24,9 +24,7 @@ def main():
 
     train_data = Data_Set(
         config=train_param,
-        transforms=transforms.Compose(
-            [transforms.Resize((128, 128)), transforms.ToTensor()]
-        ),
+        transforms=transforms.Compose([transforms.ToTensor()]),
         train_set=True,
     )
     val_data = copy.copy(train_data)
