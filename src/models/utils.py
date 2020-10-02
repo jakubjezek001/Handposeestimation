@@ -50,6 +50,9 @@ def log_metrics(metrics: dict, comet_logger: Experiment, epoch: int, context_val
     if context_val:
         with comet_logger.validate():
             comet_logger.log_metrics(metrics, epoch=epoch)
+    else:
+        with comet_logger.train():
+            comet_logger.log_metrics(metrics, epoch=epoch)
 
 
 def log_image(prediction, y, x, gpu: bool, context_val: bool, comet_logger: Experiment):
