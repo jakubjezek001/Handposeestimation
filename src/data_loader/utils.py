@@ -163,6 +163,8 @@ def sample_cropper(
     top, left = torch.min(joints[:, 1]), torch.min(joints[:, 0])
     bottom, right = torch.max(joints[:, 1]), torch.max(joints[:, 0])
     height, width = bottom - top, right - left
+    height = max(height, width)
+    width = height
     origin_x = int(left - width * (crop_margin - 1) / 2)
     origin_y = int(top - height * (crop_margin - 1) / 2)
     joints_cropped = joints.clone()
