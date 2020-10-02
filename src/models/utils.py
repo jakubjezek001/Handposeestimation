@@ -62,13 +62,13 @@ def log_image(prediction, y, x, gpu: bool, context_val: bool, comet_logger: Expe
     else:
         pred_label = prediction[0].detach().numpy()
         true_label = y[0].detach().numpy()
-        if context_val:
-            with comet_logger.validate():
-                plot_truth_vs_prediction(
-                    pred_label, true_label, x.data[0].cpu(), comet_logger
-                )
-        else:
-            with comet_logger.train():
-                plot_truth_vs_prediction(
-                    pred_label, true_label, x.data[0].cpu(), comet_logger
-                )
+    if context_val:
+        with comet_logger.validate():
+            plot_truth_vs_prediction(
+                pred_label, true_label, x.data[0].cpu(), comet_logger
+            )
+    else:
+        with comet_logger.train():
+            plot_truth_vs_prediction(
+                pred_label, true_label, x.data[0].cpu(), comet_logger
+            )
