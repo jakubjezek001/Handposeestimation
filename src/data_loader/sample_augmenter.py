@@ -20,6 +20,8 @@ class SampleAugmenter:
         self.crop = crop
         self.resize = resize
         self.rotate = rotate
+        self.min_angle = -180
+        self.max_angle = 180
         random.seed(seed)
         if "crop_margin" in kwargs:
             self.crop_margin = kwargs["crop_margin"]
@@ -39,7 +41,7 @@ class SampleAugmenter:
         Returns:
             np.array: A 2 x 3 rotation matrix.
         """
-        angle = random.uniform(-90, 90) // 1
+        angle = random.uniform(-self.min_angle, self.max_angle) // 1
         return cv2.getRotationMatrix2D(center, angle, 1.0)
 
     def get_crop_size(self, joints: JOINTS_25D) -> Tuple[int, int, int]:
@@ -55,8 +57,8 @@ class SampleAugmenter:
         bottom, right = torch.max(joints[:, 1]), torch.max(joints[:, 0])
         height, width = bottom - top, right - left
         side = int(max(height, width) * self.crop_margin)
-        origin_x = int(left - width * (self.crop_margin - 1) / 2)
-        origin_y = int(top - height * (self.crop_margin - 1) / 2)
+        origin_x = max(int(left - width * (self.crop_margin - 1) / 2), 0)
+        origin_y = max(int(top - height * (self.crop_margin - 1) / 2), 0)
         return origin_x, origin_y, side
 
     def crop_sample(
@@ -89,9 +91,13 @@ class SampleAugmenter:
             Tuple[np.array JOINTS_25D]: Resized image and keypoints.
         """
         height, width = image.shape[:2]
-        image = cv2.resize(image, self.resize_shape, interpolation=cv2.INTER_AREA)
-        joints[:, 0] = joints[:, 0] * self.resize_shape[0] / width
-        joints[:, 1] = joints[:, 1] * self.resize_shape[1] / height
+        try:
+            image = cv2.resize(image, self.resize_shape, interpolation=cv2.INTER_AREA)
+            joints[:, 0] = joints[:, 0] * self.resize_shape[0] / width
+            joints[:, 1] = joints[:, 1] * self.resize_shape[1] / height
+        except Exception as e:
+            print(height, width, self.resize_shape)
+            print(e)
         return image, joints
 
     def rotate_sample(
