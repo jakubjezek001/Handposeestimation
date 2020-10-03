@@ -20,7 +20,8 @@ class BaselineModel(LightningModule):
         super().__init__()
         self.config = config
         self.resnet18 = torchvision.models.resnet18(pretrained=False)
-        if ~self.config["resnet_trainable"]:
+        if not self.config["resnet_trainable"]:
+            print("Freeizing the underlying  Resnet !!")
             for param in self.resnet18.parameters():
                 param.requires_grad = False
         self.resnet18.fc = torch.nn.Linear(self.resnet18.fc.in_features, 128)
