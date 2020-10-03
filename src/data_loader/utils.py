@@ -26,7 +26,7 @@ def convert_to_2_5D(K: CAMERA_PARAM, joints_3D: JOINTS_3D) -> Tuple[JOINTS_25D, 
     """
     scale = (((joints_3D[CHILD_JOINT] - joints_3D[PARENT_JOINT]) ** 2).sum()) ** 0.5
     joints_25D = ((K @ (joints_3D.T)).T) / joints_3D[:, -1:]
-    joints_25D[:, -1] = (joints_3D[:, -1] - joints_3D[0, -1]) / scale
+    joints_25D[:, -1] = (joints_3D[:, -1] - joints_3D[PARENT_JOINT, -1]) / scale
     return joints_25D, scale
 
 
