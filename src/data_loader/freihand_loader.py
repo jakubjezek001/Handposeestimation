@@ -1,23 +1,14 @@
 import os
 import random
-from typing import List, Tuple
+from typing import List
 
+import cv2
 import torch
-from PIL import Image
-from src.constants import ANGLES
 from src.data_loader.joints import Joints
-from src.data_loader.utils import (
-    convert_to_2_5D,
-    sample_cropper,
-    sample_rotator,
-    sample_resizer,
-)
-from src.types import JOINTS_25D
+from src.data_loader.sample_augmenter import SampleAugmenter
+from src.data_loader.utils import convert_to_2_5D
 from src.utils import read_json
 from torch.utils.data import Dataset
-from torchvision import transforms
-
-CROP_MARGIN = 1.5
 
 
 class F_DB(Dataset):
@@ -48,6 +39,14 @@ class F_DB(Dataset):
         self.joints = Joints()
         self.config = config
         random.seed(self.config.seed)  # To control randomness in rotation
+        self.augment = SampleAugmenter(
+            crop=self.config.crop,
+            resize=self.config.resize,
+            rotate=self.config.rotate,
+            seed=self.config.seed,
+            resize_shape=self.config.resize_shape,
+            crop_margin=self.config.crop_margin,
+        )
 
     def get_image_names(self) -> List[str]:
         """Gets the name of all the files in root_dir.
@@ -92,14 +91,14 @@ class F_DB(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
         img_name = os.path.join(self.root_dir, self.img_names[idx])
-        img = Image.open(img_name)
+        img = cv2.imread(img_name)
         joints3D = self.joints.freihand_to_ait(
             torch.tensor(self.labels[idx % 32560]).float()
         )
         camera_param = torch.tensor(self.camera_param[idx % 32560]).float()
         joints25D, scale = convert_to_2_5D(camera_param, joints3D)
         # Applying sample related transforms
-        img, joints25D = self.apply_transforms(img, joints25D)
+        img, joints25D = self.augment.transform_sample(img, joints25D)
 
         sample = {
             "image": img,
@@ -108,23 +107,7 @@ class F_DB(Dataset):
             "K": camera_param,
             "joints_3D": joints3D,
         }
-        # Applying only image realted transform
+        # Applying only image related transform
         if self.transform:
             sample["image"] = self.transform(sample["image"])
         return sample
-
-    def apply_transforms(
-        self, image: Image.Image, joints: JOINTS_25D
-    ) -> Tuple[Image.Image, JOINTS_25D]:
-        if self.config.rotate:
-            angle = random.choice(ANGLES)
-            image, joints = sample_rotator(image, joints, angle)
-        if self.config.crop:
-            image, joints = sample_cropper(
-                image, joints, self.config.crop_margin, self.config.crop_keypoints
-            )
-        if self.config.resize:
-            image, joints = sample_resizer(
-                image, joints, self.config.resize_shape, self.config.resize_keypoints
-            )
-        return image, joints
