@@ -1,4 +1,6 @@
 import argparse
+from logging import Logger
+from pprint import pformat
 from typing import List
 
 from easydict import EasyDict as edict
@@ -46,12 +48,13 @@ def get_experiement_args() -> argparse.Namespace:
     return args
 
 
-def process_experiment_args(args: argparse.Namespace) -> edict:
+def process_experiment_args(args: argparse.Namespace, console_logger: Logger) -> edict:
     """Reads the training parameters and adjusts them according to
         the arguments passed to the experiment script.
 
     Args:
         args (argparse.Namespace): Arguments from get_experiement_args().
+        console_logger (Logger): logger object
 
     Returns:
         edict: Updated training parameters.
@@ -59,12 +62,12 @@ def process_experiment_args(args: argparse.Namespace) -> edict:
     train_param = edict(read_json(TRAINING_CONFIG_PATH))
     model_param = edict(read_json(MODEL_CONFIG_PATH))
     args = get_experiement_args()
-    print(f"Default config ! {train_param}")
+    # console_logger.info(f"Default config ! {pformat(train_param)}")
     train_param = update_train_params(args, train_param)
-    print(f"Updated configurations {train_param}")
-    print(f"Default Model config ! {model_param}")
+    console_logger.info(f"Training configurations {pformat(train_param)}")
+    # console_logger.info(f"Default Model config ! {pformat(model_param)}")
     model_param = update_model_params(args, model_param)
-    print(f"Updated configurations {model_param}")
+    console_logger.info(f"Model configurations {pformat(model_param)}")
     return train_param, model_param
 
 

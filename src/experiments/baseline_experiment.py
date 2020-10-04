@@ -1,3 +1,4 @@
+import copy
 import os
 import random
 
@@ -9,14 +10,16 @@ from src.constants import DATA_PATH, MASTER_THESIS_DIR
 from src.data_loader.data_set import Data_Set
 from src.experiments.utils import get_experiement_args, process_experiment_args
 from src.models.baseline_model import BaselineModel
+from src.utils import get_console_logger
 from torch.utils.data import DataLoader
 from torchvision import transforms
-import copy
 
 
 def main():
+    console_logger = get_console_logger(__name__)
+    print(console_logger)
     args = get_experiement_args()
-    train_param, model_param = process_experiment_args(args)
+    train_param, model_param = process_experiment_args(args, console_logger)
     np.random.seed(train_param.seed)
     random.seed(train_param.seed)
     torch.manual_seed(train_param.seed)
@@ -46,10 +49,10 @@ def main():
     )
     model = BaselineModel(config=model_param)
     if train_param.gpu:
-        print("GPU Training activated")
+        console_logger.info("GPU Training activated")
         trainer = Trainer(max_epochs=train_param.epochs, logger=comet_logger, gpus=-1)
     else:
-        print("CPU Training activated")
+        console_logger.info("CPU Training activated")
         trainer = Trainer(max_epochs=train_param.epochs, logger=comet_logger)
     trainer.logger.experiment.log_parameters({"train_param": train_param})
     trainer.logger.experiment.set_code(

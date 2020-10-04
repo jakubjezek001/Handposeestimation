@@ -7,6 +7,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from src.visualization.visualize import plot_truth_vs_prediction
 from torch.nn import functional as F
 from src.models.utils import cal_l1_loss, log_metrics, log_image
+from src.utils import get_console_logger
 
 
 class BaselineModel(LightningModule):
@@ -19,9 +20,10 @@ class BaselineModel(LightningModule):
         """
         super().__init__()
         self.config = config
+        self.console_logger = get_console_logger("baseline_model")
         self.resnet18 = torchvision.models.resnet18(pretrained=False)
         if not self.config["resnet_trainable"]:
-            print("Freeizing the underlying  Resnet !!")
+            self.console_logger.warning("Freeizing the underlying  Resnet !")
             for param in self.resnet18.parameters():
                 param.requires_grad = False
         self.resnet18.fc = torch.nn.Linear(self.resnet18.fc.in_features, 128)
@@ -64,7 +66,20 @@ class BaselineModel(LightningModule):
         return metrics
 
     def configure_optimizers(self) -> torch.optim.Adam:
-        return torch.optim.Adam(self.parameters(), lr=self.config["learning_rate"])
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.config["learning_rate"])
+        if self.config.scheduler.choice == "cosine_annealing":
+            scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+                optimizer, **self.config.scheduler.cosine_annealing
+            )
+        elif self.config.scheduler.choice == "reduce_on_plateau":
+            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                optimizer, **self.config.scheduler.reduce_on_plateau
+            )
+        else:
+            self.console_logger.info("No learning rate scheduler selected")
+            return optimizer
+
+        return [optimizer], [scheduler]
 
     def validation_step(self, batch: dict, batch_idx: int) -> dict:
         """This method is called at every validation step (i.e. every batch in an validation epoch).
@@ -83,7 +98,7 @@ class BaselineModel(LightningModule):
         context_val = False
         comet_logger = self.logger.experiment
         metrics = {"loss": loss, "loss_z": loss_z, "loss_2d": loss_2d}
-        if batch_idx == 1 or batch_idx == 4:
+        if batch_idx == 0:
             log_image(prediction, y, x, self.config.gpu, context_val, comet_logger)
         return metrics
 

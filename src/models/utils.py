@@ -1,7 +1,7 @@
-from src.visualization.visualize import plot_truth_vs_prediction
 import torch
-from torch.nn import L1Loss
 from comet_ml import Experiment
+from src.visualization.visualize import plot_truth_vs_prediction
+from torch.nn import L1Loss
 
 
 def cal_l1_loss(pred_joints: torch.Tensor, true_joints: torch.Tensor):
