@@ -17,7 +17,6 @@ from torchvision import transforms
 
 def main():
     console_logger = get_console_logger(__name__)
-    print(console_logger)
     args = get_experiement_args()
     train_param, model_param = process_experiment_args(args, console_logger)
     np.random.seed(train_param.seed)
