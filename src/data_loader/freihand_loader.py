@@ -6,7 +6,7 @@ import cv2
 import torch
 from src.data_loader.joints import Joints
 from src.data_loader.sample_augmenter import SampleAugmenter
-from src.data_loader.utils import convert_to_2_5D
+from src.data_loader.utils import convert_2_5D_to_3D, convert_to_2_5D
 from src.utils import read_json
 from torch.utils.data import Dataset
 
@@ -99,13 +99,13 @@ class F_DB(Dataset):
         joints25D, scale = convert_to_2_5D(camera_param, joints3D)
         # Applying sample related transforms
         img, joints25D = self.augment.transform_sample(img, joints25D)
-
         sample = {
             "image": img,
             "joints": joints25D,
             "scale": scale,
             "K": camera_param,
             "joints_3D": joints3D,
+            "joints_3D_recreated": convert_2_5D_to_3D(joints25D, scale, camera_param),
         }
         # Applying only image related transform
         if self.transform:
