@@ -1,4 +1,6 @@
-from platform import python_revision
+from typing import Tuple, Union
+
+import numpy as np
 import torch
 from pytorch_lightning.core.lightning import LightningModule
 from src.data_loader.data_set import Data_Set
@@ -170,3 +172,43 @@ def evaluate(model: LightningModule, data: Data_Set, **dataloader_args) -> dict:
         "Mean_EPE_3D_R_v_3D": epe_3D__gt_vs_3D_recreated["mean"].cpu(),
         "Median_EPE_3D_R_V_3D": epe_3D__gt_vs_3D_recreated["median"].cpu(),
     }
+
+
+def get_pck_curves(
+    eucledian_dist, threshold_min=0.0, threshold_max=0.5, step=0.005, per_joint=False
+) -> Tuple[np.array, np.array]:
+    thresholds = np.arange(threshold_min, threshold_max, step)
+    if per_joint:
+        percent_under_threshold = np.array(
+            [
+                torch.mean((eucledian_dist < theta) * 1.0, axis=0).cpu().numpy().T
+                for theta in thresholds
+            ]
+        ).T
+    else:
+        percent_under_threshold = np.array(
+            [
+                torch.mean((eucledian_dist < theta) * 1.0).cpu().numpy()
+                for theta in thresholds
+            ]
+        )
+    return percent_under_threshold, thresholds
+
+
+def cal_auc_joints(
+    eucledian_dist: torch.Tensor, per_joint=True
+) -> Union[np.array, float]:
+    percent_index_threshold, thresholds = get_pck_curves(
+        eucledian_dist, threshold_min=0.0, threshold_max=0.5, step=0.005, per_joint=True
+    )
+    normalizing_factor = np.trapz(y=np.ones(len(thresholds)), x=thresholds)
+    auc_per_joint = np.array(
+        [
+            np.trapz(y=percent_index_threshold[i], x=thresholds) / normalizing_factor
+            for i in range(21)
+        ]
+    )
+    if per_joint:
+        return auc_per_joint
+    else:
+        return np.mean(auc_per_joint)
