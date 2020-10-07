@@ -1,4 +1,3 @@
-import json
 import os
 from typing import Union
 
@@ -6,6 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from comet_ml import Experiment
+from matplotlib import lines
 from src.constants import MASTER_THESIS_DIR
 from src.data_loader.joints import Joints
 from src.types import JOINTS_3D, JOINTS_25D
@@ -16,7 +16,12 @@ joints = Joints()
 
 
 def plot_hand(
-    axis: plt.Axes, coords_hand: np.array, plot_3d: bool = False, linewidth: str = "1"
+    axis: plt.Axes,
+    coords_hand: np.array,
+    plot_3d: bool = False,
+    linewidth: str = "1",
+    linestyle: str = "-",
+    alpha: float = 1.0,
 ):
     """Makes a hand stick figure from the coordinates wither in uv plane or xyz plane on the passed axes object.
     Code adapted from:  https://github.com/lmb-freiburg/freihand/blob/master/utils/eval_util.py
@@ -26,6 +31,7 @@ def plot_hand(
         coords_hand (np.array): 21 coordinates of hand as numpy array. (21 x 3). Expects AIT format.
         plot_3d (bool, optional): Pass this as true for using the the depth parameter to plot the hand. Defaults to False.
         linewidth (str, optional): Linewidth to be used for drawing connecting bones. Defaults to "1".
+        linestyle (str, optional): MAtplotlib linestyle, Defaults to ":"
     """
 
     colors = np.array(
@@ -51,9 +57,18 @@ def plot_hand(
                 coords[:, 2],
                 color=color,
                 linewidth=linewidth,
+                linestyle=linestyle,
+                alpha=alpha,
             )
         else:
-            axis.plot(coords[:, 1], coords[:, 0], color=color, linewidth=linewidth)
+            axis.plot(
+                coords[:, 0],
+                coords[:, 1],
+                color=color,
+                linewidth=linewidth,
+                linestyle=linestyle,
+                alpha=alpha,
+            )
 
     # Highlighting the joints
     for i in range(21):
@@ -66,7 +81,14 @@ def plot_hand(
                 color=colors[i, :],
             )
         else:
-            axis.plot(coords_hand[i, 1], coords_hand[i, 0], "o", color=colors[i, :])
+            axis.plot(
+                coords_hand[i, 0],
+                coords_hand[i, 1],
+                "o",
+                color=colors[i, :],
+                linestyle=linestyle,
+                alpha=alpha,
+            )
 
 
 def plot_truth_vs_prediction(
@@ -83,14 +105,18 @@ def plot_truth_vs_prediction(
         image (torch.Tensor): Input image to the model.
         experiment (Experiment): Comet ml experiment object.
     """
+    img = transforms.ToPILImage()(image)
+    width, height = img.size
     fig = plt.figure(figsize=(10, 10))
-    ax0 = fig.add_subplot(131)
-    plt.imshow(transforms.ToPILImage()(image))
-    ax0.title.set_text("Input image")
-    ax1 = fig.add_subplot(132)
+    ax1 = fig.add_subplot(121)
+    plt.imshow(img)
     plot_hand(ax1, y_true)
     ax1.title.set_text("True joints")
-    ax2 = fig.add_subplot(133)
+    ax2 = fig.add_subplot(122)
+    plot_hand(ax2, y_true, alpha=0.2, linestyle=":")
     plot_hand(ax2, y_pred)
+    ax2.set_xlim([0, width])
+    ax2.set_ylim([height, 0])
     ax2.title.set_text("Predicted joints")
-    experiment.log_figure(figure=plt)
+    if experiment is not None:
+        experiment.log_figure(figure=plt)

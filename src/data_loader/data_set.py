@@ -27,11 +27,13 @@ class Data_Set(Dataset):
             train_set (bool, optional): Flag denoting which samples are returned. Defaults to True.
         """
         # Individual data loader initialization.
+        self.config = config
         self.f_db = F_DB(
             root_dir=os.path.join(FREIHAND_DATA, "training", "rgb"),
             labels_path=os.path.join(FREIHAND_DATA, "training_xyz.json"),
             camera_param_path=os.path.join(FREIHAND_DATA, "training_K.json"),
             transform=transforms,
+            config=self.config,
         )
         self.config = config
         self._train_set = train_set

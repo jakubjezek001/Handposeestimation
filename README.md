@@ -12,6 +12,12 @@ Setup
 ``` source master_thesis_env/bin/activate  #to activate the environment```
 TODO: Add instruction for installing pytorch, pytorch_lightening, comet_ml and easydict.
 
+#### OpenCV installation instructions
+ from source:
+https://cyaninfinite.com/installing-opencv-in-ubuntu-for-python-3/
+unofficial version at pypi
+```pip install opencv-python```
+
 Leonhard setup
 ------------
 After logging into the cluster do the following.
