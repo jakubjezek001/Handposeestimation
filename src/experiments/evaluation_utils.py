@@ -175,8 +175,30 @@ def evaluate(model: LightningModule, data: Data_Set, **dataloader_args) -> dict:
 
 
 def get_pck_curves(
-    eucledian_dist, threshold_min=0.0, threshold_max=0.5, step=0.005, per_joint=False
+    eucledian_dist: torch.Tensor,
+    threshold_min: float = 0.0,
+    threshold_max: float = 0.5,
+    step: float = 0.005,
+    per_joint: bool = False,
 ) -> Tuple[np.array, np.array]:
+    """Calculates pck curve i.e. percentage of predicted keypoints under a certain
+    threshold of eucledian distance from the ground truth. The number of thresholds this
+    is calculated depends upon threshold_max, threshold_min and step.
+
+    Args:
+        eucledian_dist (torch.Tensor): Eucldeian distance between ground truth and
+            predictions. (#samples x 21 x 3)
+        threshold_min (float, optional):Minumum threshold that should be tested.
+            Defaults to 0.0.
+        threshold_max (float, optional):Maximum threshold to be tested. Defaults to 0.5.
+        step (float, optional): Defaults to 0.005.
+        per_joint (bool, optional):If true calculates it seperately for 21 joints.
+            Defaults to False.
+
+    Returns:
+        Tuple[np.array, np.array]: Returns pck curve (#num_of_thresholds) or
+            (21 x #num_of_thresholds) and corresponding thesholds (#num_of_thresholds).
+    """
     thresholds = np.arange(threshold_min, threshold_max, step)
     if per_joint:
         percent_under_threshold = np.array(
@@ -198,6 +220,18 @@ def get_pck_curves(
 def cal_auc_joints(
     eucledian_dist: torch.Tensor, per_joint=True
 ) -> Union[np.array, float]:
+    """Calculates Area Under the Curve (AUC) for pck curve of the eucledian distance between
+    predictions and ground truth.
+
+    Args:
+        eucledian_dist (torch.Tensor): Eucldeian distance between ground truth and
+            predictions. (#samples x 21 x 3)
+        per_joint (bool, optional):If true calculates it seperately for 21 joints.
+            Defaults to True.
+
+    Returns:
+        Union[np.array, float]: Either return AUC per joint or overall AUC.
+    """
     percent_index_threshold, thresholds = get_pck_curves(
         eucledian_dist, threshold_min=0.0, threshold_max=0.5, step=0.005, per_joint=True
     )
