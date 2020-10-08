@@ -91,7 +91,11 @@ def get_root_depth(
     # print("a={},b={},c={}".format(a, b, c))
     # print("x_n={}, y_n={}, Z_n={}".format(x_n, y_n, Z_n))
     # print("x_m={}, y_m={}, Z_m={}".format(x_m, y_m, Z_m))
-    Z_root = 0.5 * (-b + (b ** 2 - 4 * a * c) ** 0.5) / a
+    Z_root = (
+        0.5
+        * (-b + (torch.clamp((b ** 2 - 4 * a * c), min=1e-6) ** 0.5))
+        / torch.clamp(a, min=1e-6)
+    )
     return Z_root, K_inv
 
 
