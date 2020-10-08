@@ -72,3 +72,29 @@ def log_image(prediction, y, x, gpu: bool, context_val: bool, comet_logger: Expe
             plot_truth_vs_prediction(
                 pred_label, true_label, x.data[0].cpu(), comet_logger
             )
+
+
+def vanila_contrastive_loss(
+    z1: torch.Tensor, z2: torch.Tensor, temperature=0.5
+) -> torch.Tensor:
+
+    # Normalizing the vectors.
+    z1 = z1 / torch.norm(z1, dim=1).view((-1, 1))
+    z2 = z2 / torch.norm(z2, dim=1).view((-1, 1))
+
+    z = torch.cat([z1, z2], dim=0)
+    n_samples = len(z)
+
+    # Full similarity matrix
+    cov = torch.mm(z, z.t().contiguous())
+    sim = torch.exp(cov / temperature)
+
+    # Negative similarity
+    mask = ~torch.eye(n_samples, device=sim.device).bool()
+    neg = sim.masked_select(mask).view(n_samples, -1).sum(dim=-1)
+
+    # Positive similarity :
+    pos = torch.exp(torch.sum(z1 * z2, dim=-1) / temperature)
+    pos = torch.cat([pos, pos], dim=0)
+    loss = -torch.log(pos / neg).mean()
+    return loss
