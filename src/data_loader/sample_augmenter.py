@@ -41,7 +41,7 @@ class SampleAugmenter:
         Returns:
             np.array: A 2 x 3 rotation matrix.
         """
-        angle = random.uniform(-self.min_angle, self.max_angle) // 1
+        angle = random.uniform(self.min_angle, self.max_angle) // 1
         return cv2.getRotationMatrix2D(center, angle, 1.0)
 
     def get_crop_size(self, joints: JOINTS_25D) -> Tuple[int, int, int]:
