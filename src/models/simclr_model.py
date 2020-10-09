@@ -41,6 +41,7 @@ class SimCLR(LightningModule):
                 self.projection_head_hidden_dim,
                 bias=True,
             ),
+            nn.BatchNorm1d(self.projection_head_hidden_dim),
             nn.ReLU(),
             nn.Linear(self.projection_head_hidden_dim, self.output_dim, bias=False),
         )
