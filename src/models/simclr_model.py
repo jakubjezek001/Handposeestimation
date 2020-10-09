@@ -4,7 +4,8 @@ import torchvision
 from pl_bolts.optimizers.lars_scheduling import LARSWrapper
 from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
 from pytorch_lightning.core.lightning import LightningModule
-from src.models.utils import vanila_contrastive_loss
+from src.models.utils import log_metrics, vanila_contrastive_loss
+from src.utils import get_console_logger
 from torch import nn
 
 
@@ -65,15 +66,19 @@ class SimCLR(LightningModule):
         loss = self.contrastive_step(batch)
         result = pl.TrainResult(loss)
         result.log("train_loss", loss)
+        # context_val = False
+        # comet_logger = self.logger.experiment
+        # metrics = {"loss": loss,}
+        # log_metrics(metrics, comet_logger, self.current_epoch, context_val)
         return result
 
-    def validation_step(self, batch, batch_idx):
-        loss = self.contrastive_step(batch)
-        return {"loss": loss}
+    # def validation_step(self, batch, batch_idx):
+    #     loss = self.contrastive_step(batch)
+    #     return {"loss": loss}
 
-    def validation_epoch_end(self, outputs):
-        loss = torch.stack([x["loss"] for x in outputs]).mean()
-        return loss
+    # def validation_epoch_end(self, outputs):
+    #     loss = torch.stack([x["loss"] for x in outputs]).mean()
+    #     return loss
 
     def configure_optimizers(self):
         # TODO: understand and add LARS warpper.
