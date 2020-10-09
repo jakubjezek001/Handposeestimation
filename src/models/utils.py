@@ -77,6 +77,19 @@ def log_image(prediction, y, x, gpu: bool, context_val: bool, comet_logger: Expe
 def vanila_contrastive_loss(
     z1: torch.Tensor, z2: torch.Tensor, temperature=0.5
 ) -> torch.Tensor:
+    """Calculates the contrastive loss as mentioned in SimCLR paper
+        https://arxiv.org/pdf/2002.05709.pdf.
+    Parts of the code adapted from pl_bolts nt_ext_loss.
+
+    Args:
+        z1 (torch.Tensor): Tensor of projections of the images. (#samples_in_batch x vector_dim).
+        z2 (torch.Tensor): Tensor of projections of the same images but with different transformation.
+             (#samples_in_batch x vector_dim)
+        temperature (float, optional): Temperature term in the contrastive loss. Defaults to 0.5.
+
+    Returns:
+        torch.Tensor: Contrastive loss (1 x 1)
+    """
 
     # Normalizing the vectors.
     z1 = z1 / torch.norm(z1, dim=1).view((-1, 1))
