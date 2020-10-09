@@ -15,15 +15,15 @@ class SimCLR(LightningModule):
     The code is adapted from pl_bolts library.
     """
 
-    def __init__(self):
+    def __init__(self, config):
         super().__init__()
-        self.projection_head_input_dim = 512
-        self.projection_head_hidden_dim = 2048
-        self.warmup_epochs = 10
-        self.output_dim = 128
-        self.batch_size = 256
-        self.lr = 0.0001
-        self.opt_weight_decay = 1e-6
+        self.projection_head_input_dim = config.projection_head_input_dim
+        self.projection_head_hidden_dim = config.projection_head_hidden_dim
+        self.warmup_epochs = config.warmup_epochs
+        self.output_dim = config.output_dim
+        self.batch_size = config.batch_size
+        self.lr = config.lr
+        self.opt_weight_decay = config.opt_weight_decay
         # defining model
         self.encoder = self.get_encoder()
         self.projection_head = self.get_projection_head()
@@ -47,7 +47,6 @@ class SimCLR(LightningModule):
         return projection_head
 
     def contrastive_step(self, batch):
-
         batch_transform1 = batch["transformed_image1"]
         batch_transform2 = batch["transformed_image2"]
         encoding1 = self.encoder(batch_transform1)
@@ -82,5 +81,5 @@ class SimCLR(LightningModule):
 
     def configure_optimizers(self):
         # TODO: understand and add LARS warpper.
-        # TODO: Add trickj2 for the lr in starting.
+        # TODO: Add trick2 for the lr in starting.
         return torch.optim.Adam(self.parameters(), lr=self.lr)

@@ -1,16 +1,14 @@
 import os
 
 import pytorch_lightning as pl
-import torch
 import torchvision
 from easydict import EasyDict as edict
 from pytorch_lightning.loggers import CometLogger
-from src.constants import FREIHAND_DATA, MASTER_THESIS_DIR, DATA_PATH
+from src.constants import DATA_PATH, FREIHAND_DATA, MASTER_THESIS_DIR
 from src.data_loader.freihand_loader2 import F_DB2
 from src.data_loader.sample_augmenter import SampleAugmenter
 from src.models.simclr_model import SimCLR
 from src.utils import read_json
-from torch import nn
 from torch.utils.data import DataLoader
 
 
@@ -37,7 +35,12 @@ def main():
         save_dir=os.path.join(DATA_PATH, "models"),
     )
     # model.
-    model = SimCLR()
+    model_config = edict(
+        read_json(
+            os.path.join(MASTER_THESIS_DIR, "src", "experiments", "simclr_config")
+        )
+    )
+    model = SimCLR(config=model_config)
 
     # Training
     trainer = pl.Trainer(gpus=-1, logger=comet_logger, max_epochs=100)
