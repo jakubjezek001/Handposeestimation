@@ -49,7 +49,7 @@ def main():
     model = BaselineModel(config=model_param)
     if train_param.gpu:
         console_logger.info("GPU Training activated")
-        trainer = Trainer(max_epochs=train_param.epochs, logger=comet_logger, gpus=-1)
+        trainer = Trainer(max_epochs=train_param.epochs, logger=comet_logger, gpus=1)
     else:
         console_logger.info("CPU Training activated")
         trainer = Trainer(max_epochs=train_param.epochs, logger=comet_logger)
