@@ -8,6 +8,7 @@ from pytorch_lightning.core.lightning import LightningModule
 from src.models.utils import log_metrics, vanila_contrastive_loss
 from src.utils import get_console_logger
 from torch import nn
+from torch.nn import functional as F
 
 
 class SimCLR(LightningModule):
@@ -57,8 +58,8 @@ class SimCLR(LightningModule):
         batch_transform2 = batch["transformed_image2"]
         encoding1 = self.encoder(batch_transform1)
         encoding2 = self.encoder(batch_transform2)
-        projection1 = self.projection_head(encoding1)
-        projection2 = self.projection_head(encoding2)
+        projection1 = F.normalize(self.projection_head(encoding1))
+        projection2 = F.normalize(self.projection_head(encoding2))
         loss = vanila_contrastive_loss(projection1, projection2)
         return loss
 
@@ -69,13 +70,12 @@ class SimCLR(LightningModule):
 
     def training_step(self, batch, batch_idx):
         loss = self.contrastive_step(batch)
-        result = pl.TrainResult(loss)
-        result.log("train_loss", loss)
+        self.log("train_loss", loss)
         # context_val = False
         # comet_logger = self.logger.experiment
         # metrics = {"loss": loss,}
         # log_metrics(metrics, comet_logger, self.current_epoch, context_val)
-        return result
+        return loss
 
     # def validation_step(self, batch, batch_idx):
     #     loss = self.contrastive_step(batch)
@@ -115,8 +115,13 @@ class SimCLR(LightningModule):
         )
         # Applying LARS to all other layers.
         # lr = 0.075* sqrt(batch_size) Appendix B of the paper.
+        # optimizer = LARSWrapper(
+        #     torch.optim.Adam(parameters, lr=0.075 * math.sqrt(self.config.batch_size))
+        # )
         optimizer = LARSWrapper(
-            torch.optim.Adam(parameters, lr=0.075 * math.sqrt(self.config.batch_size))
+            torch.optim.Adam(
+                parameters, lr=self.config.lr * math.sqrt(self.config.batch_size)
+            )
         )
 
         # The schdeuler is called after every step in an epoch hence adjusting the
