@@ -26,7 +26,7 @@ def main():
 
     train_data = Data_Set(
         config=train_param,
-        transforms=transforms.Compose([transforms.ToTensor()]),
+        transform=transforms.Compose([transforms.ToTensor()]),
         train_set=True,
     )
     val_data = copy.copy(train_data)
