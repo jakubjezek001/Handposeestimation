@@ -82,10 +82,10 @@ def vanila_contrastive_loss(
     Parts of the code adapted from pl_bolts nt_ext_loss.
 
     Args:
-        z1 (torch.Tensor): Tensor of projections of the images.
+        z1 (torch.Tensor): Tensor of normalized projections of the images.
             (#samples_in_batch x vector_dim).
-        z2 (torch.Tensor): Tensor of projections of the same images but with different
-            transformation.(#samples_in_batch x vector_dim)
+        z2 (torch.Tensor): Tensor of normalized projections of the same images but with
+            different transformation.(#samples_in_batch x vector_dim)
         temperature (float, optional): Temperature term in the contrastive loss.
             Defaults to 0.5. In SimCLr paper it was shown t=0.5 is good for training
             with small batches.
@@ -93,11 +93,6 @@ def vanila_contrastive_loss(
     Returns:
         torch.Tensor: Contrastive loss (1 x 1)
     """
-
-    # Normalizing the vectors.
-    z1 = z1 / torch.norm(z1, dim=1).view((-1, 1))
-    z2 = z2 / torch.norm(z2, dim=1).view((-1, 1))
-
     z = torch.cat([z1, z2], dim=0)
     n_samples = len(z)
 
