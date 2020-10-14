@@ -12,7 +12,7 @@ from src.models.simclr_model import SimCLR
 from src.utils import get_console_logger, read_json
 from torch.utils.data import DataLoader
 from pytorch_lightning.callbacks import LearningRateMonitor
-from src.models.callbacks.log_image import UploadCometLogs
+from src.models.callbacks.upload_comet_logs import UploadCometLogs
 
 
 def main():
@@ -66,7 +66,9 @@ def main():
         max_epochs=100,
         callbacks=[lr_monitor, upload_comet_logs],
     )
-    # trainer = pl.Trainer(gpus=[1], max_epochs=100,callbacks=[lr_monitor, test_callback])
+    # trainer = pl.Trainer(
+    #     gpus=[1], max_epochs=100, callbacks=[lr_monitor, upload_comet_logs]
+    # )
     trainer.logger.experiment.set_code(
         overwrite=True,
         filename=os.path.join(MASTER_THESIS_DIR, "src", "models", "simclr_model.py"),
