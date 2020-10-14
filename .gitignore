@@ -88,6 +88,7 @@ target/
 
 # Mypy cache
 .mypy_cache/
-notebooks/lightning_logs/
+**/lightning_logs/
 notebooks/*.png
+
 papers/SimCLR.pdf
