@@ -37,13 +37,14 @@ def main():
     # model.
     model_config = edict(
         read_json(
-            os.path.join(MASTER_THESIS_DIR, "src", "experiments", "simclr_config")
+            os.path.join(MASTER_THESIS_DIR, "src", "experiments", "simclr_config.json")
         )
     )
+    model_config.num_samples = len(data)
     model = SimCLR(config=model_config)
 
     # Training
-    trainer = pl.Trainer(gpus=-1, logger=comet_logger, max_epochs=100)
+    trainer = pl.Trainer(gpus=[1], logger=comet_logger, max_epochs=100)
     trainer.logger.experiment.set_code(
         overwrite=True,
         filename=os.path.join(MASTER_THESIS_DIR, "src", "models", "simclr_model.py"),

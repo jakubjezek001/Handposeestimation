@@ -1,3 +1,4 @@
+import math
 import pytorch_lightning as pl
 import torch
 import torchvision
@@ -17,13 +18,13 @@ class SimCLR(LightningModule):
 
     def __init__(self, config):
         super().__init__()
-        self.projection_head_input_dim = config.projection_head_input_dim
-        self.projection_head_hidden_dim = config.projection_head_hidden_dim
-        self.warmup_epochs = config.warmup_epochs
-        self.output_dim = config.output_dim
-        self.batch_size = config.batch_size
-        self.lr = config.lr
-        self.opt_weight_decay = config.opt_weight_decay
+        self.config = config
+        # self.projection_head_hidden_dim = config.projection_head_hidden_dim
+        # self.warmup_epochs = config.warmup_epochs
+        # self.output_dim = config.output_dim
+        # self.batch_size = config.batch_size
+        # self.lr = config.lr
+        # self.opt_weight_decay = config.opt_weight_decay
         # defining model
         self.encoder = self.get_encoder()
         self.projection_head = self.get_projection_head()
@@ -37,13 +38,17 @@ class SimCLR(LightningModule):
     def get_projection_head(self):
         projection_head = nn.Sequential(
             nn.Linear(
-                self.projection_head_input_dim,
-                self.projection_head_hidden_dim,
+                self.config.projection_head_input_dim,
+                self.config.projection_head_hidden_dim,
                 bias=True,
             ),
-            nn.BatchNorm1d(self.projection_head_hidden_dim),
+            nn.BatchNorm1d(self.config.projection_head_hidden_dim),
             nn.ReLU(),
-            nn.Linear(self.projection_head_hidden_dim, self.output_dim, bias=False),
+            nn.Linear(
+                self.config.projection_head_hidden_dim,
+                self.config.output_dim,
+                bias=False,
+            ),
         )
         return projection_head
 
@@ -80,7 +85,58 @@ class SimCLR(LightningModule):
     #     loss = torch.stack([x["loss"] for x in outputs]).mean()
     #     return loss
 
+    def exclude_from_wt_decay(
+        self, named_params, weight_decay, skip_list=["bias", "bn"]
+    ):
+        params = []
+        excluded_params = []
+
+        for name, param in named_params:
+            if not param.requires_grad:
+                continue
+            elif any(layer_name in name for layer_name in skip_list):
+                excluded_params.append(param)
+            else:
+                params.append(param)
+
+        return [
+            {"params": params, "weight_decay": weight_decay},
+            {"params": excluded_params, "weight_decay": 0.0},
+        ]
+
+    def setup(self, stage):
+        global_batch_size = self.trainer.world_size * self.config.batch_size
+        self.train_iters_per_epoch = self.config.num_samples // global_batch_size
+
     def configure_optimizers(self):
-        # TODO: understand and add LARS warpper.
-        # TODO: Add trick2 for the lr in starting.
-        return torch.optim.Adam(self.parameters(), lr=self.lr)
+        # excuding bias and batch norm from the weight decay.
+        parameters = self.exclude_from_wt_decay(
+            self.named_parameters(), weight_decay=self.config.opt_weight_decay
+        )
+        # Applying LARS to all other layers.
+        # lr = 0.075* sqrt(batch_size) Appendix B of the paper.
+        optimizer = LARSWrapper(
+            torch.optim.Adam(parameters, lr=0.075 * math.sqrt(self.config.batch_size))
+        )
+
+        # The schdeuler is called after every step in an epoch hence adjusting the
+        # warmup epochs param.
+        self.config.warmup_epochs = (
+            self.config.warmup_epochs * self.train_iters_per_epoch
+        )
+        max_epochs = self.trainer.max_epochs * self.train_iters_per_epoch
+
+        linear_warmup_cosine_decay = LinearWarmupCosineAnnealingLR(
+            optimizer,
+            warmup_epochs=self.config.warmup_epochs,
+            max_epochs=max_epochs,
+            warmup_start_lr=0,
+            eta_min=0,
+        )
+
+        scheduler = {
+            "scheduler": linear_warmup_cosine_decay,
+            "interval": "step",
+            "frequency": 1,
+        }
+        return [optimizer], [scheduler]
