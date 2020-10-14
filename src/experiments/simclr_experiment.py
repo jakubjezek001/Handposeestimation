@@ -8,11 +8,11 @@ from pytorch_lightning.loggers import CometLogger
 from src.constants import DATA_PATH, FREIHAND_DATA, MASTER_THESIS_DIR
 from src.data_loader.freihand_loader2 import F_DB2
 from src.data_loader.sample_augmenter import SampleAugmenter
-from src.experiments.utils import get_experiement_args, process_experiment_args
 from src.models.simclr_model import SimCLR
 from src.utils import get_console_logger, read_json
 from torch.utils.data import DataLoader
 from pytorch_lightning.callbacks import LearningRateMonitor
+from src.models.callbacks.log_image import UploadCometLogs
 
 
 def main():
@@ -35,13 +35,16 @@ def main():
     # TODO: create suitable validation set.
 
     # Logger
+
     comet_logger = CometLogger(
         api_key=os.environ.get("COMET_API_KEY"),
         project_name="master-thesis",
         workspace="dahiyaaneesh",
         save_dir=os.path.join(DATA_PATH, "models"),
     )
+
     # model.
+
     model_config = edict(
         read_json(
             os.path.join(MASTER_THESIS_DIR, "src", "experiments", "simclr_config.json")
@@ -49,16 +52,25 @@ def main():
     )
     model_config.num_samples = len(data)
     model = SimCLR(config=model_config)
-    lr_monitor = LearningRateMonitor(logging_interval="step")
+
+    # callbacks
+
+    upload_comet_logs = UploadCometLogs("epoch", get_console_logger("callback"))
+    lr_monitor = LearningRateMonitor(logging_interval="epoch")
+
     # Training
+
     trainer = pl.Trainer(
-        gpus=[1], logger=comet_logger, max_epochs=100, callbacks=[lr_monitor]
+        gpus=[1],
+        logger=comet_logger,
+        max_epochs=100,
+        callbacks=[lr_monitor, upload_comet_logs],
     )
-    # trainer = pl.Trainer(gpus=[1], max_epochs=100,callbacks=[lr_monitor])
-    # trainer.logger.experiment.set_code(
-    #     overwrite=True,
-    #     filename=os.path.join(MASTER_THESIS_DIR, "src", "models", "simclr_model.py"),
-    # )
+    # trainer = pl.Trainer(gpus=[1], max_epochs=100,callbacks=[lr_monitor, test_callback])
+    trainer.logger.experiment.set_code(
+        overwrite=True,
+        filename=os.path.join(MASTER_THESIS_DIR, "src", "models", "simclr_model.py"),
+    )
     trainer.fit(model, data_loader)
 
 
