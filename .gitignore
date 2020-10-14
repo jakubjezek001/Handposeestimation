@@ -90,3 +90,4 @@ target/
 .mypy_cache/
 notebooks/lightning_logs/
 notebooks/*.png
+papers/SimCLR.pdf
