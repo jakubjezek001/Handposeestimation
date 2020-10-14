@@ -1,12 +1,12 @@
 import math
+
 import pytorch_lightning as pl
 import torch
 import torchvision
 from pl_bolts.optimizers.lars_scheduling import LARSWrapper
 from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
 from pytorch_lightning.core.lightning import LightningModule
-from src.models.utils import log_metrics, vanila_contrastive_loss
-from src.utils import get_console_logger
+from src.models.utils import vanila_contrastive_loss
 from torch import nn
 from torch.nn import functional as F
 
@@ -20,15 +20,10 @@ class SimCLR(LightningModule):
     def __init__(self, config):
         super().__init__()
         self.config = config
-        # self.projection_head_hidden_dim = config.projection_head_hidden_dim
-        # self.warmup_epochs = config.warmup_epochs
-        # self.output_dim = config.output_dim
-        # self.batch_size = config.batch_size
-        # self.lr = config.lr
-        # self.opt_weight_decay = config.opt_weight_decay
-        # defining model
         self.encoder = self.get_encoder()
         self.projection_head = self.get_projection_head()
+        # stores all the train metrics for a step. For use in callback
+        self.train_metrics = None
 
     def get_encoder(self):
         encoder = torchvision.models.resnet18(pretrained=True)
@@ -70,12 +65,12 @@ class SimCLR(LightningModule):
 
     def training_step(self, batch, batch_idx):
         loss = self.contrastive_step(batch)
-        self.log("train_loss", loss)
-        # context_val = False
-        # comet_logger = self.logger.experiment
-        # metrics = {"loss": loss,}
-        # log_metrics(metrics, comet_logger, self.current_epoch, context_val)
-        return loss
+        self.train_metrics = {"loss": loss}
+        return {"loss": loss}
+
+    def training_epoch_end(self, outputs):
+        loss = torch.stack([x["loss"] for x in outputs]).mean()
+        self.train_metric_epoch = {"loss": loss}
 
     # def validation_step(self, batch, batch_idx):
     #     loss = self.contrastive_step(batch)
