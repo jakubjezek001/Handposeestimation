@@ -133,7 +133,9 @@ class SampleAugmenter:
         """
         # randomly dropping color
         if random.getrandbits(1):
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            image[:, :, :] = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY).reshape(
+                list(image.shape[:2]) + [1]
+            )
         return image, joints
 
     def color_jitter_sample(
