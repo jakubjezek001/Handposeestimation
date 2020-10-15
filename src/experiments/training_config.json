@@ -2,14 +2,51 @@
     "batch_size": 32,
     "epochs": 1000,
     "train_ratio": 0.9,
-    "gpu":true,
-    "num_workers":1,
-    "seed":5,
-    "rotate":true,
-    "crop":true,
-    "crop_margin":1.5,
-    "crop_keypoints":true,
-    "resize":true,
-    "resize_shape":[128,128],
-    "resize_keypoints":true
+    "gpu": true,
+    "num_workers": 1,
+    "seed": 5,
+    "augmentation_flags": {
+        "color_drop": false,
+        "color_jitter": false,
+        "crop": true,
+        "cut_out": false,
+        "flip": false,
+        "gaussian_blur": false,
+        "random_crop": false,
+        "resize": true,
+        "rotate": true
+    },
+    "augmentation_params": {
+        "crop_margin": 1.5,
+        "crop_margin_range": [
+            0.08,
+            2
+        ],
+        "cut_out_fraction": [
+            0.05,
+            0.5
+        ],
+        "hue_factor_range": [
+            -0.5,
+            0.5
+        ],
+        "max_angle": 359,
+        "min_angle": 0,
+        "resize_shape": [
+            128,
+            128
+        ],
+        "sat_factor_range": [
+            -0.5,
+            0.5
+        ],
+        "value_factor_alpha_range": [
+            0.5,
+            1
+        ],
+        "value_factor_beta_range": [
+            10,
+            50
+        ]
+    }
 }

@@ -2,17 +2,8 @@
     "alpha": 5,
     "gpu": true,
     "resnet_trainable": true,
-    "learning_rate": 0.0001,
-    "scheduler": {
-        "choice": "cosine_annealing",
-        "cosine_annealing": {
-            "T_max": 300
-        },
-        "reduce_on_plateau": {
-            "mode": "min",
-            "factor": 0.5,
-            "patience": 4,
-            "verbose": true
-        }
-    }
+    "lr": 0.0001,
+    "batch_size":32,
+    "opt_weight_decay": 0.0001,
+    "warmup_epochs": 15
 }
