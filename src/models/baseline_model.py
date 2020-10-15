@@ -1,14 +1,15 @@
 from typing import List
-
+import math
 import torch
 import torchvision
 from easydict import EasyDict as edict
 from pytorch_lightning.core.lightning import LightningModule
-from src.models.utils import cal_l1_loss, log_image, log_metrics
+from src.models.utils import cal_l1_loss
 from src.utils import get_console_logger
-from src.visualization.visualize import plot_truth_vs_prediction
 from torch import nn
 from torch.nn import functional as F
+from pl_bolts.optimizers.lars_scheduling import LARSWrapper
+from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
 
 
 class BaselineModel(LightningModule):
@@ -31,6 +32,10 @@ class BaselineModel(LightningModule):
         self.final_layers = nn.Sequential(
             nn.Linear(128, 128), nn.BatchNorm1d(128), nn.ReLU(), nn.Linear(128, 21 * 3)
         )
+        self.train_metrics_epoch = None
+        self.train_metrics = None
+        self.validation_metrics_epoch = None
+        self.plot_params = None
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         batch_size, channel, width, height = x.size()
@@ -57,27 +62,79 @@ class BaselineModel(LightningModule):
         prediction = self(x)
         loss_2d, loss_z = cal_l1_loss(prediction, y)
         loss = loss_2d + self.config.alpha * loss_z
-        context_val = False
-        comet_logger = self.logger.experiment
         metrics = {"loss": loss, "loss_z": loss_z, "loss_2d": loss_2d}
-        log_metrics(metrics, comet_logger, self.current_epoch, context_val)
-        if batch_idx == 1 or batch_idx == 4:
-            log_image(prediction, y, x, self.config.gpu, context_val, comet_logger)
+        self.train_metrics = metrics
+        self.plot_params = {"prediction": prediction, "ground_truth": y, "input": x}
         return metrics
 
-    def configure_optimizers(self) -> torch.optim.Adam:
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.config["learning_rate"])
-        if self.config.scheduler.choice == "cosine_annealing":
-            scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-                optimizer, **self.config.scheduler.cosine_annealing
+    def training_epoch_end(self, outputs):
+        loss = torch.stack([x["loss"] for x in outputs]).mean()
+        loss_z = torch.stack([x["loss_z"] for x in outputs]).mean()
+        loss_2d = torch.stack([x["loss_2d"] for x in outputs]).mean()
+        self.train_metrics_epoch = {"loss": loss, "loss_z": loss_z, "loss_2d": loss_2d}
+
+    def exclude_from_wt_decay(
+        self, named_params, weight_decay, skip_list=["bias", "bn"]
+    ):
+        params = []
+        excluded_params = []
+
+        for name, param in named_params:
+            if not param.requires_grad:
+                continue
+            elif any(layer_name in name for layer_name in skip_list):
+                excluded_params.append(param)
+            else:
+                params.append(param)
+
+        return [
+            {"params": params, "weight_decay": weight_decay},
+            {"params": excluded_params, "weight_decay": 0.0},
+        ]
+
+    def setup(self, stage):
+        global_batch_size = self.trainer.world_size * self.config.batch_size
+        self.train_iters_per_epoch = self.config.num_samples // global_batch_size
+
+    def configure_optimizers(self):
+        parameters = self.exclude_from_wt_decay(
+            self.named_parameters(), weight_decay=self.config.opt_weight_decay
+        )
+        optimizer = LARSWrapper(
+            torch.optim.Adam(
+                parameters, lr=self.config.lr * math.sqrt(self.config.batch_size)
             )
-        elif self.config.scheduler.choice == "reduce_on_plateau":
-            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-                optimizer, **self.config.scheduler.reduce_on_plateau
-            )
-        else:
-            self.console_logger.info("No learning rate scheduler selected")
-            return optimizer
+        )
+        self.config.warmup_epochs = (
+            self.config.warmup_epochs * self.train_iters_per_epoch
+        )
+        max_epochs = self.trainer.max_epochs * self.train_iters_per_epoch
+
+        linear_warmup_cosine_decay = LinearWarmupCosineAnnealingLR(
+            optimizer,
+            warmup_epochs=self.config.warmup_epochs,
+            max_epochs=max_epochs,
+            warmup_start_lr=0,
+            eta_min=0,
+        )
+
+        scheduler = {
+            "scheduler": linear_warmup_cosine_decay,
+            "interval": "step",
+            "frequency": 1,
+        }
+        # optimizer = torch.optim.Adam(self.parameters(), lr=self.config["learning_rate"])
+        # if self.config.scheduler.choice == "cosine_annealing":
+        #     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        #         optimizer, **self.config.scheduler.cosine_annealing
+        #     )
+        # elif self.config.scheduler.choice == "reduce_on_plateau":
+        #     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        #         optimizer, **self.config.scheduler.reduce_on_plateau
+        #     )
+        # else:
+        #     self.console_logger.info("No learning rate scheduler selected")
+        #     return optimizer
 
         return [optimizer], [scheduler]
 
@@ -95,11 +152,9 @@ class BaselineModel(LightningModule):
         prediction = self(x)
         loss_2d, loss_z = cal_l1_loss(prediction, y)
         loss = loss_2d + self.config.alpha * loss_z
-        context_val = False
-        comet_logger = self.logger.experiment
         metrics = {"loss": loss, "loss_z": loss_z, "loss_2d": loss_2d}
-        if batch_idx == 0:
-            log_image(prediction, y, x, self.config.gpu, context_val, comet_logger)
+        self.plot_params = {"prediction": prediction, "ground_truth": y, "input": x}
+
         return metrics
 
     def validation_epoch_end(self, outputs: List[dict]) -> dict:
@@ -116,7 +171,4 @@ class BaselineModel(LightningModule):
         loss_z = torch.stack([x["loss_z"] for x in outputs]).mean()
         loss_2d = torch.stack([x["loss_2d"] for x in outputs]).mean()
         metrics = {"loss": loss, "loss_z": loss_z, "loss_2d": loss_2d}
-        comet_logger = self.logger.experiment
-        context_val = True
-        log_metrics(metrics, comet_logger, self.current_epoch, context_val)
-        return metrics
+        self.validation_metrics_epoch = metrics
