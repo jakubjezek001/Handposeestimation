@@ -4,10 +4,11 @@ import torch
 import torchvision
 from easydict import EasyDict as edict
 from pytorch_lightning.core.lightning import LightningModule
-from src.visualization.visualize import plot_truth_vs_prediction
-from torch.nn import functional as F
-from src.models.utils import cal_l1_loss, log_metrics, log_image
+from src.models.utils import cal_l1_loss, log_image, log_metrics
 from src.utils import get_console_logger
+from src.visualization.visualize import plot_truth_vs_prediction
+from torch import nn
+from torch.nn import functional as F
 
 
 class BaselineModel(LightningModule):
@@ -27,17 +28,16 @@ class BaselineModel(LightningModule):
             for param in self.resnet18.parameters():
                 param.requires_grad = False
         self.resnet18.fc = torch.nn.Linear(self.resnet18.fc.in_features, 128)
-        self.layer_1 = torch.nn.Linear(128, 128)
-        self.output_layer = torch.nn.Linear(128, 21 * 3)
+        self.final_layers = nn.Sequential(
+            nn.Linear(128, 128), nn.BatchNorm1d(128), nn.ReLU(), nn.Linear(128, 21 * 3)
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         batch_size, channel, width, height = x.size()
         x = self.resnet18(x)
-        x = F.relu(x)
-        x = self.layer_1(x)
-        x = F.relu(x)
-        x = self.output_layer(x)
+        x = self.final_layers(x)
         x = x.view(batch_size, 21, 3)
+
         return x
 
     def training_step(self, batch: dict, batch_idx: int) -> dict:

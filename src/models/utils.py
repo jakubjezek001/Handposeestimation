@@ -31,9 +31,9 @@ def calculate_metrics(
     Args:
         y_pred (torch.Tensor): Batch of predicted labels.
         y_true (torch.Tensor): Batch of True labesl.
-        step (str, optional): This argument specifies whether the metrics are caclulated for
-            train or val set. Appends suitable name to the keys in returned dictionary.
-            Defaults to "train".
+        step (str, optional): This argument specifies whether the metrics are caclulated
+            for train or val set. Appends suitable name to the keys in returned
+            dictionary. Defaults to "train".
 
     Returns:
         dict: Calculated metrics as a dictionary.
@@ -77,11 +77,22 @@ def log_image(prediction, y, x, gpu: bool, context_val: bool, comet_logger: Expe
 def vanila_contrastive_loss(
     z1: torch.Tensor, z2: torch.Tensor, temperature=0.5
 ) -> torch.Tensor:
+    """Calculates the contrastive loss as mentioned in SimCLR paper
+        https://arxiv.org/pdf/2002.05709.pdf.
+    Parts of the code adapted from pl_bolts nt_ext_loss.
 
-    # Normalizing the vectors.
-    z1 = z1 / torch.norm(z1, dim=1).view((-1, 1))
-    z2 = z2 / torch.norm(z2, dim=1).view((-1, 1))
+    Args:
+        z1 (torch.Tensor): Tensor of normalized projections of the images.
+            (#samples_in_batch x vector_dim).
+        z2 (torch.Tensor): Tensor of normalized projections of the same images but with
+            different transformation.(#samples_in_batch x vector_dim)
+        temperature (float, optional): Temperature term in the contrastive loss.
+            Defaults to 0.5. In SimCLr paper it was shown t=0.5 is good for training
+            with small batches.
 
+    Returns:
+        torch.Tensor: Contrastive loss (1 x 1)
+    """
     z = torch.cat([z1, z2], dim=0)
     n_samples = len(z)
 
