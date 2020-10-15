@@ -1,12 +1,13 @@
 import os
 
-import pytorch_lightning as pl
 from easydict import EasyDict as edict
+from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.loggers import CometLogger
 from src.constants import DATA_PATH, MASTER_THESIS_DIR, TRAINING_CONFIG_PATH
 from src.data_loader.data_set import Data_Set
 from src.data_loader.utils import get_train_val_split
+from src.experiments.utils import get_experiement_args, process_experiment_args
 from src.models.callbacks.upload_comet_logs import UploadCometLogs
 from src.models.simclr_model import SimCLR
 from src.utils import get_console_logger, read_json
@@ -14,8 +15,15 @@ from torchvision import transforms
 
 
 def main():
-    train_param = edict(read_json(TRAINING_CONFIG_PATH))
 
+    # get configs
+    console_logger = get_console_logger(__name__)
+    train_param = edict(read_json(TRAINING_CONFIG_PATH))
+    args = get_experiement_args()
+    train_param, model_param = process_experiment_args(args, console_logger)
+    seed_everything(train_param.seed)
+
+    # data preperation
     data = Data_Set(
         config=train_param,
         transform=transforms.Compose([transforms.ToTensor()]),
@@ -42,7 +50,6 @@ def main():
         )
     )
     model_param.num_samples = len(data)
-    model_param.batch_size = train_param.batch_size
     model = SimCLR(config=model_param)
 
     # callbacks
@@ -50,9 +57,9 @@ def main():
     upload_comet_logs = UploadCometLogs("epoch", get_console_logger("callback"))
     lr_monitor = LearningRateMonitor(logging_interval="epoch")
 
-    # Training
+    # Trainer setup
 
-    trainer = pl.Trainer(
+    trainer = Trainer(
         gpus=1,
         logger=comet_logger,
         max_epochs=100,

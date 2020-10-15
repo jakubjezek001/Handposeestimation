@@ -15,35 +15,50 @@ def get_experiement_args() -> argparse.Namespace:
        argparse.Namespace: Parsed arguments as namespace.
     """
     parser = argparse.ArgumentParser(description="Script for training a model")
+    parser.add_argument("--cpu", action="store_true", help="Eanbles CPU training")
+    parser.add_argument("-lr", type=float, help="Learning _rate.")
+    parser.add_argument("-opt_weight_decay", type=int, help="Weight decay")
+    parser.add_argument("-warmup_epochs", type=int, help="Number of warmup epochs")
+
+    # Augmenter flags
     parser.add_argument(
-        "--cpu", action="store_true", help="Select this option to use CPU training"
+        "--color_drop", action="store_true", help="To enable random color drop"
     )
     parser.add_argument(
-        "-resnet_trainable",
-        help="True for trainable and false for not trainable. Defaut according to config.",
+        "--color_jitter", action="store_true", help="To enable random jitter"
+    )
+    parser.add_argument("--crop", action="store_true", help="To enable cropping")
+    parser.add_argument(
+        "--cut_out", action="store_true", help="To enable random cur out"
+    )
+    parser.add_argument("--flip", action="store_true", help="To enable random flipping")
+    parser.add_argument(
+        "--gaussian_blur", action="store_true", help="To enable gaussina blur"
     )
     parser.add_argument(
-        "-train_ratio", type=float, help="Ratio of train:validation split."
+        "--rotate", action="store_true", help="To rotate samples randomly"
     )
     parser.add_argument(
-        "-crop", type=bool, help="To crop the image around hand coordinates,"
+        "--random_crop", action="store_true", help="To enable random cropping"
     )
-    parser.add_argument(
-        "-crop_keypoints", type=bool, help="To crop the joints IF image is cropped,"
-    )
-    parser.add_argument(
-        "-crop_margin",
-        type=float,
-        help="To enlarge the crop box, values will be clipped between 1 and 2",
-    )
-    parser.add_argument("--rotate", type=bool, help="To rotate samples randomly")
-    parser.add_argument("-learning_rate", type=float, help="Learning _rate.")
+    parser.add_argument("--resize", action="store_true", help="To enable resizing")
+
     parser.add_argument("-batch_size", type=int, help="Batch size")
     parser.add_argument("-epochs", type=int, help="Number of epochs")
     parser.add_argument("-seed", type=int, help="To add random seed")
     parser.add_argument(
         "-num_workers", type=int, help="Number of workers for Dataloader."
     )
+    parser.add_argument(
+        "-train_ratio", type=float, help="Ratio of train:validation split."
+    )
+    parser.add_argument(
+        "-resnet_trainable",
+        help="True for trainable and false for not trainable. Defaut according to config.",
+    )
+
+    parser.add_argument("-crop_margin", type=float, help="Chnage the crop margin.")
+
     args = parser.parse_args()
     return args
 
@@ -83,20 +98,26 @@ def update_train_params(args: argparse.Namespace, train_param: edict) -> edict:
     """
     if args.train_ratio is not None:
         train_param.data.train_ratio = (args.train_ratio * 100 % 100) / 100.0
-    train_param = update_param(
+    train_param.update(
+        update_param(
+            args,
+            train_param,
+            ["batch_size", "epochs", "train_ratio", "num_workers", "seed"],
+        )
+    )
+    train_param.augmentation_flags = update_param(
         args,
-        train_param,
+        train_param.augmentation_flags,
         [
-            "batch_size",
-            "epochs",
-            "train_ratio",
-            "num_workers",
-            "seed",
-            "rotate",
+            "color_drop",
+            "color_jitter",
             "crop",
-            "crop_margin",
-            "crop_keypoints",
-            "resnet_trainable",
+            "cut_out",
+            "flip",
+            "gaussian_blur",
+            "random_crop",
+            "resize",
+            "rotate",
         ],
     )
     train_param.gpu = True if args.cpu is not True else False
@@ -131,6 +152,10 @@ def update_model_params(args: argparse.Namespace, model_param: edict) -> edict:
     Returns:
         edict:Updated model parameters.
     """
-    model_param = update_param(args, model_param, ["resnet_trainable", "learning_rate"])
+    model_param = update_param(
+        args,
+        model_param,
+        ["resnet_trainable", "lr", "batch_size", "opt_weight_decay", "warmup_epochs"],
+    )
     model_param.gpu = True if args.cpu is not True else False
     return model_param

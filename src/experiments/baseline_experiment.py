@@ -1,9 +1,8 @@
 import os
-import random
+
 
 import numpy as np
-import torch
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.loggers import CometLogger
 from src.constants import DATA_PATH, MASTER_THESIS_DIR
@@ -17,13 +16,12 @@ from torchvision import transforms
 
 
 def main():
+    # get configs
+
     console_logger = get_console_logger(__name__)
     args = get_experiement_args()
     train_param, model_param = process_experiment_args(args, console_logger)
-    np.random.seed(train_param.seed)
-    random.seed(train_param.seed)
-    torch.manual_seed(train_param.seed)
-    torch.cuda.manual_seed_all(train_param.seed)
+    seed_everything(train_param.seed)
 
     # data preperation
 
