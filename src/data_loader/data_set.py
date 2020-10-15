@@ -72,12 +72,8 @@ class Data_Set(Dataset):
 
     def get_sample_augmenter(self):
         return SampleAugmenter(
-            resize=self.config.resize,
-            rotate=self.config.rotate,
-            seed=self.config.seed,
-            crop=self.config.crop,
-            resize_shape=self.config.resize_shape,
-            crop_margin=self.config.crop_margin,
+            augmentation_params=self.config.augmentation_params,
+            augmentation_flags=self.config.augmentation_flags,
         )
 
     def prepare_simclr_sample(self, sample: dict) -> dict:

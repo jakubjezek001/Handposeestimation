@@ -4,7 +4,6 @@ from typing import Tuple
 
 import torch
 from PIL import Image
-from src.data_loader.data_set import Data_Set
 from src.data_loader.joints import Joints
 from src.types import CAMERA_PARAM, JOINTS_3D, JOINTS_25D, SCALE
 from torch.utils.data import DataLoader
@@ -213,7 +212,7 @@ def sample_resizer(
     return image, joints_resized
 
 
-def get_train_val_split(data: Data_Set, **kwargs) -> Tuple[DataLoader, DataLoader]:
+def get_train_val_split(data, **kwargs) -> Tuple[DataLoader, DataLoader]:
     """Creates validation and train dataloader from the Data_set object.
 
     Args:
