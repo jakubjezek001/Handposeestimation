@@ -22,8 +22,10 @@ class SimCLR(LightningModule):
         self.config = config
         self.encoder = self.get_encoder()
         self.projection_head = self.get_projection_head()
-        # stores all the train metrics for a step. For use in callback
+        # Variables used by callbacks
+        self.train_metrics_epoch = None
         self.train_metrics = None
+        self.validation_metrics_epoch = None
 
     def get_encoder(self):
         encoder = torchvision.models.resnet18(pretrained=True)
@@ -70,15 +72,15 @@ class SimCLR(LightningModule):
 
     def training_epoch_end(self, outputs):
         loss = torch.stack([x["loss"] for x in outputs]).mean()
-        self.train_metric_epoch = {"loss": loss}
+        self.train_metrics_epoch = {"loss": loss}
 
-    # def validation_step(self, batch, batch_idx):
-    #     loss = self.contrastive_step(batch)
-    #     return {"loss": loss}
+    def validation_step(self, batch, batch_idx):
+        loss = self.contrastive_step(batch)
+        return {"loss": loss}
 
-    # def validation_epoch_end(self, outputs):
-    #     loss = torch.stack([x["loss"] for x in outputs]).mean()
-    #     return loss
+    def validation_epoch_end(self, outputs):
+        loss = torch.stack([x["loss"] for x in outputs]).mean()
+        self.validation_metrics_epoch = {"loss": loss}
 
     def exclude_from_wt_decay(
         self, named_params, weight_decay, skip_list=["bias", "bn"]
