@@ -1,17 +1,18 @@
-import copy
 import os
 import random
 
 import numpy as np
 import torch
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.loggers import CometLogger
 from src.constants import DATA_PATH, MASTER_THESIS_DIR
 from src.data_loader.data_set import Data_Set
+from src.data_loader.utils import get_train_val_split
 from src.experiments.utils import get_experiement_args, process_experiment_args
 from src.models.baseline_model import BaselineModel
+from src.models.callbacks.upload_comet_logs import UploadCometLogs
 from src.utils import get_console_logger
-from torch.utils.data import DataLoader
 from torchvision import transforms
 
 
@@ -24,13 +25,18 @@ def main():
     torch.manual_seed(train_param.seed)
     torch.cuda.manual_seed_all(train_param.seed)
 
-    train_data = Data_Set(
+    # data preperation
+
+    data = Data_Set(
         config=train_param,
         transform=transforms.Compose([transforms.ToTensor()]),
         train_set=True,
     )
-    val_data = copy.copy(train_data)
-    val_data.is_training(False)
+    train_data_loader, val_data_loader = get_train_val_split(
+        data, num_workers=train_param.num_workers, batch_size=train_param.batch_size
+    )
+
+    # logger
 
     comet_logger = CometLogger(
         api_key=os.environ.get("COMET_API_KEY"),
@@ -38,21 +44,36 @@ def main():
         workspace="dahiyaaneesh",
         save_dir=os.path.join(DATA_PATH, "models"),
     )
-    train_data_loader = DataLoader(
-        train_data,
-        batch_size=train_param.batch_size,
-        num_workers=train_param.num_workers,
-    )
-    val_data_loader = DataLoader(
-        val_data, batch_size=train_param.batch_size, num_workers=train_param.num_workers
-    )
+
+    # model
+    model_param.num_samples = len(data)
+    model_param.batch_size = train_param.batch_size
     model = BaselineModel(config=model_param)
+
+    # callbacks
+
+    upload_comet_logs = UploadCometLogs(
+        "epoch", get_console_logger("callback"), "supervised"
+    )
+    lr_monitor = LearningRateMonitor(logging_interval="step")
+
+    # Training
     if train_param.gpu:
         console_logger.info("GPU Training activated")
-        trainer = Trainer(max_epochs=train_param.epochs, logger=comet_logger, gpus=1)
+        trainer = Trainer(
+            max_epochs=train_param.epochs,
+            logger=comet_logger,
+            gpus=1,
+            callbacks=[lr_monitor, upload_comet_logs],
+        )
     else:
         console_logger.info("CPU Training activated")
-        trainer = Trainer(max_epochs=train_param.epochs, logger=comet_logger)
+        trainer = Trainer(
+            max_epochs=train_param.epochs,
+            logger=comet_logger,
+            callbacks=[lr_monitor, upload_comet_logs],
+        )
+
     trainer.logger.experiment.log_parameters({"train_param": train_param})
     trainer.logger.experiment.set_code(
         overwrite=True,
