@@ -11,7 +11,7 @@ from src.utils import get_console_logger, read_json
 from pytorch_lightning.callbacks import LearningRateMonitor
 from src.models.callbacks.upload_comet_logs import UploadCometLogs
 from src.constants import TRAINING_CONFIG_PATH
-from src.experiments.utils import get_train_val_split
+from src.data_loader.utils import get_train_val_split
 
 
 def main():
@@ -54,7 +54,7 @@ def main():
     # Training
 
     trainer = pl.Trainer(
-        gpus=0,
+        gpus=1,
         logger=comet_logger,
         max_epochs=100,
         callbacks=[lr_monitor, upload_comet_logs],
@@ -67,7 +67,7 @@ def main():
     #     gpus=0, max_epochs=100, callbacks=[lr_monitor, upload_comet_logs]
     # )
 
-    trainer.fit(model, train_data_loader)
+    trainer.fit(model, train_data_loader, val_data_loader)
 
 
 if __name__ == "__main__":
