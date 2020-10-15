@@ -26,9 +26,9 @@ class F_DB(Dataset):
             transform ([type]): Transforms that needs to be applied to the image.
         """
         self.root_dir = root_dir
-        self.labels = self.get_labels(labels_path)[:4096]
-        self.camera_param = self.get_camera_param(camera_param_path)[:4096]
-        self.img_names = self.get_image_names()[:4096]
+        self.labels = self.get_labels(labels_path)
+        self.camera_param = self.get_camera_param(camera_param_path)
+        self.img_names = self.get_image_names()
         # To convert from freihand to AIT format.
         self.joints = Joints()
         self.config = config

@@ -1,14 +1,11 @@
 import argparse
 from logging import Logger
 from pprint import pformat
-import copy
-from typing import List, Tuple
+from typing import List
 
 from easydict import EasyDict as edict
 from src.constants import MODEL_CONFIG_PATH, TRAINING_CONFIG_PATH
 from src.utils import read_json
-from src.data_loader.data_set import Data_Set
-from torch.utils.data import DataLoader
 
 
 def get_experiement_args() -> argparse.Namespace:
@@ -137,10 +134,3 @@ def update_model_params(args: argparse.Namespace, model_param: edict) -> edict:
     model_param = update_param(args, model_param, ["resnet_trainable", "learning_rate"])
     model_param.gpu = True if args.cpu is not True else False
     return model_param
-
-
-def get_train_val_split(data: Data_Set, **kwargs) -> Tuple[DataLoader, DataLoader]:
-    data.is_training(True)
-    val_data = copy.copy(data)
-    val_data.is_training(False)
-    return DataLoader(data, **kwargs), DataLoader(val_data, **kwargs)

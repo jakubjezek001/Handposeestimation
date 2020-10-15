@@ -1,11 +1,12 @@
+import copy
+from math import cos, pi, sin
 from typing import Tuple
-from matplotlib.transforms import TransformNode
 
 import torch
-from src.types import CAMERA_PARAM, JOINTS_3D, JOINTS_25D, SCALE
-from src.data_loader.joints import Joints
 from PIL import Image
-from math import pi, sin, cos
+from src.data_loader.joints import Joints
+from src.types import CAMERA_PARAM, JOINTS_3D, JOINTS_25D, SCALE
+from torch.utils.data import DataLoader
 from torchvision import transforms
 
 JOINTS = Joints()
@@ -209,3 +210,20 @@ def sample_resizer(
         joints_resized[:, 0] = joints_resized[:, 0] * 128 / (width)
         joints_resized[:, 1] = joints_resized[:, 1] * 128 / (height)
     return image, joints_resized
+
+
+def get_train_val_split(data, **kwargs) -> Tuple[DataLoader, DataLoader]:
+    """Creates validation and train dataloader from the Data_set object.
+
+    Args:
+        data (Data_Set): Object of the class Data_Set.
+    kwargs:
+        These arguments are passed as is to the pytorch DataLoader.
+
+    Returns:
+        Tuple[DataLoader, DataLoader]: train and validation data loader respectively.
+    """
+    data.is_training(True)
+    val_data = copy.copy(data)
+    val_data.is_training(False)
+    return DataLoader(data, **kwargs), DataLoader(val_data, **kwargs)
