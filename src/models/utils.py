@@ -1,6 +1,6 @@
 import torch
 from comet_ml import Experiment
-from src.visualization.visualize import plot_truth_vs_prediction
+from src.visualization.visualize import plot_simcr_images, plot_truth_vs_prediction
 from torch.nn import L1Loss
 
 
@@ -72,6 +72,16 @@ def log_image(prediction, y, x, gpu: bool, context_val: bool, comet_logger: Expe
             plot_truth_vs_prediction(
                 pred_label, true_label, x.data[0].cpu(), comet_logger
             )
+
+
+def log_simclr_images(img1, img2, context_val: bool, comet_logger: Experiment):
+
+    if context_val:
+        with comet_logger.validate():
+            plot_simcr_images(img1.data[0].cpu(), img2.data[0].cpu(), comet_logger)
+    else:
+        with comet_logger.train():
+            plot_simcr_images(img1.data[0].cpu(), img2.data[0].cpu(), comet_logger)
 
 
 def vanila_contrastive_loss(

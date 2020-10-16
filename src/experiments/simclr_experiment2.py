@@ -1,7 +1,6 @@
 import os
 
 from easydict import EasyDict as edict
-from numpy.lib.function_base import percentile
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.loggers import CometLogger
@@ -58,7 +57,9 @@ def main():
 
     # callbacks
 
-    upload_comet_logs = UploadCometLogs("epoch", get_console_logger("callback"))
+    upload_comet_logs = UploadCometLogs(
+        "epoch", get_console_logger("callback"), experiment_type="simclr"
+    )
     lr_monitor = LearningRateMonitor(logging_interval="epoch")
 
     # Trainer setup

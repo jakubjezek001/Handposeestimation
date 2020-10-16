@@ -26,6 +26,7 @@ class SimCLR(LightningModule):
         self.train_metrics_epoch = None
         self.train_metrics = None
         self.validation_metrics_epoch = None
+        self.plot_params = None
 
     def get_encoder(self):
         encoder = torchvision.models.resnet18(pretrained=True)
@@ -68,6 +69,10 @@ class SimCLR(LightningModule):
     def training_step(self, batch, batch_idx):
         loss = self.contrastive_step(batch)
         self.train_metrics = {"loss": loss}
+        self.plot_params = {
+            "image1": batch["transformed_image1"],
+            "image2": batch["transformed_image2"],
+        }
         return {"loss": loss}
 
     def training_epoch_end(self, outputs):
@@ -76,6 +81,10 @@ class SimCLR(LightningModule):
 
     def validation_step(self, batch, batch_idx):
         loss = self.contrastive_step(batch)
+        self.plot_params = {
+            "image1": batch["transformed_image1"],
+            "image2": batch["transformed_image2"],
+        }
         return {"loss": loss}
 
     def validation_epoch_end(self, outputs):
