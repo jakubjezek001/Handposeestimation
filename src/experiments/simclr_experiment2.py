@@ -64,6 +64,7 @@ def main():
     # Trainer setup
 
     trainer = Trainer(
+        accumulate_grad_batches=train_param.accumulate_grad_batches,
         gpus=1,
         logger=comet_logger,
         max_epochs=100,
@@ -75,9 +76,6 @@ def main():
         overwrite=True,
         filename=os.path.join(MASTER_THESIS_DIR, "src", "models", "simclr_model.py"),
     )
-    # trainer = pl.Trainer(
-    #     gpus=0, max_epochs=100, callbacks=[lr_monitor, upload_comet_logs]
-    # )
     trainer.logger.experiment.log_parameters({"train_param": train_param})
     trainer.logger.experiment.log_parameters({"model_param": model_param})
     trainer.fit(model, train_data_loader, val_data_loader)

@@ -1,3 +1,4 @@
+from itertools import accumulate
 import os
 
 
@@ -59,25 +60,16 @@ def main():
     lr_monitor = LearningRateMonitor(logging_interval="step")
 
     # Training
-    if train_param.gpu:
-        console_logger.info("GPU Training activated")
-        trainer = Trainer(
-            max_epochs=train_param.epochs,
-            logger=comet_logger,
-            precision=train_param.precision,
-            amp_backend="native",
-            gpus=1,
-            callbacks=[lr_monitor, upload_comet_logs],
-        )
-    else:
-        console_logger.info("CPU Training activated")
-        trainer = Trainer(
-            max_epochs=train_param.epochs,
-            logger=comet_logger,
-            precision=train_param.precision,
-            amp_backend="native",
-            callbacks=[lr_monitor, upload_comet_logs],
-        )
+
+    trainer = Trainer(
+        accumulate_grad_batches=train_param.accumulate_grad_batches,
+        max_epochs=train_param.epochs,
+        logger=comet_logger,
+        precision=train_param.precision,
+        amp_backend="native",
+        gpus=1,
+        callbacks=[lr_monitor, upload_comet_logs],
+    )
 
     trainer.logger.experiment.log_parameters({"train_param": train_param})
     trainer.logger.experiment.set_code(
