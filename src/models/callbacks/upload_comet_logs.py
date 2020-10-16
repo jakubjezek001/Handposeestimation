@@ -100,7 +100,7 @@ class UploadCometLogs(Callback):
                         y=pl_module.plot_params["ground_truth"],
                         x=pl_module.plot_params["input"],
                         gpu=pl_module.config.gpu,
-                        context_val=False,
+                        context_val=True,
                         comet_logger=pl_module.logger.experiment,
                     )
                 except Exception as e:
