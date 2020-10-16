@@ -226,4 +226,7 @@ def get_train_val_split(data, **kwargs) -> Tuple[DataLoader, DataLoader]:
     data.is_training(True)
     val_data = copy.copy(data)
     val_data.is_training(False)
-    return DataLoader(data, **kwargs), DataLoader(val_data, **kwargs)
+    return (
+        DataLoader(data, **kwargs),
+        DataLoader(val_data, **{**kwargs, "shuffle": False}),
+    )
