@@ -1,9 +1,9 @@
 {
     "alpha": 5,
+    "batch_size": 32,
     "gpu": true,
-    "resnet_trainable": true,
     "lr": 0.0001,
-    "batch_size":32,
     "opt_weight_decay": 0.0001,
-    "warmup_epochs": 15
+    "resnet_trainable": true,
+    "warmup_epochs": 10
 }

@@ -1,6 +1,7 @@
 import os
 
 from easydict import EasyDict as edict
+from numpy.lib.function_base import percentile
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.loggers import CometLogger
@@ -31,7 +32,10 @@ def main():
         experiment_type="simclr",
     )
     train_data_loader, val_data_loader = get_train_val_split(
-        data, batch_size=train_param.batch_size, num_workers=train_param.num_workers
+        data,
+        batch_size=train_param.batch_size,
+        num_workers=train_param.num_workers,
+        shuffle=True,
     )
     # Logger
 
@@ -63,6 +67,8 @@ def main():
         gpus=1,
         logger=comet_logger,
         max_epochs=100,
+        precision=train_param.precision,
+        amp_backend="native",
         callbacks=[lr_monitor, upload_comet_logs],
     )
     trainer.logger.experiment.set_code(

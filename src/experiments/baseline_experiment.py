@@ -31,7 +31,10 @@ def main():
         train_set=True,
     )
     train_data_loader, val_data_loader = get_train_val_split(
-        data, num_workers=train_param.num_workers, batch_size=train_param.batch_size
+        data,
+        num_workers=train_param.num_workers,
+        batch_size=train_param.batch_size,
+        shuffle=True,
     )
 
     # logger
@@ -61,6 +64,8 @@ def main():
         trainer = Trainer(
             max_epochs=train_param.epochs,
             logger=comet_logger,
+            precision=train_param.precision,
+            amp_backend="native",
             gpus=1,
             callbacks=[lr_monitor, upload_comet_logs],
         )
@@ -69,6 +74,8 @@ def main():
         trainer = Trainer(
             max_epochs=train_param.epochs,
             logger=comet_logger,
+            precision=train_param.precision,
+            amp_backend="native",
             callbacks=[lr_monitor, upload_comet_logs],
         )
 

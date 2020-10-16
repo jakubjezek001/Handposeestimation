@@ -19,6 +19,7 @@ def get_experiement_args() -> argparse.Namespace:
     parser.add_argument("-lr", type=float, help="Learning _rate.")
     parser.add_argument("-opt_weight_decay", type=int, help="Weight decay")
     parser.add_argument("-warmup_epochs", type=int, help="Number of warmup epochs")
+    parser.add_argument("-precision", type=int, choices=[16, 32], default=16)
 
     # Augmenter flags
     parser.add_argument(
@@ -57,7 +58,7 @@ def get_experiement_args() -> argparse.Namespace:
         help="True for trainable and false for not trainable. Defaut according to config.",
     )
 
-    parser.add_argument("-crop_margin", type=float, help="Chnage the crop margin.")
+    parser.add_argument("-crop_margin", type=float, help="Change the crop margin.")
 
     args = parser.parse_args()
     return args
@@ -76,6 +77,7 @@ def process_experiment_args(args: argparse.Namespace, console_logger: Logger) ->
     """
     train_param = edict(read_json(TRAINING_CONFIG_PATH))
     model_param = edict(read_json(MODEL_CONFIG_PATH))
+
     args = get_experiement_args()
     # console_logger.info(f"Default config ! {pformat(train_param)}")
     train_param = update_train_params(args, train_param)
@@ -121,6 +123,7 @@ def update_train_params(args: argparse.Namespace, train_param: edict) -> edict:
         ],
     )
     train_param.gpu = True if args.cpu is not True else False
+    train_param.precision = args.precision
     return train_param
 
 
