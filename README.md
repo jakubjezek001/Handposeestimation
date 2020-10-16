@@ -50,7 +50,7 @@ Note: Do not submit without specifying the memory otherwise the job fails.
 ```bsub -W 12:00 -o /cluster/scratch//adahiya/exp1_logs.out -B  python src/experiments/baseline_experiment.py --gpu -batch_size 32 -epochs 1000```
 
 2. WITH GPU:
-```bsub -W 18:00 -o /cluster/scratch//adahiya/exp1_logs.out -B -n 8 -R "rusage[mem=4096, ngpus_excl_p=1]" -G s_stud_infk python src/experiments/baseline_experiment.py --gpu --resnet_trainable -batch_size 32 -epochs 50```
+```bsub -W 1:00-o /cluster/scratch//adahiya/exp1_logs.out  -n 16 -R "rusage[mem=8192, ngpus_excl_p=1]" -G s_stud_infk python src/experiments/baseline_experiment.py   -batch_size 128  -epochs 150 -num_workers 16 --rotate --crop --resize```
 
 
 
