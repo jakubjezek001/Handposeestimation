@@ -98,7 +98,7 @@ class Data_Set(Dataset):
             "joints3D": sample["joints3D"],
             "K": sample["K"],
             "scale": scale,
-            "joints_3D_recreated": joints3D_recreated,
+            "joints3D_recreated": joints3D_recreated,
         }
 
     def is_training(self, value: bool):
