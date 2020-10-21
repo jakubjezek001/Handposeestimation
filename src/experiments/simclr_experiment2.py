@@ -68,7 +68,7 @@ def main():
         accumulate_grad_batches=train_param.accumulate_grad_batches,
         gpus=1,
         logger=comet_logger,
-        max_epochs=100,
+        max_epochs=train_param.epochs,
         precision=train_param.precision,
         amp_backend="native",
         callbacks=[lr_monitor, upload_comet_logs],
