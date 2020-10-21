@@ -28,9 +28,9 @@ class BaselineModel(LightningModule):
             self.console_logger.warning("Freeizing the underlying  Resnet !")
             for param in self.resnet18.parameters():
                 param.requires_grad = False
-        self.resnet18.fc = torch.nn.Linear(self.resnet18.fc.in_features, 128)
+        self.resnet18.fc = nn.Sequential()
         self.final_layers = nn.Sequential(
-            nn.Linear(128, 128), nn.BatchNorm1d(128), nn.ReLU(), nn.Linear(128, 21 * 3)
+            nn.Linear(512, 128), nn.BatchNorm1d(128), nn.ReLU(), nn.Linear(128, 21 * 3)
         )
         self.train_metrics_epoch = None
         self.train_metrics = None
