@@ -1,10 +1,10 @@
 import argparse
+import os
 from logging import Logger
 from pprint import pformat
 from typing import List
 
 from easydict import EasyDict as edict
-from torch.nn.functional import batch_norm
 from src.constants import MODEL_CONFIG_PATH, TRAINING_CONFIG_PATH
 from src.utils import read_json
 
@@ -15,7 +15,15 @@ def get_experiement_args() -> argparse.Namespace:
     Returns:
        argparse.Namespace: Parsed arguments as namespace.
     """
+
     parser = argparse.ArgumentParser(description="Script for training a model")
+    parser.add_argument(
+        "--testing",
+        action="store_true",
+        default=False,
+        help="To prevent logger from logging online",
+    )
+
     parser.add_argument("--cpu", action="store_true", help="Eanbles CPU training")
     parser.add_argument("-lr", type=float, help="Learning _rate.")
     parser.add_argument("-opt_weight_decay", type=int, help="Weight decay")
@@ -172,6 +180,15 @@ def update_model_params(args: argparse.Namespace, model_param: edict) -> edict:
 
 
 def prepare_name(prefix: str, train_param: edict) -> str:
+    """Encodes the train paramters into string for appropraite naming of experiment.
+
+    Args:
+        prefix (str): prefix to attach to the name example sup , simclr, ssl etc.
+        train_param (edict): train params used for the experiment.
+
+    Returns:
+        str: name of the experiment.
+    """
     codes = {
         "color_drop": "CD",
         "color_jitter": "CJ",
