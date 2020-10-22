@@ -1,4 +1,6 @@
+from argparse import ArgumentDefaultsHelpFormatter
 import os
+from ssl import get_server_certificate
 from typing import Tuple
 
 import numpy as np
@@ -44,7 +46,14 @@ class Data_Set(Dataset):
         )
         self.transform = transform
         self.config = config
-        self.augmenter = self.get_sample_augmenter()
+        self.augmenter = self.get_sample_augmenter(
+            config.augmentation_params, config.augmentation_flags
+        )
+        # this augmenter is apllied to one branch of simclr and other branch uses
+        # self.augmenter.
+        self.base_augmenter = self.get_sample_augmenter(
+            config.augmentation_params, config.augmentation_flags0
+        )
         self._train_set = train_set
         self.experiment_type = experiment_type
         # The real amount of input images (excluding the augmented background.)
@@ -70,16 +79,23 @@ class Data_Set(Dataset):
         else:
             return sum([len(self.f_db_val_indices)])
 
-    def get_sample_augmenter(self):
+    def get_sample_augmenter(
+        self, augmentation_params: edict, augmentation_flags: edict
+    ) -> SampleAugmenter:
         return SampleAugmenter(
-            augmentation_params=self.config.augmentation_params,
-            augmentation_flags=self.config.augmentation_flags,
+            augmentation_params=augmentation_params,
+            augmentation_flags=augmentation_flags,
         )
 
     def prepare_simclr_sample(self, sample: dict) -> dict:
         joints25D, _ = convert_to_2_5D(sample["K"], sample["joints3D"])
-        img1, _ = self.augmenter.transform_sample(sample["image"], joints25D)
-        img2, _ = self.augmenter.transform_sample(sample["image"], joints25D)
+        img1, _ = self.base_augmenter.transform_sample(
+            sample["image"], joints25D.clone()
+        )
+        override_angle = self.base_augmenter.angle
+        img2, _ = self.augmenter.transform_sample(
+            sample["image"], joints25D.clone(), override_angle
+        )
         # Applying only image related transform
         if self.transform:
             img1 = self.transform(img1)
@@ -144,3 +160,9 @@ class Data_Set(Dataset):
             axis=0,
         )
         return train_indices, val_indices
+
+    def update_augmenter(self, augmentation_params: edict, augmentation_flags: edict):
+
+        self.augmenter = self.get_sample_augmenter(
+            augmentation_params, augmentation_flags
+        )

@@ -54,6 +54,15 @@ Note: Do not submit without specifying the memory otherwise the job fails.
 Note to add the faster and newer GPU use following.
 -R "select[gpu_model0==GeForceGTX2080]"
 
+#### Experiments:
+Basic simclr experiment with similar tranformation as that of base transformer.
+
+```python src/experiments/simclr_experiment.py --resize --crop -epoch 100```
+
+To conduct experiments for figure 5. train networks with specific augmentations.
+example.
+```python src/experiments/simclr_experiment.py --resize --crop --gaussian_blur```
+
 Project Organization
 ------------
 

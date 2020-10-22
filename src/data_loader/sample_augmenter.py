@@ -24,9 +24,10 @@ class SampleAugmenter:
         # Augmetation flags.
         self.set_augmentaion_flags(augmentation_flags)
         self.set_augmenation_params(augmentation_params)
+        self.angle = None
 
     def transform_sample(
-        self, image: np.array, joints: JOINTS_25D
+        self, image: np.array, joints: JOINTS_25D, override_angle: float = None
     ) -> Tuple[np.array, JOINTS_25D]:
         """Transforms  the sample image and the 2D keypoints. The  relative depth is not
         changed.
@@ -34,22 +35,28 @@ class SampleAugmenter:
         Args:
             image (np.array): An Image as a numpy array, preferable uncropped
             joints (JOINTS_25D): Tensor of all 2.5 D coordinates.
+            override_angle (float): angle by which the sample should be rotated.
+            will rotate irresective of the flag
         Returns:
             Tuple[np.array, JOINTS_25D]: Transformed image and keypoints.
         """
         image_, joints_ = image.copy(), joints.clone()
-        if self.cut_out:
-            image_, _ = self.cut_out_sample(image_, joints_)
-        if self.rotate:
-            image_, joints_ = self.rotate_sample(image_, joints_)
-        if self.flip:
-            image_, joints_ = self.flip_sample(image_, joints_)
-        if self.crop:
-            image_, joints_ = self.crop_sample(image_, joints_)
-        if self.resize:
-            image_, joints_ = self.resize_sample(image_, joints_)
+        # augmentations to be applied in beginning
         if self.gaussian_blur:
             image_, _ = self.gaussian_blur_sample(image_, None)
+        if self.rotate or override_angle is not None:
+            image_, joints_ = self.rotate_sample(image_, joints_, override_angle)
+        if self.cut_out:
+            image_, _ = self.cut_out_sample(image_, joints_)
+
+        if self.crop:
+            image_, joints_ = self.crop_sample(image_, joints_)
+
+        # augmentations to be applied in the end.
+        if self.flip:
+            image_, joints_ = self.flip_sample(image_, joints_)
+        if self.resize:
+            image_, joints_ = self.resize_sample(image_, joints_)
         if self.color_jitter:
             image_, _ = self.color_jitter_sample(image_, None)
         if self.color_drop:
@@ -97,7 +104,7 @@ class SampleAugmenter:
         return image, joints
 
     def rotate_sample(
-        self, image: np.array, joints: JOINTS_25D
+        self, image: np.array, joints: JOINTS_25D, angle: float
     ) -> Tuple[np.array, JOINTS_25D]:
         """Rotates the sample image and the 2D keypoints by a random angle. The  relative depth is not changed.
 
@@ -110,7 +117,7 @@ class SampleAugmenter:
         """
         height, width = image.shape[:2]
         center = (width / 2, height / 2)
-        rot_mat = self.get_rotation_matrix(center=center)
+        rot_mat = self.get_rotation_matrix(center=center, angle=angle)
         image = cv2.warpAffine(image, rot_mat, (width, height))
         joints_ = joints.clone()
         joints_[:, -1] = 1.0
@@ -213,7 +220,7 @@ class SampleAugmenter:
             Tuple[np.array, JOINTS_25D]: Transfomed image and joints as is.
         """
         # randomly dropping color
-        if random.getrandbits(1):
+        if True:
             # randomly picking a hand coordiate to occlude.
             hand_center = np.random.randint(0, 20, 1)
             dim0_bounds, dim1_bounds = self.get_random_cut_out_box(
@@ -292,16 +299,20 @@ class SampleAugmenter:
         beta_factor = random.uniform(*self.value_factor_beta_range)
         return hue_factor, sat_factor, alpha_factor, beta_factor
 
-    def get_rotation_matrix(self, center: Tuple[int, int]) -> np.array:
+    def get_rotation_matrix(self, center: Tuple[int, int], angle: float) -> np.array:
         """Function to get the roation matrix according to randomly sampled angle.
 
         Args:
             center (Tuple[int, int]): center coordinates (x, y)
+            angle (float): angle by which the sample shoould be rotated.
+                If none random value is chosen
 
         Returns:
             np.array: A 2 x 3 rotation matrix.
         """
-        angle = random.uniform(self.min_angle, self.max_angle) // 1
+        if angle is None:
+            angle = random.uniform(self.min_angle, self.max_angle) // 1
+        self.angle = angle
         return cv2.getRotationMatrix2D(center, angle, 1.0)
 
     def get_crop_size(self, joints: JOINTS_25D) -> Tuple[int, int, int]:
@@ -317,11 +328,14 @@ class SampleAugmenter:
         if self.random_crop:
             self.crop_margin = self.get_random_crop_margin()
         top, left = torch.min(joints[:, 1]), torch.min(joints[:, 0])
+
         bottom, right = torch.max(joints[:, 1]), torch.max(joints[:, 0])
         height, width = bottom - top, right - left
         side = int(max(height, width) * self.crop_margin)
-        origin_x = max(int(left - width * (self.crop_margin - 1) / 2), 0)
-        origin_y = max(int(top - height * (self.crop_margin - 1) / 2), 0)
+        # jitter of the box
+        jitter = random.uniform(*[-1, 1]) * side * self.crop_box_jitter[1]
+        origin_x = max(int(left - width * (self.crop_margin - 1) / 2 + jitter), 0)
+        origin_y = max(int(top - height * (self.crop_margin - 1) / 2 + jitter), 0)
         return origin_x, origin_y, side
 
     def set_augmenation_params(self, augmentation_params: edict):
@@ -340,6 +354,7 @@ class SampleAugmenter:
         self.cut_out_fraction = augmentation_params.cut_out_fraction
         self.crop_margin = augmentation_params.crop_margin
         self.resize_shape = tuple(augmentation_params.resize_shape)
+        self.crop_box_jitter = augmentation_params.crop_box_jitter
 
     def set_augmentaion_flags(self, augmentation_flags: edict):
         """Helper function to set the augmentation flags
