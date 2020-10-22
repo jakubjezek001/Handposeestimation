@@ -68,7 +68,7 @@ class SimCLR(LightningModule):
 
     def training_step(self, batch, batch_idx):
         loss = self.contrastive_step(batch)
-        self.train_metrics = {"loss": loss}
+        self.train_metrics = {"loss": loss.detach()}
         self.plot_params = {
             "image1": batch["transformed_image1"],
             "image2": batch["transformed_image2"],
@@ -132,14 +132,12 @@ class SimCLR(LightningModule):
 
         # The schdeuler is called after every step in an epoch hence adjusting the
         # warmup epochs param.
-        self.config.warmup_epochs = (
-            self.config.warmup_epochs * self.train_iters_per_epoch
-        )
+        warmup_epochs = self.config.warmup_epochs * self.train_iters_per_epoch
         max_epochs = self.trainer.max_epochs * self.train_iters_per_epoch
 
         linear_warmup_cosine_decay = LinearWarmupCosineAnnealingLR(
             optimizer,
-            warmup_epochs=self.config.warmup_epochs,
+            warmup_epochs=warmup_epochs,
             max_epochs=max_epochs,
             warmup_start_lr=0,
             eta_min=0,

@@ -62,10 +62,13 @@ class BaselineModel(LightningModule):
         prediction = self(x)
         loss_2d, loss_z = cal_l1_loss(prediction, y)
         loss = loss_2d + self.config.alpha * loss_z
-        metrics = {"loss": loss, "loss_z": loss_z, "loss_2d": loss_2d}
-        self.train_metrics = metrics
+        self.train_metrics = {
+            "loss": loss.detach(),
+            "loss_z": loss_z.detach(),
+            "loss_2d": loss_2d.detach(),
+        }
         self.plot_params = {"prediction": prediction, "ground_truth": y, "input": x}
-        return metrics
+        return {"loss": loss, "loss_z": loss_z, "loss_2d": loss_2d}
 
     def training_epoch_end(self, outputs):
         loss = torch.stack([x["loss"] for x in outputs]).mean()
@@ -105,14 +108,12 @@ class BaselineModel(LightningModule):
                 parameters, lr=self.config.lr * math.sqrt(self.config.batch_size)
             )
         )
-        self.config.warmup_epochs = (
-            self.config.warmup_epochs * self.train_iters_per_epoch
-        )
+        warmup_epochs = self.config.warmup_epochs * self.train_iters_per_epoch
         max_epochs = self.trainer.max_epochs * self.train_iters_per_epoch
 
         linear_warmup_cosine_decay = LinearWarmupCosineAnnealingLR(
             optimizer,
-            warmup_epochs=self.config.warmup_epochs,
+            warmup_epochs=warmup_epochs,
             max_epochs=max_epochs,
             warmup_start_lr=0,
             eta_min=0,
@@ -123,18 +124,6 @@ class BaselineModel(LightningModule):
             "interval": "step",
             "frequency": 1,
         }
-        # optimizer = torch.optim.Adam(self.parameters(), lr=self.config["learning_rate"])
-        # if self.config.scheduler.choice == "cosine_annealing":
-        #     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-        #         optimizer, **self.config.scheduler.cosine_annealing
-        #     )
-        # elif self.config.scheduler.choice == "reduce_on_plateau":
-        #     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        #         optimizer, **self.config.scheduler.reduce_on_plateau
-        #     )
-        # else:
-        #     self.console_logger.info("No learning rate scheduler selected")
-        #     return optimizer
 
         return [optimizer], [scheduler]
 
