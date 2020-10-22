@@ -30,7 +30,7 @@
     "augmentation_params": {
         "crop_margin": 1.5,
         "crop_margin_range": [
-            1.0,
+            0.6,
             2.0
         ],
         "cut_out_fraction": [
