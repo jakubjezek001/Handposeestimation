@@ -4,6 +4,7 @@ from pprint import pformat
 from typing import List
 
 from easydict import EasyDict as edict
+from torch.nn.functional import batch_norm
 from src.constants import MODEL_CONFIG_PATH, TRAINING_CONFIG_PATH
 from src.utils import read_json
 
@@ -168,3 +169,27 @@ def update_model_params(args: argparse.Namespace, model_param: edict) -> edict:
     )
     model_param.gpu = True if args.cpu is not True else False
     return model_param
+
+
+def prepare_name(prefix: str, train_param: edict) -> str:
+    codes = {
+        "color_drop": "CD",
+        "color_jitter": "CJ",
+        "crop": "C",
+        "cut_out": "CO",
+        "flip": "F",
+        "gaussian_blur": "GB",
+        "random_crop": "RC",
+        "resize": "Re",
+        "rotate": "Ro",
+    }
+    augmentations = "_".join(
+        sorted(
+            [
+                codes[key]
+                for key, value in train_param.augmentation_flags.items()
+                if value
+            ]
+        )
+    )
+    return f"{prefix}{train_param.batch_size}{augmentations}"

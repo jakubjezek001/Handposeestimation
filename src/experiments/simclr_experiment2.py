@@ -7,7 +7,11 @@ from pytorch_lightning.loggers import CometLogger
 from src.constants import DATA_PATH, MASTER_THESIS_DIR, TRAINING_CONFIG_PATH
 from src.data_loader.data_set import Data_Set
 from src.data_loader.utils import get_train_val_split
-from src.experiments.utils import get_experiement_args, process_experiment_args
+from src.experiments.utils import (
+    get_experiement_args,
+    process_experiment_args,
+    prepare_name,
+)
 from src.models.callbacks.upload_comet_logs import UploadCometLogs
 from src.models.simclr_model import SimCLR
 from src.utils import get_console_logger, read_json
@@ -43,6 +47,7 @@ def main():
         project_name="master-thesis",
         workspace="dahiyaaneesh",
         save_dir=os.path.join(DATA_PATH, "models"),
+        experiment_name=prepare_name("simclr", train_param),
     )
 
     # model.

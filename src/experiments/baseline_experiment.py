@@ -9,7 +9,11 @@ from pytorch_lightning.loggers import CometLogger
 from src.constants import DATA_PATH, MASTER_THESIS_DIR
 from src.data_loader.data_set import Data_Set
 from src.data_loader.utils import get_train_val_split
-from src.experiments.utils import get_experiement_args, process_experiment_args
+from src.experiments.utils import (
+    get_experiement_args,
+    process_experiment_args,
+    prepare_name,
+)
 from src.models.baseline_model import BaselineModel
 from src.models.callbacks.upload_comet_logs import UploadCometLogs
 from src.utils import get_console_logger
@@ -45,6 +49,7 @@ def main():
         project_name="master-thesis",
         workspace="dahiyaaneesh",
         save_dir=os.path.join(DATA_PATH, "models"),
+        experiment_name=prepare_name("sup", train_param),
     )
 
     # model
