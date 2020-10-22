@@ -9,8 +9,8 @@ from src.data_loader.data_set import Data_Set
 from src.data_loader.utils import get_train_val_split
 from src.experiments.utils import (
     get_experiement_args,
-    process_experiment_args,
     prepare_name,
+    process_experiment_args,
 )
 from src.models.callbacks.upload_comet_logs import UploadCometLogs
 from src.models.simclr_model import SimCLR
@@ -61,11 +61,11 @@ def main():
     model = SimCLR(config=model_param)
 
     # callbacks
-
+    logging_interval = "epoch"
     upload_comet_logs = UploadCometLogs(
-        "epoch", get_console_logger("callback"), experiment_type="simclr"
+        logging_interval, get_console_logger("callback"), experiment_type="simclr"
     )
-    lr_monitor = LearningRateMonitor(logging_interval="epoch")
+    lr_monitor = LearningRateMonitor(logging_interval=logging_interval)
 
     # Trainer setup
 
