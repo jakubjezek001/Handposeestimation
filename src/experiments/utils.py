@@ -1,4 +1,5 @@
 import argparse
+import os
 from logging import Logger
 from pprint import pformat
 from typing import List
@@ -14,11 +15,20 @@ def get_experiement_args() -> argparse.Namespace:
     Returns:
        argparse.Namespace: Parsed arguments as namespace.
     """
+
     parser = argparse.ArgumentParser(description="Script for training a model")
+    parser.add_argument(
+        "--testing",
+        action="store_true",
+        default=False,
+        help="To prevent logger from logging online",
+    )
+
     parser.add_argument("--cpu", action="store_true", help="Eanbles CPU training")
     parser.add_argument("-lr", type=float, help="Learning _rate.")
     parser.add_argument("-opt_weight_decay", type=int, help="Weight decay")
     parser.add_argument("-warmup_epochs", type=int, help="Number of warmup epochs")
+    parser.add_argument("-precision", type=int, choices=[16, 32], default=16)
 
     # Augmenter flags
     parser.add_argument(
@@ -57,7 +67,7 @@ def get_experiement_args() -> argparse.Namespace:
         help="True for trainable and false for not trainable. Defaut according to config.",
     )
 
-    parser.add_argument("-crop_margin", type=float, help="Chnage the crop margin.")
+    parser.add_argument("-crop_margin", type=float, help="Change the crop margin.")
 
     args = parser.parse_args()
     return args
@@ -76,9 +86,16 @@ def process_experiment_args(args: argparse.Namespace, console_logger: Logger) ->
     """
     train_param = edict(read_json(TRAINING_CONFIG_PATH))
     model_param = edict(read_json(MODEL_CONFIG_PATH))
+
     args = get_experiement_args()
     # console_logger.info(f"Default config ! {pformat(train_param)}")
+    train_param.accumulate_grad_batches = 1
     train_param = update_train_params(args, train_param)
+    if train_param.batch_size > 256:
+        train_param.accumulate_grad_batches = int(train_param.batch_size // 256)
+        train_param.batch_size = 256
+        model_param.batch_size = 256
+
     console_logger.info(f"Training configurations {pformat(train_param)}")
     # console_logger.info(f"Default Model config ! {pformat(model_param)}")
     model_param = update_model_params(args, model_param)
@@ -121,6 +138,7 @@ def update_train_params(args: argparse.Namespace, train_param: edict) -> edict:
         ],
     )
     train_param.gpu = True if args.cpu is not True else False
+    train_param.precision = args.precision
     return train_param
 
 
@@ -159,3 +177,36 @@ def update_model_params(args: argparse.Namespace, model_param: edict) -> edict:
     )
     model_param.gpu = True if args.cpu is not True else False
     return model_param
+
+
+def prepare_name(prefix: str, train_param: edict) -> str:
+    """Encodes the train paramters into string for appropraite naming of experiment.
+
+    Args:
+        prefix (str): prefix to attach to the name example sup , simclr, ssl etc.
+        train_param (edict): train params used for the experiment.
+
+    Returns:
+        str: name of the experiment.
+    """
+    codes = {
+        "color_drop": "CD",
+        "color_jitter": "CJ",
+        "crop": "C",
+        "cut_out": "CO",
+        "flip": "F",
+        "gaussian_blur": "GB",
+        "random_crop": "RC",
+        "resize": "Re",
+        "rotate": "Ro",
+    }
+    augmentations = "_".join(
+        sorted(
+            [
+                codes[key]
+                for key, value in train_param.augmentation_flags.items()
+                if value
+            ]
+        )
+    )
+    return f"{prefix}{train_param.batch_size}{augmentations}"

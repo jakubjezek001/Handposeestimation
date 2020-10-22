@@ -112,8 +112,8 @@ def get_predictions_and_ground_truth(
         for i, batch in tqdm(enumerate(data_loader)):
             input_tensor = batch["image"].to(device)
             ground_truth.append(batch["joints"])
-            ground_truth_3d.append(batch["joints_3D"])
-            ground_truth_recreated_3d.append(batch["joints_3D_recreated"])
+            ground_truth_3d.append(batch["joints3D"])
+            ground_truth_recreated_3d.append(batch["joints3D_recreated"])
             scale.append(batch["scale"])
             camera_param.append(batch["K"])
             predictions.append(model(input_tensor))

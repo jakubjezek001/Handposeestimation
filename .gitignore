@@ -91,4 +91,4 @@ target/
 **/lightning_logs/
 notebooks/*.png
 
-papers/SimCLR.pdf
+papers/*.pdf

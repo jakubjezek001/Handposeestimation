@@ -1,14 +1,16 @@
 import os
 
-
-import numpy as np
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.loggers import CometLogger
 from src.constants import DATA_PATH, MASTER_THESIS_DIR
 from src.data_loader.data_set import Data_Set
 from src.data_loader.utils import get_train_val_split
-from src.experiments.utils import get_experiement_args, process_experiment_args
+from src.experiments.utils import (
+    get_experiement_args,
+    prepare_name,
+    process_experiment_args,
+)
 from src.models.baseline_model import BaselineModel
 from src.models.callbacks.upload_comet_logs import UploadCometLogs
 from src.utils import get_console_logger
@@ -31,7 +33,10 @@ def main():
         train_set=True,
     )
     train_data_loader, val_data_loader = get_train_val_split(
-        data, num_workers=train_param.num_workers, batch_size=train_param.batch_size
+        data,
+        num_workers=train_param.num_workers,
+        batch_size=train_param.batch_size,
+        shuffle=True,
     )
 
     # logger
@@ -41,6 +46,7 @@ def main():
         project_name="master-thesis",
         workspace="dahiyaaneesh",
         save_dir=os.path.join(DATA_PATH, "models"),
+        experiment_name=prepare_name("sup", train_param),
     )
 
     # model
@@ -49,28 +55,23 @@ def main():
     model = BaselineModel(config=model_param)
 
     # callbacks
-
+    logging_interval = "step"
     upload_comet_logs = UploadCometLogs(
-        "epoch", get_console_logger("callback"), "supervised"
+        logging_interval, get_console_logger("callback"), "supervised"
     )
-    lr_monitor = LearningRateMonitor(logging_interval="step")
+    lr_monitor = LearningRateMonitor(logging_interval=logging_interval)
 
     # Training
-    if train_param.gpu:
-        console_logger.info("GPU Training activated")
-        trainer = Trainer(
-            max_epochs=train_param.epochs,
-            logger=comet_logger,
-            gpus=1,
-            callbacks=[lr_monitor, upload_comet_logs],
-        )
-    else:
-        console_logger.info("CPU Training activated")
-        trainer = Trainer(
-            max_epochs=train_param.epochs,
-            logger=comet_logger,
-            callbacks=[lr_monitor, upload_comet_logs],
-        )
+
+    trainer = Trainer(
+        accumulate_grad_batches=train_param.accumulate_grad_batches,
+        max_epochs=train_param.epochs,
+        logger=comet_logger,
+        precision=train_param.precision,
+        amp_backend="native",
+        gpus=1,
+        callbacks=[lr_monitor, upload_comet_logs],
+    )
 
     trainer.logger.experiment.log_parameters({"train_param": train_param})
     trainer.logger.experiment.set_code(

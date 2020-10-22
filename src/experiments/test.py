@@ -1,34 +1,67 @@
-from typing import List
+import argparse
 import math
+import os
+
 import torch
-import torchvision
 from easydict import EasyDict as edict
-from pytorch_lightning.core.lightning import LightningModule
-from src.models.utils import cal_l1_loss
-from src.utils import get_console_logger
-from torch import nn
-from torch.nn import functional as F
 from pl_bolts.optimizers.lars_scheduling import LARSWrapper
 from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
+from pytorch_lightning import Trainer
+from pytorch_lightning.core.lightning import LightningModule
+from src.constants import MASTER_THESIS_DIR, TRAINING_CONFIG_PATH
+from src.data_loader.data_set import Data_Set
+from src.data_loader.utils import get_train_val_split
+from src.models.simclr_model import SimCLR
+from src.models.utils import cal_l1_loss
+from src.utils import read_json
+from torch import nn
+from torchvision import transforms
 
 
-class BaselineModel(LightningModule):
-    def __init__(self, config: edict):
-        """Class wrapper for the baseline supervised model.
-        Uses Resnet as the base model.
-        Appends more layers in the end to fit the HPE Task.
-        Args:
-            config (dict): Model configurations passed as an easy dict.
-        """
+def main():
+    train_param = edict(read_json(TRAINING_CONFIG_PATH))
+    model_param = edict(
+        read_json(
+            os.path.join(MASTER_THESIS_DIR, "src", "experiments", "simclr_config.json")
+        )
+    )
+    train_param.augmentation_flags.resize = True
+    train_param.augmentation_flags.rotate = True
+    train_param.augmentation_flags.crop = True
+
+    data = Data_Set(
+        config=train_param,
+        transform=transforms.Compose([transforms.ToTensor()]),
+        train_set=True,
+        experiment_type="supervised",
+    )
+    model_param.num_samples = len(data)
+    model_param.alpha = 5
+    model_param.gpu = True
+
+    train_data_loader, val_data_loader = get_train_val_split(
+        data, batch_size=2048, num_workers=train_param.num_workers
+    )
+
+    with torch.cuda.amp.autocast():
+        model_ssl = SupervisedHead(
+            model_param,
+            "/local/home/adahiya/Documents/master_thesis/data/models/master-thesis/a7c43b88d9c34332bf3c86eb81f5db7d/checkpoints/epoch=99.ckpt",
+            model_param,
+        )
+
+    trainer = Trainer(precision=16, gpus=1, amp_backend="native", max_epochs=2)
+    trainer.fit(model_ssl, train_data_loader, val_data_loader)
+
+
+class SupervisedHead(LightningModule):
+    def __init__(
+        self, simclr_config: edict, saved_simclr_model_path: str, config: edict
+    ):
         super().__init__()
         self.config = config
-        self.console_logger = get_console_logger("baseline_model")
-        self.resnet18 = torchvision.models.resnet18(pretrained=False)
-        if not self.config["resnet_trainable"]:
-            self.console_logger.warning("Freeizing the underlying  Resnet !")
-            for param in self.resnet18.parameters():
-                param.requires_grad = False
-        self.resnet18.fc = nn.Sequential()
+        self.encoder = self.get_simclr_model(simclr_config, saved_simclr_model_path)
+        self.temp_layer = nn.Sigmoid()
         self.final_layers = nn.Sequential(
             nn.Linear(512, 128), nn.BatchNorm1d(128), nn.ReLU(), nn.Linear(128, 21 * 3)
         )
@@ -37,38 +70,31 @@ class BaselineModel(LightningModule):
         self.validation_metrics_epoch = None
         self.plot_params = None
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        batch_size, channel, width, height = x.size()
-        x = self.resnet18(x)
-        x = self.final_layers(x)
-        x = x.view(batch_size, 21, 3)
+    def get_simclr_model(self, simclr_config, saved_simclr_model_path):
+        simclr_model = SimCLR(simclr_config)
+        saved_model_state = torch.load(saved_simclr_model_path)["state_dict"]
+        simclr_model.load_state_dict(saved_model_state)
+        for param in simclr_model.parameters():
+            param.requires_grad = False
+        return simclr_model.encoder
 
+    def forward(self, x):
+        x = self.encoder(x)
+        x = self.temp_layer(x)
+        x = self.final_layers(x)
+        x = x.view(-1, 21, 3)
         return x
 
-    def training_step(self, batch: dict, batch_idx: int) -> dict:
-        """This method is called at every training step (i.e. every batch in an epoch)
-        It specifies the logs of trainig steps and the loss that needs to be optimized.
-        Note: Graphics for first sample of few batches are logged, namely 1 and 4.
-
-        Args:
-            batch (dict): Batch of the training samples. Must have "image" and "joints".
-            batch_idx (int): The index of batch in an epoch.
-
-        Returns:
-            dict: Output dictionary containng the calculated metrics. Must have a key "loss".
-                This is the key that is optimized
-        """
+    def training_step(self, batch: dict, batch_idx: int):
+        # with autocast(True):
         x, y = batch["image"], batch["joints"]
         prediction = self(x)
         loss_2d, loss_z = cal_l1_loss(prediction, y)
         loss = loss_2d + self.config.alpha * loss_z
-        self.train_metrics = {
-            "loss": loss.detach(),
-            "loss_z": loss_z.detach(),
-            "loss_2d": loss_2d.detach(),
-        }
+        metrics = {"loss": loss, "loss_z": loss_z, "loss_2d": loss_2d}
+        self.train_metrics = metrics
         self.plot_params = {"prediction": prediction, "ground_truth": y, "input": x}
-        return {"loss": loss, "loss_z": loss_z, "loss_2d": loss_2d}
+        return metrics
 
     def training_epoch_end(self, outputs):
         loss = torch.stack([x["loss"] for x in outputs]).mean()
@@ -108,12 +134,14 @@ class BaselineModel(LightningModule):
                 parameters, lr=self.config.lr * math.sqrt(self.config.batch_size)
             )
         )
-        warmup_epochs = self.config.warmup_epochs * self.train_iters_per_epoch
+        self.config.warmup_epochs = (
+            self.config.warmup_epochs * self.train_iters_per_epoch
+        )
         max_epochs = self.trainer.max_epochs * self.train_iters_per_epoch
 
         linear_warmup_cosine_decay = LinearWarmupCosineAnnealingLR(
             optimizer,
-            warmup_epochs=warmup_epochs,
+            warmup_epochs=self.config.warmup_epochs,
             max_epochs=max_epochs,
             warmup_start_lr=0,
             eta_min=0,
@@ -128,15 +156,7 @@ class BaselineModel(LightningModule):
         return [optimizer], [scheduler]
 
     def validation_step(self, batch: dict, batch_idx: int) -> dict:
-        """This method is called at every validation step (i.e. every batch in an validation epoch).
-            Only metrics and loss are calulated which are later averaged by the validation_epoch_end().
-        Args:
-            batch (dict): Batch of the validation samples. Must have "image" and "joints".
-            batch_idx (int): The index of batch in an epoch.
-
-        Returns:
-            dict: Output dictionary containng the calculated metrics.
-        """
+        # with autocast(True):
         x, y = batch["image"], batch["joints"]
         prediction = self(x)
         loss_2d, loss_z = cal_l1_loss(prediction, y)
@@ -146,18 +166,13 @@ class BaselineModel(LightningModule):
 
         return metrics
 
-    def validation_epoch_end(self, outputs: List[dict]) -> dict:
-        """This function called at the end of the validation epoch, i.e. passing through all the
-        validation batches in an epoch
-
-        Args:
-            outputs (List[dict]): validation_step() output from all batches of an epoch.
-
-        Returns:
-            dict: Dictionary containing all the parameters from validation_step() averaged.
-        """
+    def validation_epoch_end(self, outputs) -> dict:
         loss = torch.stack([x["loss"] for x in outputs]).mean()
         loss_z = torch.stack([x["loss_z"] for x in outputs]).mean()
         loss_2d = torch.stack([x["loss_2d"] for x in outputs]).mean()
         metrics = {"loss": loss, "loss_z": loss_z, "loss_2d": loss_2d}
         self.validation_metrics_epoch = metrics
+
+
+if __name__ == "__main__":
+    main()

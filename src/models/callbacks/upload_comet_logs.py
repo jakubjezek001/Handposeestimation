@@ -1,11 +1,8 @@
 import logging
-from multiprocessing import context
-from src.data_loader.utils import get_train_val_split
 
 from comet_ml import Experiment
-from comet_ml import experiment
 from pytorch_lightning.callbacks import Callback
-from src.models.utils import log_metrics, log_image
+from src.models.utils import log_image, log_metrics, log_simclr_images
 
 
 class UploadCometLogs(Callback):
@@ -47,6 +44,17 @@ class UploadCometLogs(Callback):
                 except Exception as e:
                     self.console_logger.error("Unable to upload the images to logger")
 
+                    self.console_logger.info(e)
+            elif not self.supervised and batch_idx == 4:
+                try:
+                    log_simclr_images(
+                        img1=pl_module.plot_params["image1"],
+                        img2=pl_module.plot_params["image2"],
+                        context_val=False,
+                        comet_logger=pl_module.logger.experiment,
+                    )
+                except Exception as e:
+                    self.console_logger.error("Unable to upload the images to logger")
                     self.console_logger.info(e)
             if self.frequency == "step":
                 try:
@@ -100,7 +108,19 @@ class UploadCometLogs(Callback):
                         y=pl_module.plot_params["ground_truth"],
                         x=pl_module.plot_params["input"],
                         gpu=pl_module.config.gpu,
-                        context_val=False,
+                        context_val=True,
+                        comet_logger=pl_module.logger.experiment,
+                    )
+                except Exception as e:
+                    self.console_logger.error("Unable to upload the images to logger")
+                    self.console_logger.info(e)
+
+            elif not self.supervised and batch_idx == 4:
+                try:
+                    log_simclr_images(
+                        img1=pl_module.plot_params["image1"],
+                        img2=pl_module.plot_params["image2"],
+                        context_val=True,
                         comet_logger=pl_module.logger.experiment,
                     )
                 except Exception as e:

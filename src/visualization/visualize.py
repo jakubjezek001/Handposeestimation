@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from comet_ml import Experiment
-from matplotlib import lines
+from pytorch_lightning.loggers import comet
 from src.constants import MASTER_THESIS_DIR
 from src.data_loader.joints import Joints
 from src.types import JOINTS_3D, JOINTS_25D
@@ -120,3 +120,15 @@ def plot_truth_vs_prediction(
     ax2.title.set_text("Predicted joints")
     if experiment is not None:
         experiment.log_figure(figure=plt)
+
+
+def plot_simcr_images(img1: np.array, img2: np.array, comet_logger: Experiment):
+    fig = plt.figure(figsize=(10, 10))
+    ax = fig.add_subplot(121)
+    plt.imshow(transforms.ToPILImage()(img1.data[0].cpu()))
+    ax.set_title("Image 1")
+    ax = fig.add_subplot(122)
+    plt.imshow(transforms.ToPILImage()(img2.data[0].cpu()))
+    ax.set_title("Image 2")
+    if comet_logger is not None:
+        comet_logger.log_figure(figure=plt)

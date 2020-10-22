@@ -1,6 +1,9 @@
+import os
+
 import torch
 from comet_ml import Experiment
-from src.visualization.visualize import plot_truth_vs_prediction
+from src.constants import SAVED_MODELS_BASE_PATH
+from src.visualization.visualize import plot_simcr_images, plot_truth_vs_prediction
 from torch.nn import L1Loss
 
 
@@ -74,6 +77,16 @@ def log_image(prediction, y, x, gpu: bool, context_val: bool, comet_logger: Expe
             )
 
 
+def log_simclr_images(img1, img2, context_val: bool, comet_logger: Experiment):
+
+    if context_val:
+        with comet_logger.validate():
+            plot_simcr_images(img1.data[0].cpu(), img2.data[0].cpu(), comet_logger)
+    else:
+        with comet_logger.train():
+            plot_simcr_images(img1.data[0].cpu(), img2.data[0].cpu(), comet_logger)
+
+
 def vanila_contrastive_loss(
     z1: torch.Tensor, z2: torch.Tensor, temperature=0.5
 ) -> torch.Tensor:
@@ -109,3 +122,19 @@ def vanila_contrastive_loss(
     pos = torch.cat([pos, pos], dim=0)
     loss = -torch.log(pos / neg).mean()
     return loss
+
+
+def get_latest_checkpoint(experiment_name: str) -> str:
+    """Path to the last saved checkpoint of the trained model.
+
+    Args:
+        experiment_name (str): experiment name.
+
+    Returns:
+        str: absolute path to the latest checkpoint
+    """
+    checkpoint_path = os.path.join(
+        SAVED_MODELS_BASE_PATH, experiment_name, "checkpoints"
+    )
+    latest_checkpoint = sorted(os.listdir(checkpoint_path))[-1]
+    return os.path.join(checkpoint_path, latest_checkpoint)

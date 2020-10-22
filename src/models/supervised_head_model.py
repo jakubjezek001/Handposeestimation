@@ -1,34 +1,24 @@
-from typing import List
 import math
+
 import torch
-import torchvision
 from easydict import EasyDict as edict
-from pytorch_lightning.core.lightning import LightningModule
-from src.models.utils import cal_l1_loss
-from src.utils import get_console_logger
-from torch import nn
-from torch.nn import functional as F
 from pl_bolts.optimizers.lars_scheduling import LARSWrapper
 from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
+from pytorch_lightning.core.lightning import LightningModule
+from src.models.simclr_model import SimCLR
+from src.models.utils import cal_l1_loss, get_latest_checkpoint
+from torch import nn
 
 
-class BaselineModel(LightningModule):
-    def __init__(self, config: edict):
-        """Class wrapper for the baseline supervised model.
-        Uses Resnet as the base model.
-        Appends more layers in the end to fit the HPE Task.
-        Args:
-            config (dict): Model configurations passed as an easy dict.
-        """
+class SupervisedHead(LightningModule):
+    """Downstream supervised model to train with encoding from self-supervised models."""
+
+    def __init__(self, simclr_config: edict, config: edict):
         super().__init__()
         self.config = config
-        self.console_logger = get_console_logger("baseline_model")
-        self.resnet18 = torchvision.models.resnet18(pretrained=False)
-        if not self.config["resnet_trainable"]:
-            self.console_logger.warning("Freeizing the underlying  Resnet !")
-            for param in self.resnet18.parameters():
-                param.requires_grad = False
-        self.resnet18.fc = nn.Sequential()
+        self.encoder = self.get_simclr_model(
+            simclr_config, config.simclr_experiment_name
+        )
         self.final_layers = nn.Sequential(
             nn.Linear(512, 128), nn.BatchNorm1d(128), nn.ReLU(), nn.Linear(128, 21 * 3)
         )
@@ -37,27 +27,23 @@ class BaselineModel(LightningModule):
         self.validation_metrics_epoch = None
         self.plot_params = None
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        batch_size, channel, width, height = x.size()
-        x = self.resnet18(x)
-        x = self.final_layers(x)
-        x = x.view(batch_size, 21, 3)
+    def get_simclr_model(self, simclr_config, saved_simclr_model_path):
+        simclr_model = SimCLR(simclr_config)
+        saved_model_state = torch.load(get_latest_checkpoint(saved_simclr_model_path))[
+            "state_dict"
+        ]
+        simclr_model.load_state_dict(saved_model_state)
+        for param in simclr_model.parameters():
+            param.requires_grad = False
+        return simclr_model.encoder
 
+    def forward(self, x):
+        x = self.encoder(x)
+        x = self.final_layers(x)
+        x = x.view(-1, 21, 3)
         return x
 
-    def training_step(self, batch: dict, batch_idx: int) -> dict:
-        """This method is called at every training step (i.e. every batch in an epoch)
-        It specifies the logs of trainig steps and the loss that needs to be optimized.
-        Note: Graphics for first sample of few batches are logged, namely 1 and 4.
-
-        Args:
-            batch (dict): Batch of the training samples. Must have "image" and "joints".
-            batch_idx (int): The index of batch in an epoch.
-
-        Returns:
-            dict: Output dictionary containng the calculated metrics. Must have a key "loss".
-                This is the key that is optimized
-        """
+    def training_step(self, batch: dict, batch_idx: int):
         x, y = batch["image"], batch["joints"]
         prediction = self(x)
         loss_2d, loss_z = cal_l1_loss(prediction, y)
@@ -74,7 +60,11 @@ class BaselineModel(LightningModule):
         loss = torch.stack([x["loss"] for x in outputs]).mean()
         loss_z = torch.stack([x["loss_z"] for x in outputs]).mean()
         loss_2d = torch.stack([x["loss_2d"] for x in outputs]).mean()
-        self.train_metrics_epoch = {"loss": loss, "loss_z": loss_z, "loss_2d": loss_2d}
+        self.train_metrics_epoch = {
+            "loss": loss.detach(),
+            "loss_z": loss_z.detach(),
+            "loss_2d": loss_2d.detach(),
+        }
 
     def exclude_from_wt_decay(
         self, named_params, weight_decay, skip_list=["bias", "bn"]
@@ -128,34 +118,15 @@ class BaselineModel(LightningModule):
         return [optimizer], [scheduler]
 
     def validation_step(self, batch: dict, batch_idx: int) -> dict:
-        """This method is called at every validation step (i.e. every batch in an validation epoch).
-            Only metrics and loss are calulated which are later averaged by the validation_epoch_end().
-        Args:
-            batch (dict): Batch of the validation samples. Must have "image" and "joints".
-            batch_idx (int): The index of batch in an epoch.
-
-        Returns:
-            dict: Output dictionary containng the calculated metrics.
-        """
         x, y = batch["image"], batch["joints"]
         prediction = self(x)
         loss_2d, loss_z = cal_l1_loss(prediction, y)
         loss = loss_2d + self.config.alpha * loss_z
         metrics = {"loss": loss, "loss_z": loss_z, "loss_2d": loss_2d}
         self.plot_params = {"prediction": prediction, "ground_truth": y, "input": x}
-
         return metrics
 
-    def validation_epoch_end(self, outputs: List[dict]) -> dict:
-        """This function called at the end of the validation epoch, i.e. passing through all the
-        validation batches in an epoch
-
-        Args:
-            outputs (List[dict]): validation_step() output from all batches of an epoch.
-
-        Returns:
-            dict: Dictionary containing all the parameters from validation_step() averaged.
-        """
+    def validation_epoch_end(self, outputs) -> dict:
         loss = torch.stack([x["loss"] for x in outputs]).mean()
         loss_z = torch.stack([x["loss_z"] for x in outputs]).mean()
         loss_2d = torch.stack([x["loss_2d"] for x in outputs]).mean()
