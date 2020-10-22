@@ -1,8 +1,5 @@
-from itertools import accumulate
 import os
 
-
-import numpy as np
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.loggers import CometLogger
@@ -11,8 +8,8 @@ from src.data_loader.data_set import Data_Set
 from src.data_loader.utils import get_train_val_split
 from src.experiments.utils import (
     get_experiement_args,
-    process_experiment_args,
     prepare_name,
+    process_experiment_args,
 )
 from src.models.baseline_model import BaselineModel
 from src.models.callbacks.upload_comet_logs import UploadCometLogs
@@ -58,11 +55,11 @@ def main():
     model = BaselineModel(config=model_param)
 
     # callbacks
-
+    logging_interval = "step"
     upload_comet_logs = UploadCometLogs(
-        "epoch", get_console_logger("callback"), "supervised"
+        logging_interval, get_console_logger("callback"), "supervised"
     )
-    lr_monitor = LearningRateMonitor(logging_interval="step")
+    lr_monitor = LearningRateMonitor(logging_interval=logging_interval)
 
     # Training
 
