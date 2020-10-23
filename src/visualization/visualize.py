@@ -1,6 +1,7 @@
 import os
 from typing import Union
 
+import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -105,7 +106,7 @@ def plot_truth_vs_prediction(
         image (torch.Tensor): Input image to the model.
         experiment (Experiment): Comet ml experiment object.
     """
-    img = transforms.ToPILImage()(image)
+    img = cv2.cvtColor(np.array(transforms.ToPILImage()(image)), cv2.COLOR_BGR2RGB)
     width, height = img.size
     fig = plt.figure(figsize=(10, 10))
     ax1 = fig.add_subplot(121)
@@ -125,10 +126,14 @@ def plot_truth_vs_prediction(
 def plot_simcr_images(img1: np.array, img2: np.array, comet_logger: Experiment):
     fig = plt.figure(figsize=(10, 10))
     ax = fig.add_subplot(121)
-    plt.imshow(transforms.ToPILImage()(img1.data[0].cpu()))
+    plt.imshow(
+        cv2.cvtColor(np.array(transforms.ToPILImage()(img1.cpu())), cv2.COLOR_BGR2RGB)
+    )
     ax.set_title("Image 1")
     ax = fig.add_subplot(122)
-    plt.imshow(transforms.ToPILImage()(img2.data[0].cpu()))
+    plt.imshow(
+        cv2.cvtColor(np.array(transforms.ToPILImage()(img2.cpu())), cv2.COLOR_BGR2RGB)
+    )
     ax.set_title("Image 2")
     if comet_logger is not None:
         comet_logger.log_figure(figure=plt)
