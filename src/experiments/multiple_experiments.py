@@ -10,24 +10,27 @@ def main():
         "cut_out",
         "flip",
         "random_crop",
-        "rotate",
+        "rotate" "gaussian_blur",
     ]
     for aug in variable_augmentations:
         experiment = subprocess.Popen(
             [
-                "python",
-                "python src/experiments/simclr_experiment.py",
-                "--resize",
-                "--crop",
-                f"--{aug}",
-                "-epochs" "100",
+                (
+                    "python "
+                    "src/experiments/simclr_experiment.py "
+                    "--resize "
+                    "--crop "
+                    "--gaussian_blur "
+                    f"--{aug} "
+                    "-epochs "
+                    "100"
+                )
             ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            shell=True,
         )
         experiment.wait()
-        stdout_value, stderr_value = experiment.communicate()
-        print(stderr_value, stdout_value)
+        # stdout_value, stderr_value = experiment.communicate()
+        # print(stderr_value, stdout_value)
 
 
 main()
