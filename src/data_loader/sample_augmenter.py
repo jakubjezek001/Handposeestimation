@@ -308,18 +308,9 @@ class SampleAugmenter:
         Returns:
             Tuple[list, list]: bounds along dim0 and dim1 respectively
         """
-        cut_out_dim0 = int(
-            random.uniform(
-                image_dim0 * self.cut_out_fraction[0],
-                image_dim0 * self.cut_out_fraction[1],
-            )
-        )
-        cut_out_dim1 = int(
-            random.uniform(
-                image_dim1 * self.cut_out_fraction[0],
-                image_dim1 * self.cut_out_fraction[1],
-            )
-        )
+        ratio = random.uniform(self.cut_out_fraction[0], self.cut_out_fraction[1])
+        cut_out_dim0 = int(image_dim0 * ratio)
+        cut_out_dim1 = int(image_dim1 * ratio)
         top_corner_dim0 = int(
             random.uniform(
                 hand_center_dim0 - cut_out_dim0 / 2, hand_center_dim0 - cut_out_dim0 / 2
