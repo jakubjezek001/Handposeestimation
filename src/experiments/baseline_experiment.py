@@ -69,7 +69,7 @@ def main():
         logger=comet_logger,
         precision=train_param.precision,
         amp_backend="native",
-        gpus=1,
+        gpus="1" if args.gpu_slow else "0",
         callbacks=[lr_monitor, upload_comet_logs],
     )
 
