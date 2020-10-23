@@ -102,6 +102,7 @@ class Data_Set(Dataset):
                 sample["image"], joints25D.clone(), override_angle, overrride_jitter
             )
         else:
+            # angle and jitter are provide to ensure equivariance.
             img2, _ = self.augmenter.transform_sample(
                 sample["image"], joints25D.clone(), override_angle, overrride_jitter
             )

@@ -54,16 +54,14 @@ class SampleAugmenter:
         image_, joints_ = image.copy(), joints.clone()
 
         # augmentations to be applied in beginning
-        if self.gaussian_blur:
+        if self.cut_out and random.getrandbits(1):
+            image_, _ = self.cut_out_sample(image_, joints_)
+        if self.gaussian_blur and random.getrandbits(1):
             image_, _ = self.gaussian_blur_sample(image_, None)
         if self.rotate or override_angle is not None:
             image_, joints_ = self.rotate_sample(image_, joints_, override_angle)
-        if self.cut_out:
-            image_, _ = self.cut_out_sample(image_, joints_)
-
         if self.crop or override_jitter is not None:
             image_, joints_ = self.crop_sample(image_, joints_, override_jitter)
-
         # augmentations to be applied in the end.
         if self.flip:
             image_, joints_ = self.flip_sample(image_, joints_)
@@ -71,7 +69,7 @@ class SampleAugmenter:
             image_, joints_ = self.resize_sample(image_, joints_)
         if self.color_jitter:
             image_, _ = self.color_jitter_sample(image_, None)
-        if self.color_drop and random.getrandbits(1) == 1:
+        if self.color_drop and random.getrandbits(1):
             image_, _ = self.color_drop_sample(image_, None)
 
         return image_, joints_
@@ -240,15 +238,14 @@ class SampleAugmenter:
         Returns:
             Tuple[np.array, JOINTS_25D]: Transfomed image and joints as is.
         """
-        if random.getrandbits(1) or True:
-            kernel_size = tuple(
-                [
-                    i + 1 if i % 2 == 0 else i
-                    for i in (np.array(image.shape[:2]) * 0.1).astype(int)
-                ]
-            )
-            sigma = random.uniform(0.1, 2.0)
-            image = cv2.GaussianBlur(image, kernel_size, sigma)
+        kernel_size = tuple(
+            [
+                i + 1 if i % 2 == 0 else i
+                for i in (np.array(image.shape[:2]) * 0.1).astype(int)
+            ]
+        )
+        sigma = random.uniform(0.1, 2.0)
+        image = cv2.GaussianBlur(image, kernel_size, sigma)
         return image, joints
 
     def flip_sample(
@@ -374,7 +371,7 @@ class SampleAugmenter:
             Tuple[int, int, int]:  Top left coordinates of the crop box and the side of
                 the crop box.
         """
-        if self.random_crop and jitter is None:
+        if self.random_crop:
             self.crop_margin = self.get_random_crop_margin()
 
         top, left = torch.min(joints[:, 1]), torch.min(joints[:, 0])
