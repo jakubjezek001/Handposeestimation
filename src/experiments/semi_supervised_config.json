@@ -5,5 +5,6 @@
     "warmup_epochs": 10,
     "simclr_experiment_name": "14910753afb9499ab9229174d6377efb",
     "alpha": 5,
-    "gpu": true
+    "gpu": true,
+    "checkpoint":""
 }
