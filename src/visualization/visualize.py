@@ -107,7 +107,7 @@ def plot_truth_vs_prediction(
         experiment (Experiment): Comet ml experiment object.
     """
     img = cv2.cvtColor(np.array(transforms.ToPILImage()(image)), cv2.COLOR_BGR2RGB)
-    width, height = img.size
+    width, height, _ = img.shape
     fig = plt.figure(figsize=(10, 10))
     ax1 = fig.add_subplot(121)
     plt.imshow(img)
