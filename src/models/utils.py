@@ -124,7 +124,7 @@ def vanila_contrastive_loss(
     return loss
 
 
-def get_latest_checkpoint(experiment_name: str) -> str:
+def get_latest_checkpoint(experiment_name: str, checkpoint: str = "") -> str:
     """Path to the last saved checkpoint of the trained model.
 
     Args:
@@ -136,5 +136,8 @@ def get_latest_checkpoint(experiment_name: str) -> str:
     checkpoint_path = os.path.join(
         SAVED_MODELS_BASE_PATH, experiment_name, "checkpoints"
     )
-    latest_checkpoint = sorted(os.listdir(checkpoint_path))[-1]
+    if checkpoint == "":
+        latest_checkpoint = sorted(os.listdir(checkpoint_path))[-1]
+    else:
+        latest_checkpoint = checkpoint
     return os.path.join(checkpoint_path, latest_checkpoint)

@@ -17,7 +17,7 @@ class SupervisedHead(LightningModule):
         super().__init__()
         self.config = config
         self.encoder = self.get_simclr_model(
-            simclr_config, config.simclr_experiment_name
+            simclr_config, config.simclr_experiment_name, config.checkpoint
         )
         self.final_layers = nn.Sequential(
             nn.Linear(512, 128), nn.BatchNorm1d(128), nn.ReLU(), nn.Linear(128, 21 * 3)
@@ -27,12 +27,13 @@ class SupervisedHead(LightningModule):
         self.validation_metrics_epoch = None
         self.plot_params = None
 
-    def get_simclr_model(self, simclr_config, saved_simclr_model_path):
+    def get_simclr_model(self, simclr_config, saved_simclr_model_path, checkpoint):
         simclr_model = SimCLR(simclr_config)
-        saved_model_state = torch.load(get_latest_checkpoint(saved_simclr_model_path))[
-            "state_dict"
-        ]
+        saved_model_state = torch.load(
+            get_latest_checkpoint(saved_simclr_model_path, checkpoint)
+        )["state_dict"]
         simclr_model.load_state_dict(saved_model_state)
+        # simclr_model.eval()
         for param in simclr_model.parameters():
             param.requires_grad = False
         return simclr_model.encoder
