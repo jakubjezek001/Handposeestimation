@@ -7,23 +7,36 @@ from pytorch_lightning.loggers import CometLogger
 from src.constants import DATA_PATH, MASTER_THESIS_DIR, TRAINING_CONFIG_PATH
 from src.data_loader.data_set import Data_Set
 from src.data_loader.utils import get_train_val_split
-from src.experiments.utils import (
-    get_experiement_args,
-    prepare_name,
-    process_experiment_args,
-)
+from src.experiments.utils import prepare_name
 from src.models.callbacks.upload_comet_logs import UploadCometLogs
 from src.utils import get_console_logger, read_json
 from torchvision import transforms
 from src.models.supervised_head_model import SupervisedHead
+import argparse
+from src.experiments.evaluation_utils import calculate_epe_statistics, evaluate
 
 
 def main():
     # get configs
-    console_logger = get_console_logger(__name__)
+    # console_logger = get_console_logger(__name__)
     train_param = edict(read_json(TRAINING_CONFIG_PATH))
-    args = get_experiement_args()
-    train_param, model_param = process_experiment_args(args, console_logger)
+    parser = argparse.ArgumentParser(description="Script for Experiement 1a")
+    parser.add_argument("-checkpoint", type=int, help="Epoch number")
+    args = parser.parse_args()
+    train_param.augmentation_flags = {
+        "color_drop": False,
+        "color_jitter": False,
+        "crop": True,
+        "cut_out": False,
+        "flip": False,
+        "gaussian_blur": False,
+        "random_crop": False,
+        "resize": True,
+        "rotate": True,
+    }
+    train_param.epochs = 50
+    train_param.batch_size = 128
+    # train_param, model_param = process_experiment_args(args, console_logger)
     seed_everything(train_param.seed)
 
     # data preperation
@@ -46,8 +59,7 @@ def main():
         project_name="master-thesis",
         workspace="dahiyaaneesh",
         save_dir=os.path.join(DATA_PATH, "models"),
-        experiment_name=prepare_name("ssl", train_param),
-        disabled=args.testing,
+        experiment_name=prepare_name(f"ssl_{args.checkpoint}_", train_param),
     )
 
     # model.
@@ -65,6 +77,8 @@ def main():
         )
     )
     supervised_head_param.num_samples = len(data)
+    supervised_head_param.simclr_experiment_name = "ddb39fbaf61c48329361eac2d9c7975e"
+    supervised_head_param.checkpoint = f"epoch={args.checkpoint}.ckpt"
     model = SupervisedHead(simclr_model_param, supervised_head_param)
 
     # callbacks
@@ -76,11 +90,11 @@ def main():
     # Trainer setup
 
     trainer = Trainer(
-        accumulate_grad_batches=train_param.accumulate_grad_batches,
-        gpus="1" if args.gpu_slow else "0",
+        accumulate_grad_batches=1,
+        gpus="1",
         logger=comet_logger,
         max_epochs=train_param.epochs,
-        precision=train_param.precision,
+        precision=16,
         amp_backend="native",
         callbacks=[lr_monitor, upload_comet_logs],
     )
@@ -93,6 +107,29 @@ def main():
     trainer.logger.experiment.log_parameters({"train_param": train_param})
     trainer.logger.experiment.log_parameters({"model_param": supervised_head_param})
     trainer.fit(model, train_data_loader, val_data_loader)
+
+    # evaluation:
+    model.eval()
+
+    data.is_training(False)
+    results = evaluate(
+        model,
+        data,
+        num_workers=train_param.num_workers,
+        batch_size=train_param.batch_size,
+    )
+    with trainer.logger.experiment.validate():
+        trainer.logger.experiment.log_metrics(results)
+
+    data.is_training(True)
+    results = evaluate(
+        model,
+        data,
+        num_workers=train_param.num_workers,
+        batch_size=train_param.batch_size,
+    )
+    with trainer.logger.experiment.train():
+        trainer.logger.experiment.log_metrics(results)
 
 
 if __name__ == "__main__":

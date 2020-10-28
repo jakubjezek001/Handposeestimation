@@ -6,31 +6,32 @@
     "num_workers": 8,
     "seed": 5,
     "augmentation_flags": {
-        "color_drop": false,
-        "color_jitter": false,
+        "color_drop": true,
+        "color_jitter": true,
         "crop": true,
-        "cut_out": false,
+        "cut_out": true,
         "flip": false,
-        "gaussian_blur": false,
+        "gaussian_blur": true,
         "random_crop": false,
         "resize": true,
-        "rotate": false
+        "rotate": true
     },
-    "augmentation_flags0":{
-            "color_drop": false,
-            "color_jitter": false,
-            "crop": true,
-            "cut_out": false,
-            "flip": false,
-            "gaussian_blur": false,
-            "random_crop": false,
-            "resize": true,
-            "rotate": true
+    "augmentation_order": [],
+    "augmentation_flags0": {
+        "color_drop": true,
+        "color_jitter": true,
+        "crop": true,
+        "cut_out": true,
+        "flip": false,
+        "gaussian_blur": true,
+        "random_crop": false,
+        "resize": true,
+        "rotate": true
     },
     "augmentation_params": {
         "crop_margin": 1.5,
         "crop_margin_range": [
-            1.0,
+            0.6,
             2.0
         ],
         "cut_out_fraction": [
@@ -38,8 +39,8 @@
             0.16
         ],
         "hue_factor_range": [
-            -0.5,
-            0.5
+            0.01,
+            1.0
         ],
         "max_angle": 359,
         "min_angle": 0,
@@ -48,17 +49,20 @@
             128
         ],
         "sat_factor_range": [
-            -0.5,
-            0.5
+            0.01,
+            1.0
         ],
         "value_factor_alpha_range": [
             0.5,
             1
         ],
         "value_factor_beta_range": [
-            10,
-            50
+            5,
+            20
         ],
-        "crop_box_jitter":[0.0, 0.1]
+        "crop_box_jitter": [
+            0.0,
+            0.1
+        ]
     }
 }

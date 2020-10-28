@@ -2,7 +2,7 @@ import os
 
 from easydict import EasyDict as edict
 from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.callbacks import LearningRateMonitor
+from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
 from src.constants import DATA_PATH, MASTER_THESIS_DIR, TRAINING_CONFIG_PATH
 from src.data_loader.data_set import Data_Set
@@ -66,12 +66,14 @@ def main():
         logging_interval, get_console_logger("callback"), experiment_type="simclr"
     )
     lr_monitor = LearningRateMonitor(logging_interval=logging_interval)
-
+    # saves model at every 25th epoch
+    checkpoint_callback = ModelCheckpoint(save_top_k=-1, period=25)
     # Trainer setup
 
     trainer = Trainer(
         accumulate_grad_batches=train_param.accumulate_grad_batches,
-        gpus=1,
+        gpus="1" if args.gpu_slow else "0",
+        checkpoint_callback=checkpoint_callback,
         logger=comet_logger,
         max_epochs=train_param.epochs,
         precision=train_param.precision,

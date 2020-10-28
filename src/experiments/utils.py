@@ -25,6 +25,9 @@ def get_experiement_args() -> argparse.Namespace:
     )
 
     parser.add_argument("--cpu", action="store_true", help="Eanbles CPU training")
+    parser.add_argument(
+        "--gpu_slow", action="store_true", help="To select fast gpu", default=False
+    )
     parser.add_argument("-lr", type=float, help="Learning _rate.")
     parser.add_argument("-opt_weight_decay", type=int, help="Weight decay")
     parser.add_argument("-warmup_epochs", type=int, help="Number of warmup epochs")

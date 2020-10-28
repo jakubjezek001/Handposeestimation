@@ -162,6 +162,8 @@ def evaluate(model: LightningModule, data: Data_Set, **dataloader_args) -> dict:
         prediction_dict["ground_truth_recreated_3d"],
         dim=3,
     )
+    # y,x  = get_pck_curves(epe_3D['eucledian_dist'])
+    auc = np.mean(cal_auc_joints(epe_3D["eucledian_dist"]))
     return {
         "Mean_EPE_2D": epe_2D["mean"].cpu(),
         "Median_EPE_2D": epe_2D["median"].cpu(),
@@ -171,6 +173,7 @@ def evaluate(model: LightningModule, data: Data_Set, **dataloader_args) -> dict:
         "Median_EPE_3D_R": epe_3D_recreated["median"].cpu(),
         "Mean_EPE_3D_R_v_3D": epe_3D__gt_vs_3D_recreated["mean"].cpu(),
         "Median_EPE_3D_R_V_3D": epe_3D__gt_vs_3D_recreated["median"].cpu(),
+        "AUC": auc,
     }
 
 
