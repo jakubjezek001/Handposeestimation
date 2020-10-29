@@ -45,26 +45,34 @@ class SupervisedHead(LightningModule):
         return x
 
     def training_step(self, batch: dict, batch_idx: int):
-        x, y = batch["image"], batch["joints"]
+        x, y, scale = batch["image"], batch["joints"], batch["scale"]
         prediction = self(x)
-        loss_2d, loss_z = cal_l1_loss(prediction, y)
+        loss_2d, loss_z, loss_z_unscaled = cal_l1_loss(prediction, y, scale)
         loss = loss_2d + self.config.alpha * loss_z
         self.train_metrics = {
             "loss": loss.detach(),
             "loss_z": loss_z.detach(),
             "loss_2d": loss_2d.detach(),
+            "loss_z_unscaled": loss_z_unscaled.detach(),
         }
         self.plot_params = {"prediction": prediction, "ground_truth": y, "input": x}
-        return {"loss": loss, "loss_z": loss_z, "loss_2d": loss_2d}
+        return {
+            "loss": loss,
+            "loss_z": loss_z,
+            "loss_2d": loss_2d,
+            "loss_z_unscaled": loss_z_unscaled,
+        }
 
     def training_epoch_end(self, outputs):
         loss = torch.stack([x["loss"] for x in outputs]).mean()
         loss_z = torch.stack([x["loss_z"] for x in outputs]).mean()
         loss_2d = torch.stack([x["loss_2d"] for x in outputs]).mean()
+        loss_z_unscaled = torch.stack([x["loss_z_unscaled"] for x in outputs]).mean()
         self.train_metrics_epoch = {
-            "loss": loss.detach(),
-            "loss_z": loss_z.detach(),
-            "loss_2d": loss_2d.detach(),
+            "loss": loss,
+            "loss_z": loss_z,
+            "loss_2d": loss_2d,
+            "loss_z_unscaled": loss_z_unscaled,
         }
 
     def exclude_from_wt_decay(
@@ -119,17 +127,29 @@ class SupervisedHead(LightningModule):
         return [optimizer], [scheduler]
 
     def validation_step(self, batch: dict, batch_idx: int) -> dict:
-        x, y = batch["image"], batch["joints"]
+        x, y, scale = batch["image"], batch["joints"], batch["scale"]
         prediction = self(x)
-        loss_2d, loss_z = cal_l1_loss(prediction, y)
+        loss_2d, loss_z, loss_z_unscaled = cal_l1_loss(prediction, y, scale)
         loss = loss_2d + self.config.alpha * loss_z
-        metrics = {"loss": loss, "loss_z": loss_z, "loss_2d": loss_2d}
+        metrics = {
+            "loss": loss,
+            "loss_z": loss_z,
+            "loss_2d": loss_2d,
+            "loss_z_unscaled": loss_z_unscaled,
+        }
         self.plot_params = {"prediction": prediction, "ground_truth": y, "input": x}
+
         return metrics
 
     def validation_epoch_end(self, outputs) -> dict:
         loss = torch.stack([x["loss"] for x in outputs]).mean()
         loss_z = torch.stack([x["loss_z"] for x in outputs]).mean()
         loss_2d = torch.stack([x["loss_2d"] for x in outputs]).mean()
-        metrics = {"loss": loss, "loss_z": loss_z, "loss_2d": loss_2d}
+        loss_z_unscaled = torch.stack([x["loss_z_unscaled"] for x in outputs]).mean()
+        metrics = {
+            "loss": loss,
+            "loss_z": loss_z,
+            "loss_2d": loss_2d,
+            "loss_z_unscaled": loss_z_unscaled,
+        }
         self.validation_metrics_epoch = metrics
