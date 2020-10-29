@@ -71,6 +71,8 @@ class Data_Set(Dataset):
             sample = self.f_db[self.f_db_val_indices[idx]]
         if self.experiment_type == "simclr":
             sample = self.prepare_simclr_sample(sample)
+        elif self.experiment_type == "pairwise":
+            sample = self.prepare_pairwise_sample(sample)
         else:
             sample = self.prepare_supervised_sample(sample)
         return sample
@@ -112,6 +114,29 @@ class Data_Set(Dataset):
             img1 = self.transform(img1)
             img2 = self.transform(img2)
         return {"transformed_image1": img1, "transformed_image2": img2}
+
+    def prepare_pairwise_sample(self, sample: dict) -> dict:
+        joints25D, _ = convert_to_2_5D(sample["K"], sample["joints3D"])
+        img1, _ = self.base_augmenter.transform_sample(
+            sample["image"], joints25D.clone()
+        )
+        angle1 = self.base_augmenter.angle
+        jitter1 = self.base_augmenter.jitter
+        img2, _ = self.augmenter.transform_sample(
+            sample["image"], joints25D.clone(), None, jitter1
+        )
+        angle2 = self.augmenter.angle
+        # jitter2 = self.augmenter.jitter
+
+        # Applying only image related transform
+        if self.transform:
+            img1 = self.transform(img1)
+            img2 = self.transform(img2)
+        return {
+            "transformed_image1": img1,
+            "transformed_image2": img2,
+            "rotation": angle1 - angle2,
+        }
 
     def prepare_supervised_sample(self, sample: dict) -> dict:
         joints25D, scale = convert_to_2_5D(sample["K"], sample["joints3D"])
