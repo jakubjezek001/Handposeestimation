@@ -121,11 +121,11 @@ class Data_Set(Dataset):
         angle1 = self.base_augmenter.angle
         jitter1 = self.base_augmenter.jitter
         img2, _ = self.augmenter.transform_sample(
-            sample["image"], joints25D.clone(), angle1 + 90, jitter1
+            sample["image"], joints25D.clone(), jitter1
         )
         angle2 = self.augmenter.angle
         # jitter2 = self.augmenter.jitter
-
+        rotation = (angle1 - angle2) % 360
         # Applying only image related transform
         if self.transform:
             img1 = self.transform(img1)
@@ -133,7 +133,7 @@ class Data_Set(Dataset):
         return {
             "transformed_image1": img1,
             "transformed_image2": img2,
-            "rotation": angle1 - angle2,
+            "rotation": rotation,
         }
 
     def prepare_supervised_sample(self, sample: dict) -> dict:
