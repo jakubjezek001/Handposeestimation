@@ -3,10 +3,8 @@ from typing import Tuple
 
 import cv2
 import numpy as np
-from numpy.core.defchararray import join
 import torch
 from easydict import EasyDict as edict
-from numpy.lib.type_check import imag
 from src.types import JOINTS_25D
 
 
@@ -171,7 +169,8 @@ class SampleAugmenter:
             Tuple[np.array, JOINTS_25D]: Rotated image and keypoints.
         """
         height, width = image.shape[:2]
-        center = (width / 2, height / 2)
+        # rotating about wrist.
+        center = int(joints[0, 0]), int(joints[0, 1])
         rot_mat = self.get_rotation_matrix(center=center, angle=angle)
         image = cv2.warpAffine(image, rot_mat, (width, height))
         joints_ = joints.clone()
