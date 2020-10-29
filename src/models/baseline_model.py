@@ -55,26 +55,39 @@ class BaselineModel(LightningModule):
             batch_idx (int): The index of batch in an epoch.
 
         Returns:
-            dict: Output dictionary containng the calculated metrics. Must have a key "loss".
+            dict: Output dictionary containng the calculated metrics. Must have a key
+                "loss".
                 This is the key that is optimized
         """
-        x, y = batch["image"], batch["joints"]
+        x, y, scale = batch["image"], batch["joints"], batch["scale"]
         prediction = self(x)
-        loss_2d, loss_z = cal_l1_loss(prediction, y)
+        loss_2d, loss_z, loss_z_unscaled = cal_l1_loss(prediction, y, scale)
         loss = loss_2d + self.config.alpha * loss_z
         self.train_metrics = {
             "loss": loss.detach(),
             "loss_z": loss_z.detach(),
             "loss_2d": loss_2d.detach(),
+            "loss_z_unscaled": loss_z_unscaled.detach(),
         }
         self.plot_params = {"prediction": prediction, "ground_truth": y, "input": x}
-        return {"loss": loss, "loss_z": loss_z, "loss_2d": loss_2d}
+        return {
+            "loss": loss,
+            "loss_z": loss_z,
+            "loss_2d": loss_2d,
+            "loss_z_unscaled": loss_z_unscaled,
+        }
 
     def training_epoch_end(self, outputs):
         loss = torch.stack([x["loss"] for x in outputs]).mean()
         loss_z = torch.stack([x["loss_z"] for x in outputs]).mean()
         loss_2d = torch.stack([x["loss_2d"] for x in outputs]).mean()
-        self.train_metrics_epoch = {"loss": loss, "loss_z": loss_z, "loss_2d": loss_2d}
+        loss_z_unscaled = torch.stack([x["loss_z_unscaled"] for x in outputs]).mean()
+        self.train_metrics_epoch = {
+            "loss": loss,
+            "loss_z": loss_z,
+            "loss_2d": loss_2d,
+            "loss_z_unscaled": loss_z_unscaled,
+        }
 
     def exclude_from_wt_decay(
         self, named_params, weight_decay, skip_list=["bias", "bn"]
@@ -128,36 +141,52 @@ class BaselineModel(LightningModule):
         return [optimizer], [scheduler]
 
     def validation_step(self, batch: dict, batch_idx: int) -> dict:
-        """This method is called at every validation step (i.e. every batch in an validation epoch).
-            Only metrics and loss are calulated which are later averaged by the validation_epoch_end().
+        """This method is called at every validation step (i.e. every batch in an
+            validation epoch).
+            Only metrics and loss are calulated which are later averaged by the
+            validation_epoch_end().
         Args:
-            batch (dict): Batch of the validation samples. Must have "image" and "joints".
+            batch (dict): Batch of the validation samples. Must have "image" and
+                "joints".
             batch_idx (int): The index of batch in an epoch.
 
         Returns:
             dict: Output dictionary containng the calculated metrics.
         """
-        x, y = batch["image"], batch["joints"]
+        x, y, scale = batch["image"], batch["joints"], batch["scale"]
         prediction = self(x)
-        loss_2d, loss_z = cal_l1_loss(prediction, y)
+        loss_2d, loss_z, loss_z_unscaled = cal_l1_loss(prediction, y, scale)
         loss = loss_2d + self.config.alpha * loss_z
-        metrics = {"loss": loss, "loss_z": loss_z, "loss_2d": loss_2d}
+        metrics = {
+            "loss": loss,
+            "loss_z": loss_z,
+            "loss_2d": loss_2d,
+            "loss_z_unscaled": loss_z_unscaled,
+        }
         self.plot_params = {"prediction": prediction, "ground_truth": y, "input": x}
 
         return metrics
 
     def validation_epoch_end(self, outputs: List[dict]) -> dict:
-        """This function called at the end of the validation epoch, i.e. passing through all the
+        """This function called at the end of the validation epoch, i.e. passing through
+            all the
         validation batches in an epoch
 
         Args:
             outputs (List[dict]): validation_step() output from all batches of an epoch.
 
         Returns:
-            dict: Dictionary containing all the parameters from validation_step() averaged.
+            dict: Dictionary containing all the parameters from validation_step()
+                averaged.
         """
         loss = torch.stack([x["loss"] for x in outputs]).mean()
         loss_z = torch.stack([x["loss_z"] for x in outputs]).mean()
         loss_2d = torch.stack([x["loss_2d"] for x in outputs]).mean()
-        metrics = {"loss": loss, "loss_z": loss_z, "loss_2d": loss_2d}
+        loss_z_unscaled = torch.stack([x["loss_z_unscaled"] for x in outputs]).mean()
+        metrics = {
+            "loss": loss,
+            "loss_z": loss_z,
+            "loss_2d": loss_2d,
+            "loss_z_unscaled": loss_z_unscaled,
+        }
         self.validation_metrics_epoch = metrics

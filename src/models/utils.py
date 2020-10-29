@@ -1,5 +1,5 @@
 import os
-
+from typing import Tuple
 import torch
 from comet_ml import Experiment
 from src.constants import SAVED_MODELS_BASE_PATH
@@ -7,23 +7,34 @@ from src.visualization.visualize import plot_simcr_images, plot_truth_vs_predict
 from torch.nn import L1Loss
 
 
-def cal_l1_loss(pred_joints: torch.Tensor, true_joints: torch.Tensor):
-    """Calculates L1 loss between the predicted and true joints.  The relative depth (Z)
-    is penalized seperately.
+def cal_l1_loss(
+    pred_joints: torch.Tensor, true_joints: torch.Tensor, scale: torch.Tensor = None
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Calculates L1 loss between the predicted and true joints.  The relative unscaled
+    depth (Z) is penalized seperately.
 
     Args:
         pred_joints (torch.Tensor): Predicted 2.5D joints.
         true_joints (torch.Tensor): True 2.5D joints.
+        scale (torch.tensor): Scale to unscale the z coordinate. If not provide unscaled
+            loss_z is returned, otherwise scaled loss_z is returned.
 
     Returns:
-        [type]: [description]
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: 2d loss, scaled z relative
+            loss and unscaled z relative loss.
     """
+    if scale is None:
+        scale = 1.0
     pred_uv = pred_joints[:, :, :-1]
     pred_z = pred_joints[:, :, -1:]
     true_uv = true_joints[:, :, :-1]
     true_z = true_joints[:, :, -1:]
     loss = L1Loss()
-    return loss(pred_uv, true_uv), loss(pred_z, true_z)
+    return (
+        loss(pred_uv, true_uv),
+        loss(pred_z, true_z),
+        loss(pred_z * scale, true_z * scale),
+    )
 
 
 def calculate_metrics(
