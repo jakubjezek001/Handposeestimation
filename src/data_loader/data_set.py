@@ -115,13 +115,13 @@ class Data_Set(Dataset):
 
     def prepare_pairwise_sample(self, sample: dict) -> dict:
         joints25D, _ = convert_to_2_5D(sample["K"], sample["joints3D"])
-        img1, _ = self.base_augmenter.transform_sample(
+        img1, joints1 = self.base_augmenter.transform_sample(
             sample["image"], joints25D.clone()
         )
         angle1 = self.base_augmenter.angle
-        jitter1 = self.base_augmenter.jitter
-        img2, _ = self.augmenter.transform_sample(
-            sample["image"], joints25D.clone(), jitter1
+        # jitter1 = self.base_augmenter.jitter
+        img2, joints2 = self.augmenter.transform_sample(
+            sample["image"], joints25D.clone()
         )
         angle2 = self.augmenter.angle
         # jitter2 = self.augmenter.jitter
@@ -133,6 +133,8 @@ class Data_Set(Dataset):
         return {
             "transformed_image1": img1,
             "transformed_image2": img2,
+            "joints1": joints1,
+            "joints2": joints2,
             "rotation": rotation,
         }
 
