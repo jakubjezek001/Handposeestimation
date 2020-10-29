@@ -1,6 +1,4 @@
-from argparse import ArgumentDefaultsHelpFormatter
 import os
-from ssl import get_server_certificate
 from typing import Tuple
 
 import numpy as np
@@ -123,7 +121,7 @@ class Data_Set(Dataset):
         angle1 = self.base_augmenter.angle
         jitter1 = self.base_augmenter.jitter
         img2, _ = self.augmenter.transform_sample(
-            sample["image"], joints25D.clone(), None, jitter1
+            sample["image"], joints25D.clone(), angle1 + 90, jitter1
         )
         angle2 = self.augmenter.angle
         # jitter2 = self.augmenter.jitter
