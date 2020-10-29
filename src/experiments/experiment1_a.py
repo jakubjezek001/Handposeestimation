@@ -4,7 +4,7 @@ from easydict import EasyDict as edict
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.loggers import CometLogger
-from src.constants import DATA_PATH, MASTER_THESIS_DIR, TRAINING_CONFIG_PATH
+from src.constants import DATA_PATH, MASTER_THESIS_DIR, TRAINING_CONFIG_PATH, SSL_CONFIG
 from src.data_loader.data_set import Data_Set
 from src.data_loader.utils import get_train_val_split
 from src.experiments.utils import prepare_name
@@ -64,22 +64,11 @@ def main():
 
     # model.
 
-    simclr_model_param = edict(
-        read_json(
-            os.path.join(MASTER_THESIS_DIR, "src", "experiments", "simclr_config.json")
-        )
-    )
-    supervised_head_param = edict(
-        read_json(
-            os.path.join(
-                MASTER_THESIS_DIR, "src", "experiments", "semi_supervised_config.json"
-            )
-        )
-    )
+    supervised_head_param = edict(read_json(SSL_CONFIG))
     supervised_head_param.num_samples = len(data)
-    supervised_head_param.simclr_experiment_name = "ddb39fbaf61c48329361eac2d9c7975e"
+    supervised_head_param.saved_model_name = "ddb39fbaf61c48329361eac2d9c7975e"
     supervised_head_param.checkpoint = f"epoch={args.checkpoint}.ckpt"
-    model = SupervisedHead(simclr_model_param, supervised_head_param)
+    model = SupervisedHead(supervised_head_param)
 
     # callbacks
     logging_interval = "step"
