@@ -67,7 +67,7 @@ class UploadCometLogs(Callback):
                             img2=pl_module.plot_params["image2"],
                             rotation_gt=pl_module.plot_params["rotation_gt"],
                             rotation_pred=pl_module.plot_params["rotation_pred"],
-                            context_val=True,
+                            context_val=False,
                             comet_logger=pl_module.logger.experiment,
                         )
                 except Exception as e:
