@@ -121,9 +121,10 @@ def plot_truth_vs_prediction(
     ax2.title.set_text("Predicted joints")
     if experiment is not None:
         experiment.log_figure(figure=plt)
+    plt.close()
 
 
-def plot_simcr_images(img1: np.array, img2: np.array, comet_logger: Experiment):
+def plot_simclr_images(img1: np.array, img2: np.array, comet_logger: Experiment):
     fig = plt.figure(figsize=(10, 10))
     ax = fig.add_subplot(121)
     plt.imshow(
@@ -137,3 +138,24 @@ def plot_simcr_images(img1: np.array, img2: np.array, comet_logger: Experiment):
     ax.set_title("Image 2")
     if comet_logger is not None:
         comet_logger.log_figure(figure=plt)
+    plt.close()
+
+
+def plot_pairwise_images(img1, img2, rotation_gt, rotation_pred, comet_logger):
+
+    fig = plt.figure(figsize=(10, 10))
+    ax = fig.add_subplot(121)
+    plt.imshow(
+        cv2.cvtColor(np.array(transforms.ToPILImage()(img1.cpu())), cv2.COLOR_BGR2RGB)
+    )
+    ax.set_title("Image 1")
+    ax = fig.add_subplot(122)
+    plt.imshow(
+        cv2.cvtColor(np.array(transforms.ToPILImage()(img2.cpu())), cv2.COLOR_BGR2RGB)
+    )
+    ax.set_title("Image 2")
+    fig.suptitle(f"Rotation gt {rotation_gt}; Rotation pred {int(rotation_pred)}")
+    if comet_logger is not None:
+        comet_logger.log_figure(figure=plt)
+
+    plt.close()
