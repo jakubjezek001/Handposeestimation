@@ -4,13 +4,7 @@ from easydict import EasyDict as edict
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.loggers import CometLogger
-from src.constants import (
-    DATA_PATH,
-    MASTER_THESIS_DIR,
-    TRAINING_CONFIG_PATH,
-    SSL_CONFIG,
-    SIMCLR_CONFIG,
-)
+from src.constants import DATA_PATH, MASTER_THESIS_DIR, TRAINING_CONFIG_PATH, SSL_CONFIG
 from src.data_loader.data_set import Data_Set
 from src.data_loader.utils import get_train_val_split
 from src.experiments.utils import (
@@ -58,10 +52,9 @@ def main():
 
     # model.
 
-    simclr_model_param = edict(read_json(SIMCLR_CONFIG))
-    supervised_head_param = edict(read_json(os.path.join(SSL_CONFIG)))
-    supervised_head_param.num_samples = len(data)
-    model = SupervisedHead(simclr_model_param, supervised_head_param)
+    model_param = edict(read_json(SSL_CONFIG))
+    model_param.num_samples = len(data)
+    model = SupervisedHead(model_param)
 
     # callbacks
     logging_interval = "step"
@@ -87,7 +80,7 @@ def main():
         ),
     )
     trainer.logger.experiment.log_parameters({"train_param": train_param})
-    trainer.logger.experiment.log_parameters({"model_param": supervised_head_param})
+    trainer.logger.experiment.log_parameters({"model_param": model_param})
     trainer.fit(model, train_data_loader, val_data_loader)
 
 

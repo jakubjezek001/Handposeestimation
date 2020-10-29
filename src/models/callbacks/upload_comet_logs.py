@@ -21,7 +21,7 @@ class UploadCometLogs(Callback):
         self.console_logger = console_logger
         self.valid_logger = False
         self.experiment_type = experiment_type
-        if experiment_type == "simclr" or "pairwise":
+        if experiment_type == "simclr" or experiment_type == "pairwise":
             self.supervised = False
         else:
             self.supervised = True
