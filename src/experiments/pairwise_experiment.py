@@ -21,27 +21,17 @@ def main():
     train_param.batch_size = 64
     train_param.augmentation_flags = {
         "color_drop": False,
-        "color_jitter": False,
+        "color_jitter": True,
         "crop": True,
         "cut_out": False,
-        "flip": False,
-        "gaussian_blur": False,
-        "random_crop": False,
-        "resize": True,
-        "rotate": True,
-    }
-    train_param.augmentation_flags0 = {
-        "color_drop": False,
-        "color_jitter": False,
-        "crop": True,
-        "cut_out": False,
-        "flip": False,
-        "gaussian_blur": False,
+        "flip": True,
+        "gaussian_blur": True,
         "random_crop": False,
         "resize": True,
         "rotate": True,
     }
     seed_everything(train_param.seed)
+
     train_data = Data_Set(
         config=train_param,
         transform=transforms.ToTensor(),
@@ -55,6 +45,7 @@ def main():
         train_data,
         batch_size=train_param.batch_size,
         num_workers=train_param.num_workers,
+        shuffle=False,
     )
     # logger
     comet_logger = CometLogger(
