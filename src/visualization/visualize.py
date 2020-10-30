@@ -141,9 +141,10 @@ def plot_simclr_images(img1: np.array, img2: np.array, comet_logger: Experiment)
     plt.close()
 
 
-def plot_pairwise_images(img1, img2, rotation_gt, rotation_pred, comet_logger):
+def plot_pairwise_images(img1, img2, gt_pred, comet_logger):
 
     fig = plt.figure(figsize=(10, 10))
+    title = "\n".join([f"{k}: gt:{v[0]}, pred:{v[1]}" for k, v in gt_pred.items()])
     ax = fig.add_subplot(121)
     plt.imshow(
         cv2.cvtColor(np.array(transforms.ToPILImage()(img1.cpu())), cv2.COLOR_BGR2RGB)
@@ -154,7 +155,7 @@ def plot_pairwise_images(img1, img2, rotation_gt, rotation_pred, comet_logger):
         cv2.cvtColor(np.array(transforms.ToPILImage()(img2.cpu())), cv2.COLOR_BGR2RGB)
     )
     ax.set_title("Image 2")
-    fig.suptitle(f"Rotation gt {rotation_gt}; Rotation pred {int(rotation_pred)}")
+    fig.suptitle(title)
     if comet_logger is not None:
         comet_logger.log_figure(figure=plt)
 

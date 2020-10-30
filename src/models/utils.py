@@ -158,24 +158,18 @@ def get_latest_checkpoint(experiment_name: str, checkpoint: str = "") -> str:
     return os.path.join(checkpoint_path, latest_checkpoint)
 
 
-def log_pairwise_images(
-    img1, img2, rotation_gt, rotation_pred, context_val, comet_logger
-):
+def log_pairwise_images(img1, img2, gt_pred, context_val, comet_logger):
+    gt_pred = {
+        k: [v[0].data[0].cpu().numpy(), v[1].data[0].cpu().numpy()]
+        for k, v in gt_pred.items()
+    }
     if context_val:
         with comet_logger.validate():
             plot_pairwise_images(
-                img1.data[0].cpu(),
-                img2.data[0].cpu(),
-                rotation_gt.data[0].cpu(),
-                rotation_pred.data[0].cpu(),
-                comet_logger,
+                img1.data[0].cpu(), img2.data[0].cpu(), gt_pred, comet_logger
             )
     else:
         with comet_logger.train():
             plot_pairwise_images(
-                img1.data[0].cpu(),
-                img2.data[0].cpu(),
-                rotation_gt.data[0].cpu(),
-                rotation_pred.data[0].cpu(),
-                comet_logger,
+                img1.data[0].cpu(), img2.data[0].cpu(), gt_pred, comet_logger
             )
