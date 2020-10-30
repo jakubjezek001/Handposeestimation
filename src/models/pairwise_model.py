@@ -6,7 +6,7 @@ from pl_bolts.optimizers.lars_scheduling import LARSWrapper
 from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
 from pytorch_lightning.core.lightning import LightningModule
 from torch import nn
-from torch.nn import MSELoss, L1Loss
+from torch.nn import L1Loss
 
 
 class PairwiseModel(LightningModule):
@@ -19,7 +19,14 @@ class PairwiseModel(LightningModule):
         super().__init__()
         self.config = config
         self.encoder = self.get_encoder()
+
+        # transformations head.
         self.rotation_head = self.get_rotation_head()
+        self.jitter_head = self.get_jitter_head()
+        self.flip_head = self.get_flip_head()
+        self.color_jitter_head = self.get_color_jitter_head()
+        self.blur_head = self.get_blur_head()
+
         # Variables used by callbacks
         self.train_metrics_epoch = None
         self.train_metrics = None
@@ -32,8 +39,8 @@ class PairwiseModel(LightningModule):
         encoder.fc = nn.Sequential()
         return encoder
 
-    def get_rotation_head(self):
-        rotation_head = nn.Sequential(
+    def get_base_transformation_head(self, output_dim):
+        return nn.Sequential(
             nn.Linear(
                 self.config.transformation_head_input_dim * 2,
                 self.config.transformation_head_hidden_dim,
@@ -42,56 +49,126 @@ class PairwiseModel(LightningModule):
             nn.BatchNorm1d(self.config.transformation_head_hidden_dim),
             nn.ReLU(),
             nn.Linear(
-                self.config.transformation_head_hidden_dim,
-                self.config.transformation_output_dim.rotation,
-                bias=False,
+                self.config.transformation_head_hidden_dim, output_dim, bias=False
             ),
         )
+
+    def get_rotation_head(self):
+        rotation_head = self.get_base_transformation_head(output_dim=1)
         return rotation_head
+
+    def get_jitter_head(self):
+        return self.get_base_transformation_head(output_dim=2)
+
+    def get_flip_head(self):
+        # TODO: Confirm whether it should be a classification head or not/
+        # (+ cross entropy loss)
+        return self.get_base_transformation_head(output_dim=1)
+
+    def get_blur_head(self):
+        return self.get_base_transformation_head(output_dim=1)
+
+    def get_color_jitter_head(self):
+        return self.get_base_transformation_head(output_dim=4)
 
     def transformation_regression_step(self, batch):
         batch_transform1 = batch["transformed_image1"]
         batch_transform2 = batch["transformed_image2"]
+
         rotation_gt = batch["rotation"]
+        jitter_gt = batch["jitter"]
+        color_jitter_gt = batch["color_jitter"]
+        blur_gt = batch["blur"]
+        flip_gt = batch["flip"]
+
         encoding = torch.cat(
             (self.encoder(batch_transform1), self.encoder(batch_transform2)), 1
         )
-        rotation_pred = self.rotation_head(encoding).view(-1)
-        loss = L1Loss()(rotation_gt, rotation_pred)
-        return loss, rotation_gt, rotation_pred
+
+        rotation_pred = self.rotation_head(encoding)
+        jitter_pred = self.jitter_head(encoding)
+        flip_pred = self.flip_head(encoding)
+        blur_pred = self.blur_head(encoding)
+        color_jitter_pred = self.color_jitter_head(encoding)
+
+        # losses
+        loss_rotation = L1Loss()(rotation_gt, rotation_pred)
+        loss_jitter = L1Loss()(jitter_gt, jitter_pred)
+        loss_flip = L1Loss()(flip_gt, flip_pred)
+        loss_blur = L1Loss()(blur_gt, blur_pred)
+        loss_color_jitter = L1Loss()(color_jitter_gt, color_jitter_pred)
+        loss = loss_rotation + loss_jitter + loss_flip + loss_blur + loss_color_jitter
+        return (
+            loss,
+            {
+                "loss_rotation": loss_rotation.detach(),
+                "loss_jitter": loss_jitter.detach(),
+                "loss_flip": loss_flip.detach(),
+                "loss_blur": loss_blur.detach(),
+                "loss_color_jitter": loss_color_jitter.detach(),
+            },
+            {
+                "rotation": [rotation_gt, rotation_pred],
+                "jitter": [jitter_gt, jitter_pred],
+                "color_jitter": [color_jitter_gt, color_jitter_pred],
+                "blur": [blur_gt, blur_pred],
+                "flip": [flip_gt, flip_pred],
+            },
+        )
 
     def forward(self, x):
         embedding = self.encoder(x)
         return embedding
 
     def training_step(self, batch, batch_idx):
-        loss, rotation_gt, rotation_pred = self.transformation_regression_step(batch)
-        self.train_metrics = {"loss": loss.detach()}
+        loss, losses, gt_pred = self.transformation_regression_step(batch)
+        self.train_metrics = {k: v for k, v in losses.items()}
         self.plot_params = {
-            "image1": batch["transformed_image1"],
-            "image2": batch["transformed_image2"],
-            "rotation_gt": rotation_gt,
-            "rotation_pred": rotation_pred,
+            **{
+                "image1": batch["transformed_image1"],
+                "image2": batch["transformed_image2"],
+            },
+            **{"gt_pred": gt_pred},
         }
-        return {"loss": loss}
+        return {**{"loss": loss}, **losses}
 
     def training_epoch_end(self, outputs):
-        loss = torch.stack([x["loss"] for x in outputs]).mean()
-        self.train_metrics_epoch = {"loss": loss}
+        self.train_metrics_epoch = {
+            k: torch.stack([x[k] for x in outputs]).mean()
+            for k in [
+                "loss",
+                "loss_rotation",
+                "loss_jitter",
+                "loss_flip",
+                "loss_blur",
+                "loss_color_jitter",
+            ]
+        }
 
     def validation_step(self, batch, batch_idx):
-        loss, rotation_gt, rotation_pred = self.transformation_regression_step(batch)
+        loss, losses, gt_pred = self.transformation_regression_step(batch)
         self.plot_params = {
-            "image1": batch["transformed_image1"],
-            "image2": batch["transformed_image2"],
-            "rotation_gt": rotation_gt,
-            "rotation_pred": rotation_pred,
+            **{
+                "image1": batch["transformed_image1"],
+                "image2": batch["transformed_image2"],
+            },
+            **{"gt_pred": gt_pred},
         }
-        return {"loss": loss}
+        return {**{"loss": loss}, **losses}
 
     def validation_epoch_end(self, outputs):
-        loss = torch.stack([x["loss"] for x in outputs]).mean()
-        self.validation_metrics_epoch = {"loss": loss}
+
+        self.validation_metrics_epoch = {
+            k: torch.stack([x[k] for x in outputs]).mean()
+            for k in [
+                "loss",
+                "loss_rotation",
+                "loss_jitter",
+                "loss_flip",
+                "loss_blur",
+                "loss_color_jitter",
+            ]
+        }
 
     def exclude_from_wt_decay(
         self, named_params, weight_decay, skip_list=["bias", "bn"]
