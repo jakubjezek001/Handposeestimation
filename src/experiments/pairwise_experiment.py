@@ -17,7 +17,7 @@ from torchvision import transforms
 def main():
 
     train_param = edict(read_json(TRAINING_CONFIG_PATH))
-    train_param.epochs = 100
+    train_param.epochs = 500
     train_param.batch_size = 64
     train_param.augmentation_flags = {
         "color_drop": False,
@@ -45,7 +45,7 @@ def main():
         train_data,
         batch_size=train_param.batch_size,
         num_workers=train_param.num_workers,
-        shuffle=False,
+        shuffle=True,
     )
     # logger
     comet_logger = CometLogger(
