@@ -92,8 +92,8 @@ class PairwiseModel(LightningModule):
         color_jitter_pred = self.color_jitter_head(encoding)
 
         # losses
-        loss_rotation = L1Loss()(rotation_gt, rotation_pred)
-        loss_jitter = L1Loss()(jitter_gt, jitter_pred)
+        loss_rotation = L1Loss()(rotation_gt, rotation_pred) / 360.0
+        loss_jitter = L1Loss()(jitter_gt, jitter_pred) / 16.0
         loss_flip = L1Loss()(flip_gt, flip_pred)
         loss_blur = L1Loss()(blur_gt, blur_pred)
         loss_color_jitter = L1Loss()(color_jitter_gt, color_jitter_pred)
