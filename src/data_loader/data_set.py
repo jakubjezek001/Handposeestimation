@@ -254,8 +254,9 @@ class Data_Set(Dataset):
         if self.augmenter.flip:
             flip_flag = param1["flip_flag"] ^ param2["flip_flag"]
             rel_param.update({"flip": torch.tensor(flip_flag * 1)})
+
         if self.augmenter.gaussian_blur:
-            blur_flag = param1["blur_flag"] and param2["blur_flag"]
+            blur_flag = param1["blur_flag"] ^ param2["blur_flag"]
             rel_param.update({"blur": torch.tensor(blur_flag * 1)})
 
         if self.augmenter.rotate:
