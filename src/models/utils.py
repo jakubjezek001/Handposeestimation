@@ -3,7 +3,11 @@ from typing import Tuple
 import torch
 from comet_ml import Experiment
 from src.constants import SAVED_MODELS_BASE_PATH
-from src.visualization.visualize import plot_simcr_images, plot_truth_vs_prediction
+from src.visualization.visualize import (
+    plot_simclr_images,
+    plot_truth_vs_prediction,
+    plot_pairwise_images,
+)
 from torch.nn import L1Loss
 
 
@@ -92,10 +96,10 @@ def log_simclr_images(img1, img2, context_val: bool, comet_logger: Experiment):
 
     if context_val:
         with comet_logger.validate():
-            plot_simcr_images(img1.data[0].cpu(), img2.data[0].cpu(), comet_logger)
+            plot_simclr_images(img1.data[0].cpu(), img2.data[0].cpu(), comet_logger)
     else:
         with comet_logger.train():
-            plot_simcr_images(img1.data[0].cpu(), img2.data[0].cpu(), comet_logger)
+            plot_simclr_images(img1.data[0].cpu(), img2.data[0].cpu(), comet_logger)
 
 
 def vanila_contrastive_loss(
@@ -152,3 +156,20 @@ def get_latest_checkpoint(experiment_name: str, checkpoint: str = "") -> str:
     else:
         latest_checkpoint = checkpoint
     return os.path.join(checkpoint_path, latest_checkpoint)
+
+
+def log_pairwise_images(img1, img2, gt_pred, context_val, comet_logger):
+    gt_pred = {
+        k: [v[0].data[0].cpu().numpy(), v[1].data[0].cpu().numpy()]
+        for k, v in gt_pred.items()
+    }
+    if context_val:
+        with comet_logger.validate():
+            plot_pairwise_images(
+                img1.data[0].cpu(), img2.data[0].cpu(), gt_pred, comet_logger
+            )
+    else:
+        with comet_logger.train():
+            plot_pairwise_images(
+                img1.data[0].cpu(), img2.data[0].cpu(), gt_pred, comet_logger
+            )

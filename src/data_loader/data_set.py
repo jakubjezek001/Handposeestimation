@@ -1,9 +1,8 @@
-from argparse import ArgumentDefaultsHelpFormatter
 import os
-from ssl import get_server_certificate
 from typing import Tuple
 
 import numpy as np
+import torch
 import torchvision
 from easydict import EasyDict as edict
 from sklearn.model_selection import train_test_split
@@ -71,6 +70,8 @@ class Data_Set(Dataset):
             sample = self.f_db[self.f_db_val_indices[idx]]
         if self.experiment_type == "simclr":
             sample = self.prepare_simclr_sample(sample)
+        elif self.experiment_type == "pairwise":
+            sample = self.prepare_pairwise_sample(sample)
         else:
             sample = self.prepare_supervised_sample(sample)
         return sample
@@ -112,6 +113,36 @@ class Data_Set(Dataset):
             img1 = self.transform(img1)
             img2 = self.transform(img2)
         return {"transformed_image1": img1, "transformed_image2": img2}
+
+    def prepare_pairwise_sample(self, sample: dict) -> dict:
+        joints25D, _ = convert_to_2_5D(sample["K"], sample["joints3D"])
+        img1, joints1 = self.augmenter.transform_sample(
+            sample["image"], joints25D.clone()
+        )
+        param1 = self.get_random_augment_param()
+
+        img2, joints2 = self.augmenter.transform_sample(
+            sample["image"], joints25D.clone()
+        )
+        param2 = self.get_random_augment_param()
+
+        # relative transform calculation.
+        rel_param = self.get_relative_param(param1, param2)
+
+        # Applying only image related transform
+        if self.transform:
+            img1 = self.transform(img1)
+            img2 = self.transform(img2)
+
+        return {
+            **{
+                "transformed_image1": img1,
+                "transformed_image2": img2,
+                "joints1": joints1,
+                "joints2": joints2,
+            },
+            **rel_param,
+        }
 
     def prepare_supervised_sample(self, sample: dict) -> dict:
         joints25D, scale = convert_to_2_5D(sample["K"], sample["joints3D"])
@@ -182,3 +213,53 @@ class Data_Set(Dataset):
         self.augmenter = self.get_sample_augmenter(
             augmentation_params, augmentation_flags, augmentation_order
         )
+
+    def get_random_augment_param(self) -> dict:
+        angle = self.augmenter.angle
+        jitter_x = self.augmenter.jitter_x
+        jitter_y = self.augmenter.jitter_y
+        h = self.augmenter.h
+        s = self.augmenter.s
+        a = self.augmenter.a
+        b = self.augmenter.b
+        flip_flag = self.augmenter._flip
+        blur_flag = self.augmenter._gaussian_blur
+        return {
+            "angle": angle,
+            "jitter_x": jitter_x,
+            "jitter_y": jitter_y,
+            "h": h,
+            "s": s,
+            "a": a,
+            "b": b,
+            "flip_flag": flip_flag,
+            "blur_flag": blur_flag,
+        }
+
+    def get_relative_param(self, param1: dict, param2: dict) -> dict:
+        rel_param = {}
+
+        if self.augmenter.crop:
+            jitter_x = param1["jitter_x"] - param2["jitter_x"]
+            jitter_y = param1["jitter_y"] - param2["jitter_y"]
+            rel_param.update({"jitter": torch.tensor([jitter_x, jitter_y])})
+
+        if self.augmenter.color_jitter:
+            h = param1["h"] - param2["h"]
+            s = param1["s"] - param2["s"]
+            a = param1["a"] - param2["a"]
+            b = param1["b"] - param2["b"]
+            rel_param.update({"color_jitter": torch.tensor([h, s, a, b])})
+
+        if self.augmenter.flip:
+            flip_flag = param1["flip_flag"] ^ param2["flip_flag"]
+            rel_param.update({"flip": torch.Tensor([flip_flag * 1])})
+
+        if self.augmenter.gaussian_blur:
+            blur_flag = param1["blur_flag"] ^ param2["blur_flag"]
+            rel_param.update({"blur": torch.Tensor([blur_flag * 1])})
+
+        if self.augmenter.rotate:
+            angle = (param1["angle"] - param2["angle"]) % 360
+            rel_param.update({"rotation": torch.Tensor([angle])})
+        return rel_param

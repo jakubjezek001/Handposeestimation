@@ -1,6 +1,7 @@
 import math
 
 import torch
+import torchvision
 from easydict import EasyDict as edict
 from pl_bolts.optimizers.lars_scheduling import LARSWrapper
 from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
@@ -13,11 +14,11 @@ from torch import nn
 class SupervisedHead(LightningModule):
     """Downstream supervised model to train with encoding from self-supervised models."""
 
-    def __init__(self, simclr_config: edict, config: edict):
+    def __init__(self, config: edict):
         super().__init__()
         self.config = config
-        self.encoder = self.get_simclr_model(
-            simclr_config, config.simclr_experiment_name, config.checkpoint
+        self.encoder = self.get_encoder(
+            saved_model_path=config.saved_model_name, checkpoint=config.checkpoint
         )
         self.final_layers = nn.Sequential(
             nn.Linear(512, 128), nn.BatchNorm1d(128), nn.ReLU(), nn.Linear(128, 21 * 3)
@@ -27,16 +28,21 @@ class SupervisedHead(LightningModule):
         self.validation_metrics_epoch = None
         self.plot_params = None
 
-    def get_simclr_model(self, simclr_config, saved_simclr_model_path, checkpoint):
-        simclr_model = SimCLR(simclr_config)
-        saved_model_state = torch.load(
-            get_latest_checkpoint(saved_simclr_model_path, checkpoint)
+    def get_encoder(self, saved_model_path, checkpoint):
+        encoder = torchvision.models.resnet18(pretrained=False)
+        encoder.fc = nn.Sequential()
+        saved_state_dict = torch.load(
+            get_latest_checkpoint(saved_model_path, checkpoint)
         )["state_dict"]
-        simclr_model.load_state_dict(saved_model_state)
-        # simclr_model.eval()
-        for param in simclr_model.parameters():
+        saved_model_state = {
+            key[8:]: value
+            for key, value in saved_state_dict.items()
+            if "encoder" in key
+        }
+        encoder.load_state_dict(saved_model_state)
+        for param in encoder.parameters():
             param.requires_grad = False
-        return simclr_model.encoder
+        return encoder
 
     def forward(self, x):
         x = self.encoder(x)
@@ -58,9 +64,9 @@ class SupervisedHead(LightningModule):
         self.plot_params = {"prediction": prediction, "ground_truth": y, "input": x}
         return {
             "loss": loss,
-            "loss_z": loss_z,
-            "loss_2d": loss_2d,
-            "loss_z_unscaled": loss_z_unscaled,
+            "loss_z": loss_z.detach(),
+            "loss_2d": loss_2d.detach(),
+            "loss_z_unscaled": loss_z_unscaled.detach(),
         }
 
     def training_epoch_end(self, outputs):
@@ -69,10 +75,10 @@ class SupervisedHead(LightningModule):
         loss_2d = torch.stack([x["loss_2d"] for x in outputs]).mean()
         loss_z_unscaled = torch.stack([x["loss_z_unscaled"] for x in outputs]).mean()
         self.train_metrics_epoch = {
-            "loss": loss,
-            "loss_z": loss_z,
-            "loss_2d": loss_2d,
-            "loss_z_unscaled": loss_z_unscaled,
+            "loss": loss.detach(),
+            "loss_z": loss_z.detach(),
+            "loss_2d": loss_2d.detach(),
+            "loss_z_unscaled": loss_z_unscaled.detach(),
         }
 
     def exclude_from_wt_decay(

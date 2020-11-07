@@ -3,7 +3,7 @@
     "lr": 0.0001,
     "opt_weight_decay": 0.0001,
     "warmup_epochs": 10,
-    "simclr_experiment_name": "14910753afb9499ab9229174d6377efb",
+    "saved_model_name":"9f302cea72a2459eb14dfad33b1a9783",
     "alpha": 5,
     "gpu": true,
     "checkpoint":""

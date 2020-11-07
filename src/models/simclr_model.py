@@ -1,6 +1,5 @@
 import math
 
-import pytorch_lightning as pl
 import torch
 import torchvision
 from pl_bolts.optimizers.lars_scheduling import LARSWrapper

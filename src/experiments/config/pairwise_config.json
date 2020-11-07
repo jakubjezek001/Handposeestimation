@@ -1,0 +1,12 @@
+{
+    "batch_size": 128,
+    "gpu": true,
+    "lr": 0.0001,
+    "opt_weight_decay": 0.0001,
+    "transformation_head_hidden_dim": 1024,
+    "transformation_head_input_dim": 512,
+    "transformation_output_dim": {
+        "rotation": 1
+    },
+    "warmup_epochs": 10
+}

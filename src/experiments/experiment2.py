@@ -20,7 +20,7 @@ def main():
     # get configs
     # console_logger = get_console_logger(__name__)
     train_param = edict(read_json(TRAINING_CONFIG_PATH))
-    parser = argparse.ArgumentParser(description="Script for Experiement 1a")
+    parser = argparse.ArgumentParser(description="Script for Experiement 2bc")
     parser.add_argument("-checkpoint", type=int, help="Epoch number")
     args = parser.parse_args()
     train_param.augmentation_flags = {
@@ -66,7 +66,11 @@ def main():
 
     supervised_head_param = edict(read_json(SSL_CONFIG))
     supervised_head_param.num_samples = len(data)
-    supervised_head_param.saved_model_name = "ddb39fbaf61c48329361eac2d9c7975e"
+    # supervised_head_param.saved_model_name = "877129e15929428b9416b6145c7575ce" # experiment2c
+    # experiment2b
+    # supervised_head_param.saved_model_name = "473f3d632dd145a6b4bc54a02f557d8c"
+    # experiment 2a
+    supervised_head_param.saved_model_name = "7ad9fa8a16dc47f6b7aa2e9bf16a7f9a"
     supervised_head_param.checkpoint = f"epoch={args.checkpoint}.ckpt"
     model = SupervisedHead(supervised_head_param)
 
@@ -80,7 +84,7 @@ def main():
 
     trainer = Trainer(
         accumulate_grad_batches=1,
-        gpus="1",
+        gpus="0",
         logger=comet_logger,
         max_epochs=train_param.epochs,
         precision=16,

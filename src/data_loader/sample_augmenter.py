@@ -3,10 +3,9 @@ from typing import Tuple
 
 import cv2
 import numpy as np
-from numpy.core.defchararray import join
+from numpy.lib.function_base import flip
 import torch
 from easydict import EasyDict as edict
-from numpy.lib.type_check import imag
 from src.types import JOINTS_25D
 
 
@@ -30,8 +29,27 @@ class SampleAugmenter:
         self.set_augmentaion_flags(augmentation_flags)
         self.set_augmenation_params(augmentation_params)
         self.augmentation_order = augmentation_order
+        # random parameters.
         self.angle = None
         self.jitter = None
+        self.jitter_x = None
+        self.jitter_y = None
+        self.sigma = None
+        self.h = None
+        self.s = None
+        self.a = None
+        self.b = None
+        # flags
+        self._flip = False
+        self._cut_out = False
+        self._gaussian_blur = False
+        self._rotate = False
+        self._crop = False
+        self._flip = False
+        self._color_jitter = False
+        self._color_drop = False
+
+        # could be illposed. change it to true or False.
 
     def transform_sample(
         self,
@@ -55,22 +73,50 @@ class SampleAugmenter:
 
         # augmentations to be applied in beginning
         if self.cut_out and random.getrandbits(1):
+            self._cut_out = True
             image_, _ = self.cut_out_sample(image_, joints_)
+        else:
+            self._cut_out = False
+
         if self.gaussian_blur and random.getrandbits(1):
+            self._gaussian_blur = True
             image_, _ = self.gaussian_blur_sample(image_, None)
+        else:
+            self._gaussian_blur = False
+
         if self.rotate or override_angle is not None:
+            self._rotate = True
             image_, joints_ = self.rotate_sample(image_, joints_, override_angle)
-        if self.crop or override_jitter is not None:
-            image_, joints_ = self.crop_sample(image_, joints_, override_jitter)
-        # augmentations to be applied in the end.
-        if self.flip:
+        else:
+            self._rotate = False
+
+        if self.flip and random.getrandbits(1):
+            self._flip = True
             image_, joints_ = self.flip_sample(image_, joints_)
+        else:
+            self._flip = False
+
+        if self.crop or override_jitter is not None:
+            self._crop = True
+            image_, joints_ = self.crop_sample(image_, joints_, override_jitter)
+        else:
+            self._crop = False
+        # augmentations to be applied in the end.
+
         if self.resize:
             image_, joints_ = self.resize_sample(image_, joints_)
+
         if self.color_jitter:
+            self._color_jitter = True
             image_, _ = self.color_jitter_sample(image_, None)
+        else:
+            self._color_jitter = False
+
         if self.color_drop and random.getrandbits(1):
+            self._color_drop = True
             image_, _ = self.color_drop_sample(image_, None)
+        else:
+            self._color_drop = False
 
         return image_, joints_
 
@@ -161,7 +207,9 @@ class SampleAugmenter:
     def rotate_sample(
         self, image: np.array, joints: JOINTS_25D, angle: float = None
     ) -> Tuple[np.array, JOINTS_25D]:
-        """Rotates the sample image and the 2D keypoints by a random angle. The  relative depth is not changed.
+        """Rotates the sample image and the 2D keypoints by a random angle about the
+        crop box center with jitter 0 and crop_margin 1.5. The relative depth is not
+        changed.
 
         Args:
             image (np.array): An Image as a numpy array, preferable uncropped
@@ -171,9 +219,12 @@ class SampleAugmenter:
             Tuple[np.array, JOINTS_25D]: Rotated image and keypoints.
         """
         height, width = image.shape[:2]
-        center = (width / 2, height / 2)
+        # rotating about crop box center with jitter zero and crop_margin as 1.5
+        origin_x, origin_y, side = self.get_crop_size(joints, jitter=0, crop_margin=0.2)
+        center = int(origin_x + side / 2), int(origin_y + side / 2)
         rot_mat = self.get_rotation_matrix(center=center, angle=angle)
         image = cv2.warpAffine(image, rot_mat, (width, height))
+        # image[center[1], center[0], :] = 0
         joints_ = joints.clone()
         joints_[:, -1] = 1.0
         joints_ = joints_ @ rot_mat.T
@@ -204,7 +255,7 @@ class SampleAugmenter:
         self, image: np.array, joints: JOINTS_25D
     ) -> Tuple[np.array, JOINTS_25D]:
         # randomly jittering the image.
-        """Randomly jitters the sample image with 0.5 probability.
+        """Randomly jitters the sample image.
         Joints are not affected by this transform.
 
         Args:
@@ -214,15 +265,19 @@ class SampleAugmenter:
         Returns:
             Tuple[np.array, JOINTS_25D]: Transfomed image and joints as is.
         """
-        if random.getrandbits(1) or True:
-            h, s, a, b = self.get_random_color_jitter_factors()
-            hue, saturation, value = cv2.split(cv2.cvtColor(image, cv2.COLOR_BGR2HSV))
-            hue = np.clip(hue * h, 0, 255)
-            saturation = np.clip(saturation * s, 0, 255)
-            value = np.clip(value * a + b, 0, 255)
-            image = cv2.cvtColor(
-                cv2.merge([hue, saturation, value]).astype(np.uint8), cv2.COLOR_HSV2BGR
-            )
+
+        h, s, a, b = self.get_random_color_jitter_factors()
+        self.h = h
+        self.s = s
+        self.a = a
+        self.b = b
+        hue, saturation, value = cv2.split(cv2.cvtColor(image, cv2.COLOR_BGR2HSV))
+        hue = np.clip(hue * h, 0, 255)
+        saturation = np.clip(saturation * s, 0, 255)
+        value = np.clip(value * a + b, 0, 255)
+        image = cv2.cvtColor(
+            cv2.merge([hue, saturation, value]).astype(np.uint8), cv2.COLOR_HSV2BGR
+        )
         return image, joints
 
     def gaussian_blur_sample(
@@ -245,18 +300,20 @@ class SampleAugmenter:
             ]
         )
         sigma = random.uniform(0.1, 2.0)
+        self.sigma = sigma
         image = cv2.GaussianBlur(image, kernel_size, sigma)
         return image, joints
 
     def flip_sample(
         self, image: np.array, joints: JOINTS_25D
     ) -> Tuple[np.array, JOINTS_25D]:
-        if random.getrandbits(1):
-            flip_orientation = random.choice([0, 1])  # 0 is vertical
-            image = cv2.flip(image, flip_orientation)
-            joints[:, 1 - flip_orientation] = (
-                image.shape[1 - flip_orientation] - joints[:, 1 - flip_orientation]
-            )
+        # if random.getrandbits(1):
+        flip_orientation = 1  # 1 is horizontal. With rotation it doesn't matter to...
+        # ... differentiate between horizontal and vertical.
+        image = cv2.flip(image, flip_orientation)
+        joints[:, 1 - flip_orientation] = (
+            image.shape[1 - flip_orientation] - joints[:, 1 - flip_orientation]
+        )
 
         return image, joints
 
@@ -360,7 +417,7 @@ class SampleAugmenter:
         return cv2.getRotationMatrix2D(center, angle, 1.0)
 
     def get_crop_size(
-        self, joints: JOINTS_25D, jitter: float = None
+        self, joints: JOINTS_25D, jitter: float = None, crop_margin: float = None
     ) -> Tuple[int, int, int]:
         """Function to obtain the top left corner of the crop square and the side.
 
@@ -371,20 +428,26 @@ class SampleAugmenter:
             Tuple[int, int, int]:  Top left coordinates of the crop box and the side of
                 the crop box.
         """
-        if self.random_crop:
-            self.crop_margin = self.get_random_crop_margin()
+        if crop_margin is not None:
+            crop_margin = crop_margin
+        elif self.random_crop:
+            crop_margin = self.get_random_crop_margin()
+        else:
+            crop_margin = self.crop_margin
 
         top, left = torch.min(joints[:, 1]), torch.min(joints[:, 0])
 
         bottom, right = torch.max(joints[:, 1]), torch.max(joints[:, 0])
         height, width = bottom - top, right - left
-        side = int(max(height, width) * self.crop_margin)
+        side = int(max(height, width) * crop_margin)
         # jitter of the box
         if jitter is None:
             jitter = random.uniform(*[-1, 1]) * side * self.crop_box_jitter[1]
         self.jitter = jitter
-        origin_x = max(int(left - width * (self.crop_margin - 1) / 2 + jitter), 0)
-        origin_y = max(int(top - height * (self.crop_margin - 1) / 2 + jitter), 0)
+        origin_x = max(int(left - width * (crop_margin - 1) / 2 + jitter), 0)
+        origin_y = max(int(top - height * (crop_margin - 1) / 2 + jitter), 0)
+        self.jitter_x = origin_x - max(int(left - width * (crop_margin - 1) / 2), 0)
+        self.jitter_y = origin_y - max(int(top - height * (crop_margin - 1) / 2), 0)
         return origin_x, origin_y, side
 
     def set_augmenation_params(self, augmentation_params: edict):
