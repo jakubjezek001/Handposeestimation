@@ -224,7 +224,7 @@ class SampleAugmenter:
         center = int(origin_x + side / 2), int(origin_y + side / 2)
         rot_mat = self.get_rotation_matrix(center=center, angle=angle)
         image = cv2.warpAffine(image, rot_mat, (width, height))
-        # image[center[1], center[0], :] = 0
+        # image[center[1]-2:center[1]+2, center[0]-2:center[0]+2, :] = 0
         joints_ = joints.clone()
         joints_[:, -1] = 1.0
         joints_ = joints_ @ rot_mat.T
