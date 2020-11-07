@@ -26,3 +26,26 @@ bsub -J 199 -w "done('174')" -W 4:00 -o /cluster/scratch//adahiya/experiment1a_l
 
 #### Following commands are run in Lab pc
 python src/experiments/experiment1_a.py -checkpoint 224
+
+
+### Experiment 4
+
+The pretraining phase. The images are cropped automatically with same jitter wherever necessary. They are not rotated if not specified.
+1. Rotation: Both the images are sampled and rotated. The crop jitter is kept same.
+```python src/experiments/experiment4_pretraining.py --rotate --resize  -batch_size 2048  -epochs 100```
+2. Blur: Gaussian blur is applied randomly to both the images. Jitter is same
+```python src/experiments/experiment4_pretraining.py --gaussian_blur --resize  -batch_size 2048  -epochs 100```
+3. Random crop: Cropping is done randomly in the crop box containing the hand. Jitter is random
+```python src/experiments/experiment4_pretraining.py --crop --random_crop  --resize  -batch_size 2048  -epochs 100```
+4. Standard crop: The hand is cropped with random jitter.
+```python src/experiments/experiment4_pretraining.py --crop  --resize  -batch_size 2048  -epochs 100```
+5. Color jitter:  The hsv values are jittered with crop jitter same.
+```python src/experiments/experiment4_pretraining.py --color_jitter  --resize  -batch_size 2048  -epochs 100```
+6. Color drop: Image is converted to gray scale randomly. crop Jitter is kept same.
+```python src/experiments/experiment4_pretraining.py --color_drop  --resize  -batch_size 2048  -epochs 100```
+
+
+
+
+python src/experiments/experiment4_pretraining.py --rotate --resize  -batch_size 2048  -epochs 100
+python src/experiments/experiment4_pretraining.py --rotate --resize  -batch_size 2048  -epochs 100
