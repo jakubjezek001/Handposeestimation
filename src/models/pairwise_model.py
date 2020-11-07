@@ -6,7 +6,7 @@ from pl_bolts.optimizers.lars_scheduling import LARSWrapper
 from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
 from pytorch_lightning.core.lightning import LightningModule
 from torch import nn
-from torch.nn import L1Loss
+from torch.nn import L1Loss, CrossEntropyLoss
 
 
 class PairwiseModel(LightningModule):
@@ -23,9 +23,12 @@ class PairwiseModel(LightningModule):
         # transformations head.
         self.rotation_head = self.get_rotation_head()
         self.jitter_head = self.get_jitter_head()
-        self.flip_head = self.get_flip_head()
         self.color_jitter_head = self.get_color_jitter_head()
-        self.blur_head = self.get_blur_head()
+        # self.blur_head = self.get_blur_head()
+        # self.flip_head = self.get_flip_head()
+
+        # loss weights
+        self.loss_weights = self.get_loss_weights()
 
         # Variables used by callbacks
         self.train_metrics_epoch = None
@@ -61,15 +64,17 @@ class PairwiseModel(LightningModule):
         return self.get_base_transformation_head(output_dim=2)
 
     def get_flip_head(self):
-        # TODO: Confirm whether it should be a classification head or not/
-        # (+ cross entropy loss)
-        return self.get_base_transformation_head(output_dim=1)
+        return self.get_base_transformation_head(output_dim=2)
 
     def get_blur_head(self):
-        return self.get_base_transformation_head(output_dim=1)
+        return self.get_base_transformation_head(output_dim=2)
 
     def get_color_jitter_head(self):
         return self.get_base_transformation_head(output_dim=4)
+
+    def get_loss_weights(self):
+        # Dimension should be equal to the loss paramters.
+        return nn.Parameter(torch.ones((1, 3)))
 
     def transformation_regression_step(self, batch):
         batch_transform1 = batch["transformed_image1"]
@@ -78,8 +83,8 @@ class PairwiseModel(LightningModule):
         rotation_gt = batch["rotation"]
         jitter_gt = batch["jitter"]
         color_jitter_gt = batch["color_jitter"]
-        blur_gt = batch["blur"]
-        flip_gt = batch["flip"]
+        # blur_gt = batch["blur"]
+        # flip_gt = batch["flip"]
 
         encoding = torch.cat(
             (self.encoder(batch_transform1), self.encoder(batch_transform2)), 1
@@ -87,32 +92,45 @@ class PairwiseModel(LightningModule):
 
         rotation_pred = self.rotation_head(encoding)
         jitter_pred = self.jitter_head(encoding)
-        flip_pred = self.flip_head(encoding)
-        blur_pred = self.blur_head(encoding)
         color_jitter_pred = self.color_jitter_head(encoding)
+        # flip_pred = self.flip_head(encoding)
+        # blur_pred = self.blur_head(encoding)
 
         # losses
-        loss_rotation = L1Loss()(rotation_gt, rotation_pred) / 360.0
-        loss_jitter = L1Loss()(jitter_gt, jitter_pred) / 16.0
-        loss_flip = L1Loss()(flip_gt, flip_pred)
-        loss_blur = L1Loss()(blur_gt, blur_pred)
+        # regression losses
+        loss_rotation = L1Loss()(rotation_gt, rotation_pred)
+        loss_jitter = L1Loss()(jitter_gt, jitter_pred)
         loss_color_jitter = L1Loss()(color_jitter_gt, color_jitter_pred)
-        loss = loss_rotation + loss_jitter + loss_flip + loss_blur + loss_color_jitter
+        # classification losses
+        # loss_flip = CrossEntropyLoss()(flip_pred, flip_gt)
+        # loss_blur = CrossEntropyLoss()(blur_pred, blur_gt)
+
+        # normalized_weights = nn.functional.normalize(torch.abs(self.loss_weights))
+        loss = torch.sum(
+            torch.stack([loss_rotation, loss_jitter, loss_color_jitter])
+            / (self.loss_weights) ** 2
+            + (torch.log(self.loss_weights))
+        )
         return (
             loss,
             {
                 "loss_rotation": loss_rotation.detach(),
                 "loss_jitter": loss_jitter.detach(),
-                "loss_flip": loss_flip.detach(),
-                "loss_blur": loss_blur.detach(),
+                # "loss_flip": loss_flip.detach(),
+                # "loss_blur": loss_blur.detach(),
                 "loss_color_jitter": loss_color_jitter.detach(),
+                "sigma_rotation": self.loss_weights[0, 0],
+                "sigma_jitter": self.loss_weights[0, 1],
+                # "sigma_flip": self.loss_weights[0, 2],
+                # "sigma_blur": self.loss_weights[0, 3],
+                "sigma_color_jitter": self.loss_weights[0, 2],
             },
             {
                 "rotation": [rotation_gt, rotation_pred],
                 "jitter": [jitter_gt, jitter_pred],
                 "color_jitter": [color_jitter_gt, color_jitter_pred],
-                "blur": [blur_gt, blur_pred],
-                "flip": [flip_gt, flip_pred],
+                # "blur": [blur_gt, blur_pred],
+                # "flip": [flip_gt, flip_pred],
             },
         )
 
@@ -122,7 +140,7 @@ class PairwiseModel(LightningModule):
 
     def training_step(self, batch, batch_idx):
         loss, losses, gt_pred = self.transformation_regression_step(batch)
-        self.train_metrics = {k: v for k, v in losses.items()}
+        self.train_metrics = {**{"loss": loss.detach()}, **losses}
         self.plot_params = {
             **{
                 "image1": batch["transformed_image1"],
@@ -139,9 +157,14 @@ class PairwiseModel(LightningModule):
                 "loss",
                 "loss_rotation",
                 "loss_jitter",
-                "loss_flip",
-                "loss_blur",
+                # "loss_flip",
+                # "loss_blur",
                 "loss_color_jitter",
+                "sigma_rotation",
+                "sigma_jitter",
+                # "sigma_flip",
+                # "sigma_blur",
+                "sigma_color_jitter",
             ]
         }
 
@@ -164,8 +187,8 @@ class PairwiseModel(LightningModule):
                 "loss",
                 "loss_rotation",
                 "loss_jitter",
-                "loss_flip",
-                "loss_blur",
+                # "loss_flip",
+                # "loss_blur",
                 "loss_color_jitter",
             ]
         }

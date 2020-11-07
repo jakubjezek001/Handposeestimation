@@ -11,6 +11,7 @@ from src.data_loader.utils import get_train_val_split
 from src.models.callbacks.upload_comet_logs import UploadCometLogs
 from src.models.pairwise_model import PairwiseModel
 from src.utils import get_console_logger, read_json
+from src.experiments.utils import prepare_name
 from torchvision import transforms
 
 
@@ -24,8 +25,8 @@ def main():
         "color_jitter": True,
         "crop": True,
         "cut_out": False,
-        "flip": True,
-        "gaussian_blur": True,
+        "flip": False,
+        "gaussian_blur": False,
         "random_crop": False,
         "resize": True,
         "rotate": True,
@@ -53,7 +54,7 @@ def main():
         project_name="master-thesis",
         workspace="dahiyaaneesh",
         save_dir=os.path.join(DATA_PATH, "models"),
-        experiment_name="pair_rot",
+        experiment_name=prepare_name("pair_exp3", train_param),
     )
     # model
 
