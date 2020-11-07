@@ -60,6 +60,7 @@ def main():
     model_param = edict(read_json(SIMCLR_CONFIG))
     model_param.num_samples = len(data)
     model = SimCLR(config=model_param)
+    model_param.batch_size = train_param.batch_size
 
     # callbacks
     logging_interval = "epoch"
