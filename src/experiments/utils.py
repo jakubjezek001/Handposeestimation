@@ -92,12 +92,13 @@ def process_experiment_args(args: argparse.Namespace, console_logger: Logger) ->
 
     args = get_experiement_args()
     # console_logger.info(f"Default config ! {pformat(train_param)}")
+    minibatch = 512
     train_param.accumulate_grad_batches = 1
     train_param = update_train_params(args, train_param)
-    if train_param.batch_size > 256:
-        train_param.accumulate_grad_batches = int(train_param.batch_size // 256)
-        train_param.batch_size = 256
-        model_param.batch_size = 256
+    if train_param.batch_size > minibatch:
+        train_param.accumulate_grad_batches = int(train_param.batch_size // minibatch)
+        train_param.batch_size = minibatch
+        model_param.batch_size = minibatch
 
     console_logger.info(f"Training configurations {pformat(train_param)}")
     # console_logger.info(f"Default Model config ! {pformat(model_param)}")
