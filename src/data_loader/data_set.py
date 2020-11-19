@@ -1,4 +1,5 @@
 import os
+import random
 from typing import Tuple
 
 import numpy as np
@@ -72,6 +73,8 @@ class Data_Set(Dataset):
             sample = self.prepare_simclr_sample(sample)
         elif self.experiment_type == "pairwise":
             sample = self.prepare_pairwise_sample(sample)
+        elif self.experiment_type == "experiment4_pretraining":
+            sample = self.prepare_experiment4_pretraining(sample)
         else:
             sample = self.prepare_supervised_sample(sample)
         return sample
@@ -112,6 +115,34 @@ class Data_Set(Dataset):
         if self.transform:
             img1 = self.transform(img1)
             img2 = self.transform(img2)
+        return {"transformed_image1": img1, "transformed_image2": img2}
+
+    def prepare_experiment4_pretraining(self, sample: dict) -> dict:
+
+        joints25D, _ = convert_to_2_5D(sample["K"], sample["joints3D"])
+        if self.augmenter.crop:
+            override_jitter = None
+        else:
+            # will induce a jitter of 0 to 5 pixels and make the augmenter crop
+            override_jitter = 0
+        if self.augmenter.rotate:
+            override_angle = None
+        else:
+            override_angle = None
+            # override_angle = random.uniform(1, 360)
+
+        img1, _ = self.augmenter.transform_sample(
+            sample["image"], joints25D.clone(), override_angle, override_jitter
+        )
+        img2, _ = self.augmenter.transform_sample(
+            sample["image"], joints25D.clone(), override_angle, override_jitter
+        )
+
+        # Applying only image related transform
+        if self.transform:
+            img1 = self.transform(img1)
+            img2 = self.transform(img2)
+
         return {"transformed_image1": img1, "transformed_image2": img2}
 
     def prepare_pairwise_sample(self, sample: dict) -> dict:
