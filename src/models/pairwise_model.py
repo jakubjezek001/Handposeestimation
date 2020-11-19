@@ -108,8 +108,8 @@ class PairwiseModel(LightningModule):
         # normalized_weights = nn.functional.normalize(torch.abs(self.loss_weights))
         loss = torch.sum(
             torch.stack([loss_rotation, loss_jitter, loss_color_jitter])
-            / (self.loss_weights) ** 2
-            + (torch.log(self.loss_weights))
+            / torch.abs((self.loss_weights))
+            + (torch.log(torch.abs(self.loss_weights)))
         )
         return (
             loss,

@@ -18,7 +18,7 @@ from torchvision import transforms
 def main():
 
     train_param = edict(read_json(TRAINING_CONFIG_PATH))
-    train_param.epochs = 500
+    train_param.epochs = 1000
     train_param.batch_size = 64
     train_param.augmentation_flags = {
         "color_drop": False,
@@ -65,10 +65,10 @@ def main():
 
     # callbacks
     upload_comet_logs = UploadCometLogs(
-        "step", get_console_logger("callback"), "pairwise"
+        "epoch", get_console_logger("callback"), "pairwise"
     )
-    lr_monitor = LearningRateMonitor(logging_interval="step")
-    checkpoint_callback = ModelCheckpoint(save_top_k=-1, period=10)
+    lr_monitor = LearningRateMonitor(logging_interval="epoch")
+    checkpoint_callback = ModelCheckpoint(save_top_k=-1, period=50)
     # trainer
     trainer = Trainer(
         precision=16,
