@@ -5,7 +5,12 @@ from easydict import EasyDict as edict
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
-from src.constants import DATA_PATH, PAIRWISE_CONFIG, TRAINING_CONFIG_PATH
+from src.constants import (
+    DATA_PATH,
+    PAIRWISE_CONFIG,
+    TRAINING_CONFIG_PATH,
+    MASTER_THESIS_DIR,
+)
 from src.data_loader.data_set import Data_Set
 from src.data_loader.utils import get_train_val_split
 from src.models.callbacks.upload_comet_logs import UploadCometLogs
@@ -78,7 +83,12 @@ def main():
         gpus="0",
         max_epochs=train_param.epochs,
     )
-
+    trainer.logger.experiment.set_code(
+        overwrite=True,
+        filename=os.path.join(MASTER_THESIS_DIR, "src", "models", "pairwise_model.py"),
+    )
+    trainer.logger.experiment.log_parameters({"train_param": train_param})
+    trainer.logger.experiment.log_parameters({"model_param": model_param})
     # training
     trainer.fit(model, train_data_loader, val_data_loader)
 
