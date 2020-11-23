@@ -66,7 +66,8 @@ def main():
 
     supervised_head_param = edict(read_json(SSL_CONFIG))
     supervised_head_param.num_samples = len(data)
-    supervised_head_param.saved_model_name = "c5450cc9cb254d2f8e54c40ef95964ec"
+    # supervised_head_param.saved_model_name = "c5450cc9cb254d2f8e54c40ef95964ec"
+    supervised_head_param.saved_model_name = "d59ca5936f1f4e70a153d3f24d0743eb"  # 3c
     supervised_head_param.checkpoint = f"epoch={args.checkpoint}.ckpt"
     model = SupervisedHead(supervised_head_param)
 
