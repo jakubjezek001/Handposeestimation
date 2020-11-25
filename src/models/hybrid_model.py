@@ -23,7 +23,6 @@ class HybridModel(LightningModule):
         # transformations head.
         self.rotation_head = self.get_rotation_head()
         self.jitter_head = self.get_jitter_head()
-        self.color_jitter_head = self.get_color_jitter_head()
         self.projection_head = self.get_projection_head()
 
         # loss weights
@@ -62,9 +61,6 @@ class HybridModel(LightningModule):
     def get_jitter_head(self):
         return self.get_base_transformation_head(output_dim=2)
 
-    def get_color_jitter_head(self):
-        return self.get_base_transformation_head(output_dim=4)
-
     def get_projection_head(self):
         projection_head = nn.Sequential(
             nn.Linear(
@@ -84,7 +80,8 @@ class HybridModel(LightningModule):
 
     def get_loss_weights(self):
         # Dimension should be equal to the loss paramters.
-        return nn.Parameter(torch.ones((1, 4)))
+        # it is log(sigma)
+        return nn.Parameter(torch.zeros((1, 3)))
 
     def calculate_loss(self, batch):
         batch_transform1 = batch["transformed_image1"]
@@ -92,7 +89,6 @@ class HybridModel(LightningModule):
 
         rotation_gt = batch["rotation"]
         jitter_gt = batch["jitter"]
-        color_jitter_gt = batch["color_jitter"]
 
         encoding1 = self.encoder(batch_transform1)
         encoding2 = self.encoder(batch_transform2)
@@ -106,7 +102,6 @@ class HybridModel(LightningModule):
 
         rotation_pred = self.rotation_head(concat_encoding)
         jitter_pred = self.jitter_head(concat_encoding)
-        color_jitter_pred = self.color_jitter_head(concat_encoding)
 
         # losses
 
@@ -116,31 +111,26 @@ class HybridModel(LightningModule):
         # regression losses
         loss_rotation = L1Loss()(rotation_gt, rotation_pred)
         loss_jitter = L1Loss()(jitter_gt, jitter_pred)
-        loss_color_jitter = L1Loss()(color_jitter_gt, color_jitter_pred)
 
         loss = torch.sum(
-            torch.stack(
-                [loss_rotation, loss_jitter, loss_color_jitter, loss_contrastive]
-            )
-            / torch.abs((self.loss_weights))
-            + (torch.log(torch.abs(self.loss_weights)))
+            torch.stack([loss_rotation, loss_jitter, loss_contrastive])
+            / torch.exp(self.loss_weights)
+            + (self.loss_weights)
         )
+
         return (
             loss,
             {
                 "loss_rotation": loss_rotation.detach(),
                 "loss_jitter": loss_jitter.detach(),
-                "loss_color_jitter": loss_color_jitter.detach(),
                 "loss_contrastive": loss_contrastive.detach(),
-                "sigma_rotation": self.loss_weights[0, 0],
-                "sigma_jitter": self.loss_weights[0, 1],
-                "sigma_color_jitter": self.loss_weights[0, 2],
-                "sigma_contrastive": self.loss_weights[0, 3],
+                "sigma_rotation": torch.exp(self.loss_weights[0, 0]),
+                "sigma_jitter": torch.exp(self.loss_weights[0, 1]),
+                "sigma_contrastive": torch.exp(self.loss_weights[0, 2]),
             },
             {
                 "rotation": [rotation_gt, rotation_pred],
                 "jitter": [jitter_gt, jitter_pred],
-                "color_jitter": [color_jitter_gt, color_jitter_pred],
             },
         )
 
@@ -168,10 +158,8 @@ class HybridModel(LightningModule):
                 "loss_rotation",
                 "loss_jitter",
                 "loss_contrastive",
-                "loss_color_jitter",
                 "sigma_rotation",
                 "sigma_jitter",
-                "sigma_color_jitter",
                 "sigma_contrastive",
             ]
         }
@@ -191,13 +179,7 @@ class HybridModel(LightningModule):
 
         self.validation_metrics_epoch = {
             k: torch.stack([x[k] for x in outputs]).mean()
-            for k in [
-                "loss",
-                "loss_rotation",
-                "loss_jitter",
-                "loss_color_jitter",
-                "loss_contrastive",
-            ]
+            for k in ["loss", "loss_rotation", "loss_jitter", "loss_contrastive"]
         }
 
     def exclude_from_wt_decay(

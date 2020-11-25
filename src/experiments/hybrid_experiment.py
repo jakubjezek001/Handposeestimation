@@ -23,7 +23,7 @@ from torchvision import transforms
 def main():
 
     train_param = edict(read_json(TRAINING_CONFIG_PATH))
-    train_param.epochs = 20
+    train_param.epochs = 200
     train_param.batch_size = 256
     train_param.augmentation_flags = {
         "color_drop": False,
