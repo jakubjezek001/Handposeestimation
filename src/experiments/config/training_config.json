@@ -29,7 +29,7 @@
         "rotate": true
     },
     "augmentation_params": {
-        "crop_margin": 1.5,
+        "crop_margin": 1.25,
         "crop_margin_range": [
             0.6,
             2.0
@@ -62,7 +62,7 @@
         ],
         "crop_box_jitter": [
             0.0,
-            0.1
+            1.0
         ]
     }
 }

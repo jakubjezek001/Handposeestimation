@@ -15,6 +15,7 @@ from src.models.baseline_model import BaselineModel
 from src.models.callbacks.upload_comet_logs import UploadCometLogs
 from src.utils import get_console_logger
 from torchvision import transforms
+from src.experiments.evaluation_utils import evaluate
 
 
 def main():
@@ -80,6 +81,29 @@ def main():
     )
     trainer.logger.experiment.log_parameters({"model_param": model_param})
     trainer.fit(model, train_data_loader, val_data_loader)
+
+    # evaluation:
+    model.eval()
+
+    data.is_training(False)
+    results = evaluate(
+        model,
+        data,
+        num_workers=train_param.num_workers,
+        batch_size=train_param.batch_size,
+    )
+    with trainer.logger.experiment.validate():
+        trainer.logger.experiment.log_metrics(results)
+
+    data.is_training(True)
+    results = evaluate(
+        model,
+        data,
+        num_workers=train_param.num_workers,
+        batch_size=train_param.batch_size,
+    )
+    with trainer.logger.experiment.train():
+        trainer.logger.experiment.log_metrics(results)
 
 
 if __name__ == "__main__":

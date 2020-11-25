@@ -220,11 +220,12 @@ class SampleAugmenter:
         """
         height, width = image.shape[:2]
         # rotating about crop box center with jitter zero and crop_margin as 1.5
-        origin_x, origin_y, side = self.get_crop_size(joints, jitter=0, crop_margin=0.2)
+        origin_x, origin_y, side = self.get_crop_size(joints, jitter=0, crop_margin=0.0)
         center = int(origin_x + side / 2), int(origin_y + side / 2)
         rot_mat = self.get_rotation_matrix(center=center, angle=angle)
         image = cv2.warpAffine(image, rot_mat, (width, height))
         # image[center[1]-2:center[1]+2, center[0]-2:center[0]+2, :] = 0
+        # image[center[1] : center[1], center[0] : center[0], :] = 0
         joints_ = joints.clone()
         joints_[:, -1] = 1.0
         joints_ = joints_ @ rot_mat.T
@@ -435,20 +436,43 @@ class SampleAugmenter:
         else:
             crop_margin = self.crop_margin
 
-        top, left = torch.min(joints[:, 1]), torch.min(joints[:, 0])
+        # top, left = torch.min(joints[:, 1]), torch.min(joints[:, 0])
+        # bottom, right = torch.max(joints[:, 1]), torch.max(joints[:, 0])
 
-        bottom, right = torch.max(joints[:, 1]), torch.max(joints[:, 0])
-        height, width = bottom - top, right - left
-        side = int(max(height, width) * crop_margin)
-        # jitter of the box
+        # height, width = bottom - top, right - left
+        # side = int(max(height, width) * crop_margin)
+        # # jitter of the box
+        # if jitter is None:
+        #      jitter = random.uniform(*[-1, 1]) * side * self.crop_box_jitter[1]
+        # self.jitter = jitter
+        # origin_x = max(int(left - width * (crop_margin - 1) / 2 + jitter), 0)
+        # origin_y = max(int(top - height * (crop_margin - 1) / 2 + jitter), 0)
+        # self.jitter_x = origin_x - max(int(left - width * (crop_margin - 1) / 2), 0)
+        # self.jitter_y = origin_y - max(int(top - height * (crop_margin - 1) / 2), 0)
+        center_y, center_x = (
+            int(torch.mean(joints[:, 1])),
+            int(torch.mean(joints[:, 0])),
+        )
+        side = int(
+            (
+                torch.max(
+                    ((joints[:, 1] - center_y) ** 2 + (joints[:, 0] - center_x) ** 2)
+                )
+            )
+            ** 0.5
+            * crop_margin
+        )
         if jitter is None:
-            jitter = random.uniform(*[-1, 1]) * side * self.crop_box_jitter[1]
+            jitter = random.sample(range(0, int(self.crop_box_jitter[1] * 5)), 1)[0]
+            # print(f"jitter {jitter}")
         self.jitter = jitter
-        origin_x = max(int(left - width * (crop_margin - 1) / 2 + jitter), 0)
-        origin_y = max(int(top - height * (crop_margin - 1) / 2 + jitter), 0)
-        self.jitter_x = origin_x - max(int(left - width * (crop_margin - 1) / 2), 0)
-        self.jitter_y = origin_y - max(int(top - height * (crop_margin - 1) / 2), 0)
-        return origin_x, origin_y, side
+        origin_x = max(center_x - side + jitter, 0)
+        origin_y = max(center_y - side + jitter, 0)
+        self.jitter_x = center_x - side - origin_x
+        self.jitter_y = center_y - side - origin_y
+        # print(f"{origin_x},{origin_y}, {side}, {center_x}, {center_y}, jitter {jitter}, {self.jitter_x}, {self.jitter_y}")
+        # print(f" {center_x}, {center_y}, jitter {jitter}")
+        return origin_x, origin_y, int(2 * side)
 
     def set_augmenation_params(self, augmentation_params: edict):
         """Helper method to set the augmentation params
