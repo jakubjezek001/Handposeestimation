@@ -85,7 +85,7 @@ def main():
     )
     trainer.logger.experiment.set_code(
         overwrite=True,
-        filename=os.path.join(MASTER_THESIS_DIR, "src", "models", "pairwise_model.py"),
+        filename=os.path.join(MASTER_THESIS_DIR, "src", "models", "hybrid_model.py"),
     )
     trainer.logger.experiment.log_parameters({"train_param": train_param})
     trainer.logger.experiment.log_parameters({"model_param": model_param})
