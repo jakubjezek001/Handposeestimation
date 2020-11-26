@@ -80,8 +80,9 @@ def get_root_depth(
     Z_m = joints_25D[CHILD_JOINT, -1]
     C = 1
     a = (x_n - x_m) ** 2 + (y_n - y_m) ** 2
-    b = Z_n * (x_n ** 2 + y_n ** 2 - x_n * x_m - y_n * y_m) + Z_m * (
-        x_m ** 2 + y_m ** 2 - x_n * x_m - y_n * y_m
+    b = 2 * (
+        Z_n * (x_n ** 2 + y_n ** 2 - x_n * x_m - y_n * y_m)
+        + Z_m * (x_m ** 2 + y_m ** 2 - x_n * x_m - y_n * y_m)
     )
     c = (
         (x_n * Z_n - x_m * Z_m) ** 2
