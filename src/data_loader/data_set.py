@@ -49,13 +49,7 @@ class Data_Set(Dataset):
         self.transform = transform
         self.config = config
         self.augmenter = self.get_sample_augmenter(
-            config.augmentation_params,
-            config.augmentation_flags,
-            config.augmentation_order,
-        )
-        # not used
-        self.base_augmenter = self.get_sample_augmenter(
-            config.augmentation_params, config.augmentation_flags0, []
+            config.augmentation_params, config.augmentation_flags
         )
         self._train_set = train_set
         self.experiment_type = experiment_type
@@ -90,12 +84,11 @@ class Data_Set(Dataset):
             return sum([len(self.f_db_val_indices)])
 
     def get_sample_augmenter(
-        self, augmentation_params: edict, augmentation_flags: edict, augmentation_order
+        self, augmentation_params: edict, augmentation_flags: edict
     ) -> SampleAugmenter:
         return SampleAugmenter(
             augmentation_params=augmentation_params,
             augmentation_flags=augmentation_flags,
-            augmentation_order=augmentation_order,
         )
 
     def prepare_simclr_sample(self, sample: dict) -> dict:
@@ -115,15 +108,9 @@ class Data_Set(Dataset):
         override_angle = self.augmenter.angle
         overrride_jitter = self.augmenter.jitter
 
-        if len(self.config.augmentation_order) != 0:
-            img2, _, _ = self.augmenter.transform_with_order(
-                sample["image"], joints25D.clone(), override_angle, overrride_jitter
-            )
-        else:
-            # angle and jitter are provide to ensure equivariance.
-            img2, _, _ = self.augmenter.transform_sample(
-                sample["image"], joints25D.clone(), override_angle, overrride_jitter
-            )
+        img2, _, _ = self.augmenter.transform_sample(
+            sample["image"], joints25D.clone(), override_angle, overrride_jitter
+        )
 
         # Applying only image related transform
         if self.transform:
@@ -296,15 +283,10 @@ class Data_Set(Dataset):
         )
         return train_indices, val_indices
 
-    def update_augmenter(
-        self,
-        augmentation_params: edict,
-        augmentation_flags: edict,
-        augmentation_order: list,
-    ):
+    def update_augmenter(self, augmentation_params: edict, augmentation_flags: edict):
 
         self.augmenter = self.get_sample_augmenter(
-            augmentation_params, augmentation_flags, augmentation_order
+            augmentation_params, augmentation_flags
         )
 
     def get_random_augment_param(self) -> dict:

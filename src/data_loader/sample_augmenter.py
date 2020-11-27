@@ -10,12 +10,7 @@ from src.types import JOINTS_25D
 
 
 class SampleAugmenter:
-    def __init__(
-        self,
-        augmentation_flags: edict,
-        augmentation_params: edict,
-        augmentation_order: list,
-    ):
+    def __init__(self, augmentation_flags: edict, augmentation_params: edict):
         """Initialization of the sample augmentor class.
 
         Args:
@@ -28,7 +23,6 @@ class SampleAugmenter:
         # Augmetation flags.
         self.set_augmentaion_flags(augmentation_flags)
         self.set_augmenation_params(augmentation_params)
-        self.augmentation_order = augmentation_order
         # random parameters.
         self.angle = None
         self.jitter = None
@@ -121,49 +115,6 @@ class SampleAugmenter:
             self._color_drop = False
 
         return image_, joints_, transformation_matrix
-
-    # TODO: remove transform with order.
-    def transform_with_order(
-        self,
-        image: np.array,
-        joints: JOINTS_25D,
-        override_angle: float = None,
-        override_jitter=None,
-    ) -> Tuple[np.array, JOINTS_25D]:
-        print("In transform with order")
-        image_, joints_ = image.copy(), joints.clone()
-        # This function is relevant only for figure 5 of the Simclr paper.
-        if override_angle is not None:
-            image_, joints_ = self.rotate_sample(image_, joints_, override_angle)
-        if override_jitter is not None:
-            image_, joints_ = self.crop_sample(image_, joints_, override_jitter)
-            image_, joints_ = self.resize_sample(image_, joints_)
-
-        for augmentation in self.augmentation_order:
-            print(augmentation)
-            if augmentation == "rotate" and self.rotate:
-                print(augmentation)
-                image_, joints_ = self.rotate_sample(image_, joints_)
-            if augmentation == "cut_out" and self.cut_out:
-                print(augmentation)
-                image_, joints_ = self.cut_out_sample(image_, joints_)
-            if augmentation == "crop" and self.crop:
-                print(augmentation)
-                image_, joints_ = self.crop_sample(image_, joints_)
-            if augmentation == "resize" and self.resize:
-                image_, joints_ = self.resize_sample(image_, joints_)
-                print(augmentation)
-            if augmentation == "color_jitter" and self.color_jitter:
-                image_, joints_ = self.color_jitter_sample(image_, joints_)
-                print(augmentation)
-            if augmentation == "color_drop" and self.color_drop:
-                image_, joints_ = self.color_drop_sample(image_, joints_)
-                print(augmentation)
-            if augmentation == "gaussian_blur" and self.gaussian_blur:
-                image_, joints_ = self.gaussian_blur_sample(image_, joints_)
-                print(augmentation)
-
-        return image_, joints_
 
     def crop_sample(
         self, image: np.array, joints: JOINTS_25D, jitter: float = None

@@ -1,22 +1,11 @@
 {
     "batch_size": 128,
-    "epochs": 300,
+    "epochs": 100,
     "train_ratio": 0.9,
     "gpu": true,
     "num_workers": 8,
     "seed": 5,
     "augmentation_flags": {
-        "color_drop": true,
-        "color_jitter": true,
-        "crop": true,
-        "cut_out": true,
-        "gaussian_blur": true,
-        "random_crop": false,
-        "resize": true,
-        "rotate": true
-    },
-    "augmentation_order": [],
-    "augmentation_flags0": {
         "color_drop": true,
         "color_jitter": true,
         "crop": true,
