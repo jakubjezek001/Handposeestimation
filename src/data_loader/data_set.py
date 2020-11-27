@@ -7,6 +7,7 @@ import torch
 import torchvision
 from easydict import EasyDict as edict
 from sklearn.model_selection import train_test_split
+from torchvision import transforms
 from src.constants import FREIHAND_DATA
 from src.data_loader.freihand_loader import F_DB
 from src.data_loader.sample_augmenter import SampleAugmenter
@@ -108,19 +109,19 @@ class Data_Set(Dataset):
             dict: sample containing 'transformed_image1' and 'transformed_image2'
         """
         joints25D, _ = convert_to_2_5D(sample["K"], sample["joints3D"])
-        img1, _ = self.augmenter.transform_sample(sample["image"], joints25D.clone())
+        img1, _, _ = self.augmenter.transform_sample(sample["image"], joints25D.clone())
 
         # To keep rotation and jitter consistent between the two transformations.
         override_angle = self.augmenter.angle
         overrride_jitter = self.augmenter.jitter
 
         if len(self.config.augmentation_order) != 0:
-            img2, _ = self.augmenter.transform_with_order(
+            img2, _, _ = self.augmenter.transform_with_order(
                 sample["image"], joints25D.clone(), override_angle, overrride_jitter
             )
         else:
             # angle and jitter are provide to ensure equivariance.
-            img2, _ = self.augmenter.transform_sample(
+            img2, _, _ = self.augmenter.transform_sample(
                 sample["image"], joints25D.clone(), override_angle, overrride_jitter
             )
 
@@ -149,7 +150,7 @@ class Data_Set(Dataset):
         else:
             # Zero jitter is added incase the cropping is off. It is done to trigger the
             # cropping but always with no translation in image.
-            override_jitter = 0
+            override_jitter = [0, 0]
         if self.augmenter.rotate:
             override_angle = None
         else:
@@ -157,10 +158,10 @@ class Data_Set(Dataset):
             # override_angle = random.uniform(1, 360)
             # uncomment line baove to add this rotation  to both channels
 
-        img1, _ = self.augmenter.transform_sample(
+        img1, _, _ = self.augmenter.transform_sample(
             sample["image"], joints25D.clone(), override_angle, override_jitter
         )
-        img2, _ = self.augmenter.transform_sample(
+        img2, _, _ = self.augmenter.transform_sample(
             sample["image"], joints25D.clone(), override_angle, override_jitter
         )
 
@@ -190,12 +191,12 @@ class Data_Set(Dataset):
                 'jitter' ...
         """
         joints25D, _ = convert_to_2_5D(sample["K"], sample["joints3D"])
-        img1, joints1 = self.augmenter.transform_sample(
+        img1, joints1, _ = self.augmenter.transform_sample(
             sample["image"], joints25D.clone()
         )
         param1 = self.get_random_augment_param()
 
-        img2, joints2 = self.augmenter.transform_sample(
+        img2, joints2, _ = self.augmenter.transform_sample(
             sample["image"], joints25D.clone()
         )
         param2 = self.get_random_augment_param()
@@ -233,8 +234,12 @@ class Data_Set(Dataset):
                 'scale'
                 'joints3D_recreated'
         """
-        joints25D, scale = convert_to_2_5D(sample["K"], sample["joints3D"])
-        image, joints25D = self.augmenter.transform_sample(sample["image"], joints25D)
+        joints25D_raw, scale = convert_to_2_5D(sample["K"], sample["joints3D"])
+        image, joints25D, transformation_matrix = self.augmenter.transform_sample(
+            sample["image"], joints25D_raw
+        )
+        # transformation_matrix = torch.inverse(joints25D[1]) @ joints25D_raw[1]
+        sample["K"] = torch.Tensor(transformation_matrix) @ sample["K"]
         joints3D_recreated = convert_2_5D_to_3D(joints25D, scale, sample["K"])
         if self.transform:
             image = self.transform(image)
