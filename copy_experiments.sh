@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # VARIABLES
-FOLDER=""
+FOLDER="d2a27fcaa2f6412cba59fc21126ac571"
 FROM_CLUSTER=true
 
 # Hidden variables
