@@ -319,7 +319,6 @@ class Data_Set(Dataset):
                     's' (sat factor)
                     'a' (brightness factor)
                     'b' (brightness additive term)
-                    'flip_flag'
                     'blur_flag'
         """
         angle = self.augmenter.angle
@@ -329,7 +328,6 @@ class Data_Set(Dataset):
         s = self.augmenter.s
         a = self.augmenter.a
         b = self.augmenter.b
-        flip_flag = self.augmenter._flip
         blur_flag = self.augmenter._gaussian_blur
         return {
             "angle": angle,
@@ -339,7 +337,6 @@ class Data_Set(Dataset):
             "s": s,
             "a": a,
             "b": b,
-            "flip_flag": flip_flag,
             "blur_flag": blur_flag,
         }
 
@@ -367,10 +364,6 @@ class Data_Set(Dataset):
             a = param1["a"] - param2["a"]
             b = param1["b"] - param2["b"]
             rel_param.update({"color_jitter": torch.tensor([h, s, a, b])})
-
-        if self.augmenter.flip:
-            flip_flag = param1["flip_flag"] ^ param2["flip_flag"]
-            rel_param.update({"flip": torch.Tensor([flip_flag * 1])})
 
         if self.augmenter.gaussian_blur:
             blur_flag = param1["blur_flag"] ^ param2["blur_flag"]

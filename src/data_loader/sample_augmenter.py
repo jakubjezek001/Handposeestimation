@@ -4,7 +4,6 @@ from typing import Tuple
 
 import cv2
 import numpy as np
-from numpy.lib.function_base import flip
 import torch
 from easydict import EasyDict as edict
 from src.types import JOINTS_25D
@@ -41,12 +40,10 @@ class SampleAugmenter:
         self.a = None
         self.b = None
         # flags
-        self._flip = False
         self._cut_out = False
         self._gaussian_blur = False
         self._rotate = False
         self._crop = False
-        self._flip = False
         self._color_jitter = False
         self._color_drop = False
 
@@ -94,12 +91,6 @@ class SampleAugmenter:
             transformation_matrix = np.concatenate((rot_mat, np.array([[0, 0, 1]])))
         else:
             self._rotate = False
-
-        if self.flip and random.getrandbits(1):
-            self._flip = True
-            image_, joints_ = self.flip_sample(image_, joints_)
-        else:
-            self._flip = False
 
         if self.crop or override_jitter is not None:
             self._crop = True
@@ -159,9 +150,6 @@ class SampleAugmenter:
             if augmentation == "crop" and self.crop:
                 print(augmentation)
                 image_, joints_ = self.crop_sample(image_, joints_)
-            if augmentation == "flip" and self.flip:
-                image_, joints_ = self.flip_sample(image_, joints_)
-                print(augmentation)
             if augmentation == "resize" and self.resize:
                 image_, joints_ = self.resize_sample(image_, joints_)
                 print(augmentation)
@@ -329,19 +317,6 @@ class SampleAugmenter:
         sigma = random.uniform(0.1, 2.0)
         self.sigma = sigma
         image = cv2.GaussianBlur(image, kernel_size, sigma)
-        return image, joints
-
-    def flip_sample(
-        self, image: np.array, joints: JOINTS_25D
-    ) -> Tuple[np.array, JOINTS_25D]:
-        # if random.getrandbits(1):
-        flip_orientation = 1  # 1 is horizontal. With rotation it doesn't matter to...
-        # ... differentiate between horizontal and vertical.
-        image = cv2.flip(image, flip_orientation)
-        joints[:, 1 - flip_orientation] = (
-            image.shape[1 - flip_orientation] - joints[:, 1 - flip_orientation]
-        )
-
         return image, joints
 
     def cut_out_sample(
@@ -519,4 +494,3 @@ class SampleAugmenter:
         self.gaussian_blur = augmentation_flags.gaussian_blur
         self.cut_out = augmentation_flags.cut_out
         self.random_crop = augmentation_flags.random_crop
-        self.flip = augmentation_flags.flip
