@@ -21,6 +21,9 @@ PAIRWISE_CONFIG = os.path.join(
 HYBRID_CONFIG = os.path.join(
     MASTER_THESIS_DIR, "src", "experiments", "config", "hybrid_config.json"
 )
+NIPS_A1_CONFIG = os.path.join(
+    MASTER_THESIS_DIR, "src", "experiments", "config", "nips_a1_config.json"
+)
 ANGLES = [i for i in range(10, 360, 10)]
 SAVED_MODELS_BASE_PATH = os.environ.get("SAVED_MODELS_BASE_PATH")
 STD_LOGGING_FORMAT = "%(name)s -%(levelname)s - %(message)s"

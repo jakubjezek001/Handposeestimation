@@ -5,7 +5,7 @@ from pprint import pformat
 from typing import List
 
 from easydict import EasyDict as edict
-from src.constants import MODEL_CONFIG_PATH, TRAINING_CONFIG_PATH
+from src.constants import MASTER_THESIS_DIR, MODEL_CONFIG_PATH, TRAINING_CONFIG_PATH
 from src.utils import read_json
 
 
@@ -214,3 +214,30 @@ def prepare_name(prefix: str, train_param: edict) -> str:
         )
     )
     return f"{prefix}{train_param.batch_size}{augmentations}"
+
+
+def save_experiment_key(
+    experiment_name: str, experiment_key: str, filename="default.csv"
+):
+    """Writes the experiemtn name and key in a  file for quick reference to use the
+    saved models.
+
+    Args:
+        experiment_name (str]): Name of the experiment. from prepare_name()
+        experiment_key (str): comet generated experiment key.
+        filename (str, optional): Name of the file where the info should be appended.
+         Defaults to "default.csv".
+    """
+    with open(os.path.join(MASTER_THESIS_DIR, "data", "models", filename), "a") as f:
+        f.write(f"{experiment_name},{experiment_key}\n")
+
+
+def get_nips_1a_args():
+    parser = argparse.ArgumentParser(
+        description="Experiment NIPS 1A: SIMCLR ablative studies"
+    )
+    parser.add_argument(
+        "augmentation", type=str, default=None, help="Select augmentation to apply"
+    )
+    args = parser.parse_args()
+    return args
