@@ -40,8 +40,8 @@ class SampleAugmenter:
         self._crop = False
         self._color_jitter = False
         self._color_drop = False
-
-        # could be illposed. change it to true or False.
+        self._gaussian_noise = False
+        self._sobel_filter = False
 
     def transform_sample(
         self,
@@ -65,6 +65,11 @@ class SampleAugmenter:
         image_, joints_ = image.copy(), joints.clone()
         transformation_matrix = np.identity(3)
         # augmentations to be applied in beginning
+        if self.sobel_filter and random.getrandbits(1):
+            self._sobel_filter = True
+            image_, _ = self.sobel_filter_sample(image_, None)
+        else:
+            self._sobel_filter = False
         if self.cut_out and random.getrandbits(1):
             self._cut_out = True
             image_, _ = self.cut_out_sample(image_, joints_)
@@ -108,6 +113,12 @@ class SampleAugmenter:
         else:
             self._color_jitter = False
 
+        if self.gaussian_noise and random.getrandbits(1):
+            self._gaussian_noise = True
+            image_, _ = self.gaussian_noise_sample(image_, None)
+        else:
+            self._gaussian_noise = False
+
         if self.color_drop and random.getrandbits(1):
             self._color_drop = True
             image_, _ = self.color_drop_sample(image_, None)
@@ -115,6 +126,41 @@ class SampleAugmenter:
             self._color_drop = False
 
         return image_, joints_, transformation_matrix
+
+    def sobel_filter_sample(
+        self, image: np.array, joints: JOINTS_25D
+    ) -> Tuple[np.array, JOINTS_25D, tuple]:
+        """Applies sobel filter along x axis and y axis. Converts the image to gray scale before applying the filter.
+        Returns the added sobel filter.
+
+        Args:
+            image (np.array): Image as an numpy array.
+            joints (JOINTS_25D): 2.5D joints. The depth is kept as is.
+
+        Returns:
+            Tuple[np.array JOINTS_25D]:  Image with sobel filter applied. The coordiniates are not changed.
+        """
+        gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        sobel_x = cv2.Sobel(gray_image, cv2.CV_64F, 1, 0, ksize=self.sobel_kernel)
+        sobel_y = cv2.Sobel(gray_image, cv2.CV_64F, 1, 0, ksize=self.sobel_kernel)
+        # replicating same filter across all channels to keep the image channel consistent.
+        image[:, :, :] = (sobel_x + sobel_y).reshape(list(image.shape[:2]) + [1])
+        return image, joints
+
+    def gaussian_noise_sample(
+        self, image: np.array, joints: JOINTS_25D
+    ) -> Tuple[np.array, JOINTS_25D, tuple]:
+        """Applies gaussian noise to the sample.
+
+        Args:
+            image (np.array): Image as an numpy array.
+            joints (JOINTS_25D): 2.5D joints. The depth is kept as is.
+
+        Returns:
+            Tuple[np.array JOINTS_25D]:  gaussian noise added image. The coordinates are not changed.
+        """
+        image += cv2.randn(np.zeros(image.shape, np.uint8), (0), (self.noise_std,) * 3)
+        return image, joints
 
     def crop_sample(
         self, image: np.array, joints: JOINTS_25D, jitter: float = None
@@ -200,7 +246,7 @@ class SampleAugmenter:
     def color_drop_sample(
         self, image: np.array, joints: JOINTS_25D
     ) -> Tuple[np.array, JOINTS_25D]:
-        """Randomly drops the color with 0.5 probability.
+        """Drops the color.
         Joints are not affected by this transform.
 
         Args:
@@ -210,7 +256,6 @@ class SampleAugmenter:
         Returns:
             Tuple[np.array, JOINTS_25D]: Transfomed image and joints as is.
         """
-        # randomly dropping color
 
         image[:, :, :] = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY).reshape(
             list(image.shape[:2]) + [1]
@@ -430,6 +475,8 @@ class SampleAugmenter:
         self.crop_margin = augmentation_params.crop_margin
         self.resize_shape = tuple(augmentation_params.resize_shape)
         self.crop_box_jitter = augmentation_params.crop_box_jitter
+        self.sobel_kernel = augmentation_params.sobel_kernel
+        self.noise_std = augmentation_params.noise_std
 
     def set_augmentaion_flags(self, augmentation_flags: edict):
         """Helper function to set the augmentation flags
@@ -445,3 +492,5 @@ class SampleAugmenter:
         self.gaussian_blur = augmentation_flags.gaussian_blur
         self.cut_out = augmentation_flags.cut_out
         self.random_crop = augmentation_flags.random_crop
+        self.gaussian_noise = augmentation_flags.gaussian_noise
+        self.sobel_filter = augmentation_flags.sobel_filter

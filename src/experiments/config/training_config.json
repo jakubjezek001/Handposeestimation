@@ -13,7 +13,9 @@
         "gaussian_blur": true,
         "random_crop": false,
         "resize": true,
-        "rotate": true
+        "rotate": true,
+        "gaussian_noise": true,
+        "sobel_filter": false
     },
     "augmentation_params": {
         "crop_margin": 1.25,
@@ -50,6 +52,8 @@
         "crop_box_jitter": [
             0.0,
             15.0
-        ]
+        ],
+        "sobel_kernel": 3,
+        "noise_std": 25
     }
 }
