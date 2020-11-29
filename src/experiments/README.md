@@ -1,6 +1,6 @@
 This file contains the commands used to do each experiment.
 # baseline experiment
-python src/experiments/baseline_experiment.py -crop -resize -rotate
+python src/experiments/baseline_experiment.py --crop --resize --rotate -epochs 50
 
 # Experiment 1
 Determining how long should the simclr model with contrastive loss be trained to obtain well trained encoder for semi supervised experiment.
