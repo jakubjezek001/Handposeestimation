@@ -1,4 +1,5 @@
 import math
+from matplotlib.pyplot import minorticks_off
 
 import torch
 import torchvision
@@ -88,7 +89,7 @@ class SimCLR(LightningModule):
 
     def validation_epoch_end(self, outputs):
         loss = torch.stack([x["loss"] for x in outputs]).mean()
-        self.log("val_loss", loss, log=True)
+        # self.log("val_loss", loss, log=True)
         self.validation_metrics_epoch = {"loss": loss}
 
     def exclude_from_wt_decay(
@@ -126,14 +127,24 @@ class SimCLR(LightningModule):
         # )
         optimizer = LARSWrapper(
             torch.optim.Adam(
-                parameters, lr=self.config.lr * math.sqrt(self.config.batch_size)
+                parameters,
+                lr=self.config.lr
+                * math.sqrt(self.config.batch_size * self.config.num_of_mini_batch),
             )
         )
 
         # The schdeuler is called after every step in an epoch hence adjusting the
         # warmup epochs param.
-        warmup_epochs = self.config.warmup_epochs * self.train_iters_per_epoch
-        max_epochs = self.trainer.max_epochs * self.train_iters_per_epoch
+        warmup_epochs = (
+            self.config.warmup_epochs
+            * self.train_iters_per_epoch
+            // self.config.num_of_mini_batch
+        )
+        max_epochs = (
+            self.trainer.max_epochs
+            * self.train_iters_per_epoch
+            // self.config.num_of_mini_batch
+        )
 
         linear_warmup_cosine_decay = LinearWarmupCosineAnnealingLR(
             optimizer,
@@ -146,6 +157,6 @@ class SimCLR(LightningModule):
         scheduler = {
             "scheduler": linear_warmup_cosine_decay,
             "interval": "step",
-            "frequency": 1,
+            "frequency": 1.0,
         }
         return [optimizer], [scheduler]
