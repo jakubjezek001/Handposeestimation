@@ -4,7 +4,7 @@
 TIME=4
 CORES=8
 GPU_MODEL="GeForceRTX2080Ti"
-
+DATE=$(date +'D%_d-%m-%y-T%H-%M-%S')
 # Hidden variables
 
 _help_description="Script to launch experiments for the NIPS proposal.
@@ -93,6 +93,8 @@ fi
 # Main process
 case $EXPERIMENT in
     A1)
+        # moving the reference to old experiments in bkp file to make space for new series. 
+        mv "$DATA_PATH/models/nips_A1_experiment" "$DATA_PATH/models/nips_A1_experiment.bkp.$DATE"
         echo "Launching NIPS experiment A1 . Ablative studies for SIMCLR."
         launch_experimentA1 $TIME $CORES "color_drop" $GPU_MODEL
         launch_experimentA1 $TIME $CORES "color_jitter" $GPU_MODEL
@@ -120,4 +122,4 @@ case $EXPERIMENT in
         ;;
 esac
 
-echo "all Experiment successfully launched!"
+echo "All experiment successfully launched!"
