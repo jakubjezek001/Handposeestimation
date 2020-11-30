@@ -19,14 +19,18 @@ class PairwiseModel(LightningModule):
         super().__init__()
         self.config = config
         self.encoder = self.get_encoder()
+        self.regress_rotate = False
+        self.regress_jitter = False
+        self.regress_color_jitter = False
+        self.log_keys = ["loss"]
 
-        # transformations head.
-        self.rotation_head = self.get_rotation_head()
-        self.jitter_head = self.get_jitter_head()
-        self.color_jitter_head = self.get_color_jitter_head()
-
-        # loss weights
-        self.loss_weights = self.get_loss_weights()
+        # transformation head.
+        if "rotate" in self.config.augmentation:
+            self.rotation_head = self.get_rotation_head()
+        if "crop" in self.config.augmentation:
+            self.jitter_head = self.get_jitter_head()
+        if "color_jitter" in self.config.augmentation:
+            self.color_jitter_head = self.get_color_jitter_head()
 
         # Variables used by callbacks
         self.train_metrics_epoch = None
@@ -55,62 +59,92 @@ class PairwiseModel(LightningModule):
         )
 
     def get_rotation_head(self):
+        self.regress_rotate = True
+        self.log_keys += ["loss_rotation", "sigma_rotation"]
+        self.log_sigma_rotate = nn.Parameter(torch.zeros(1, 1))
         rotation_head = self.get_base_transformation_head(output_dim=1)
         return rotation_head
 
     def get_jitter_head(self):
+        self.regress_jitter = True
+        self.log_keys += ["loss_jitter", "sigma_jitter"]
+        self.log_sigma_jitter = nn.Parameter(torch.zeros(1, 1))
         return self.get_base_transformation_head(output_dim=2)
 
     def get_color_jitter_head(self):
+        self.regress_color_jitter = True
+        self.log_keys += ["loss_color_jitter", "sigma_color_jitter"]
+        self.log_sigma_color_jitter = nn.Parameter(torch.zeros(1, 1))
         return self.get_base_transformation_head(output_dim=4)
 
-    def get_loss_weights(self):
-        # Dimension should be equal to the loss paramters.
-        return nn.Parameter(torch.ones((1, 3)))
+    def regress_rotation(self, rotation_gt, encoding, loss, log: dict, pred_gt):
+        rotation_pred = self.rotation_head(encoding)
+        loss_rotation = L1Loss()(rotation_gt, rotation_pred)
+        loss += loss_rotation / torch.exp(self.log_sigma_rotate) + self.log_sigma_rotate
+        log.update(
+            {
+                "loss_rotation": loss_rotation.detach(),
+                "sigma_rotation": torch.exp(self.log_sigma_rotate).detach(),
+            }
+        )
+        pred_gt.update({"rotation": [rotation_gt, rotation_pred]})
+        return loss
+
+    def regress_jittering(self, jitter_gt, encoding, loss, log, pred_gt):
+        jitter_pred = self.jitter_head(encoding)
+        loss_jitter = L1Loss()(jitter_gt, jitter_pred)
+        loss += loss_jitter / torch.exp(self.log_sigma_jitter) + self.log_sigma_jitter
+        log.update(
+            {
+                "loss_jitter": loss_jitter.detach(),
+                "sigma_jitter": torch.exp(self.log_sigma_jitter).detach(),
+            }
+        )
+        pred_gt.update({"jitter": [jitter_gt, jitter_pred]})
+        return loss
+
+    def regress_color_jittering(self, color_jitter_gt, encoding, loss, log, pred_gt):
+        color_jitter_pred = self.color_jitter_head(encoding)
+        loss_color_jitter = L1Loss()(color_jitter_gt, color_jitter_pred)
+        loss += (
+            loss_color_jitter / torch.exp(self.log_sigma_color_jitter)
+            + self.log_sigma_color_jitter
+        )
+        log.update(
+            {
+                "loss_color_jitter": loss_color_jitter.detach(),
+                "sigma_color_jitter": torch.exp(self.log_sigma_color_jitter).detach(),
+            }
+        )
+        pred_gt.update({"color_jitter": [color_jitter_gt, color_jitter_pred]})
+        return loss
 
     def transformation_regression_step(self, batch):
         batch_transform1 = batch["transformed_image1"]
         batch_transform2 = batch["transformed_image2"]
 
-        rotation_gt = batch["rotation"]
-        jitter_gt = batch["jitter"]
-        color_jitter_gt = batch["color_jitter"]
-
         encoding = torch.cat(
             (self.encoder(batch_transform1), self.encoder(batch_transform2)), 1
         )
 
-        rotation_pred = self.rotation_head(encoding)
-        jitter_pred = self.jitter_head(encoding)
-        color_jitter_pred = self.color_jitter_head(encoding)
-
-        # losses
-        # regression losses
-        loss_rotation = L1Loss()(rotation_gt, rotation_pred)
-        loss_jitter = L1Loss()(jitter_gt, jitter_pred)
-        loss_color_jitter = L1Loss()(color_jitter_gt, color_jitter_pred)
-
-        loss = torch.sum(
-            torch.stack([loss_rotation, loss_jitter, loss_color_jitter])
-            / torch.abs((self.loss_weights))
-            + (torch.log(torch.abs(self.loss_weights)))
-        )
-        return (
-            loss,
-            {
-                "loss_rotation": loss_rotation.detach(),
-                "loss_jitter": loss_jitter.detach(),
-                "loss_color_jitter": loss_color_jitter.detach(),
-                "sigma_rotation": self.loss_weights[0, 0],
-                "sigma_jitter": self.loss_weights[0, 1],
-                "sigma_color_jitter": self.loss_weights[0, 2],
-            },
-            {
-                "rotation": [rotation_gt, rotation_pred],
-                "jitter": [jitter_gt, jitter_pred],
-                "color_jitter": [color_jitter_gt, color_jitter_pred],
-            },
-        )
+        loss = 0
+        log = {}
+        pred_gt = {}
+        # Rotation regression
+        if self.regress_rotate:
+            rotate_gt = batch["rotation"]
+            loss = self.regress_rotation(rotate_gt, encoding, loss, log, pred_gt)
+        # Translation  jitter regression
+        if self.regress_jitter:
+            jitter_gt = batch["jitter"]
+            loss = self.regress_jittering(jitter_gt, encoding, loss, log, pred_gt)
+        # Color jitter regression
+        if self.regress_color_jitter:
+            color_jitter_gt = batch["color_jitter"]
+            loss = self.regress_color_jittering(
+                color_jitter_gt, encoding, loss, log, pred_gt
+            )
+        return (loss, log, pred_gt)
 
     def forward(self, x):
         embedding = self.encoder(x)
@@ -130,16 +164,7 @@ class PairwiseModel(LightningModule):
 
     def training_epoch_end(self, outputs):
         self.train_metrics_epoch = {
-            k: torch.stack([x[k] for x in outputs]).mean()
-            for k in [
-                "loss",
-                "loss_rotation",
-                "loss_jitter",
-                "loss_color_jitter",
-                "sigma_rotation",
-                "sigma_jitter",
-                "sigma_color_jitter",
-            ]
+            k: torch.stack([x[k] for x in outputs]).mean() for k in self.log_keys
         }
 
     def validation_step(self, batch, batch_idx):
@@ -157,8 +182,10 @@ class PairwiseModel(LightningModule):
 
         self.validation_metrics_epoch = {
             k: torch.stack([x[k] for x in outputs]).mean()
-            for k in ["loss", "loss_rotation", "loss_jitter", "loss_color_jitter"]
+            for k in self.log_keys
+            if "loss" in k
         }
+        self.log("checkpoint_saving_loss", self.validation_metrics_epoch["loss"])
 
     def exclude_from_wt_decay(
         self, named_params, weight_decay, skip_list=["bias", "bn"]
@@ -189,11 +216,21 @@ class PairwiseModel(LightningModule):
         )
         optimizer = LARSWrapper(
             torch.optim.Adam(
-                parameters, lr=self.config.lr * math.sqrt(self.config.batch_size)
+                parameters,
+                lr=self.config.lr
+                * math.sqrt(self.config.batch_size * self.config.num_of_mini_batch),
             )
         )
-        warmup_epochs = self.config.warmup_epochs * self.train_iters_per_epoch
-        max_epochs = self.trainer.max_epochs * self.train_iters_per_epoch
+        warmup_epochs = (
+            self.config.warmup_epochs
+            * self.train_iters_per_epoch
+            // self.config.num_of_mini_batch
+        )
+        max_epochs = (
+            self.trainer.max_epochs
+            * self.train_iters_per_epoch
+            // self.config.num_of_mini_batch
+        )
 
         linear_warmup_cosine_decay = LinearWarmupCosineAnnealingLR(
             optimizer,
