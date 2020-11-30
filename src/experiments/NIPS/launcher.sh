@@ -51,7 +51,7 @@ launch_experimentA2 () {
     # -n $2 -R 'rusage[mem=7892, ngpus_excl_p=1 gpu_model0==$4]' \
     # -G ls_infk \
     # python src/experiments/NIPS/nips_A1_experiment.py $3"
-    bsub -J "A1_$3" -W "$1:00" \-o "/cluster/scratch//adahiya/nipsa2_$3_logs.out" \
+    bsub -J "A2_$3" -W "$1:00" \-o "/cluster/scratch//adahiya/nipsa2_$3_logs.out" \
     -n $2 -R "rusage[mem=7892, ngpus_excl_p=1]" \
     -R  "select[gpu_model0==$4]" \
     -G ls_infk \
@@ -143,8 +143,6 @@ case $EXPERIMENT in
         launch_experimentA2 $TIME $CORES "color_jitter" $GPU_MODEL
         launch_experimentA2 $TIME $CORES "rotate" $GPU_MODEL
         launch_experimentA2 $TIME $CORES "crop" $GPU_MODEL 
-         # sanity check no augmentation
-        launch_experimentA1 $TIME $CORES "resize" $GPU_MODEL
         ;;
     A2_DOWN)
         mv "$DATA_PATH/models/nips_A2_downstream" "$DATA_PATH/models/nips_A2_downstream.bkp.$DATE"
