@@ -89,7 +89,7 @@ class SimCLR(LightningModule):
 
     def validation_epoch_end(self, outputs):
         loss = torch.stack([x["loss"] for x in outputs]).mean()
-        # self.log("val_loss", loss, log=True)
+        self.log("checkpoint_saving_loss", loss)
         self.validation_metrics_epoch = {"loss": loss}
 
     def exclude_from_wt_decay(

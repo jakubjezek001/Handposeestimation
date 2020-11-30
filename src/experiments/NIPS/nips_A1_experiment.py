@@ -66,7 +66,7 @@ def main():
     lr_monitor = LearningRateMonitor(logging_interval=logging_interval)
     # saves top 3 models in first 100 epochs.
     checkpoint_callback = ModelCheckpoint(
-        save_top_k=3, period=1, monitor="validate_loss"
+        save_top_k=3, period=1, monitor="checkpoint_saving_loss"
     )
 
     # trainer setup.
@@ -87,7 +87,7 @@ def main():
             MASTER_THESIS_DIR, "src", "experiments", "NIPS", "nips_A1_experiment.py"
         ),
     )
-    trainer.logger.experiment.add_tags(["NIPS_1A", "SIMCLR", "pretraining"])
+    trainer.logger.experiment.add_tags(["NIPS_A1", "SIMCLR", "pretraining"])
     save_experiment_key(
         experiment_name,
         trainer.logger.experiment.get_key(),
