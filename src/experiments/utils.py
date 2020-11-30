@@ -12,6 +12,7 @@ from src.constants import (
     MASTER_THESIS_DIR,
     MODEL_CONFIG_PATH,
     TRAINING_CONFIG_PATH,
+    SAVED_MODELS_BASE_PATH,
 )
 from src.data_loader.data_set import Data_Set
 from src.models.utils import get_latest_checkpoint
@@ -265,9 +266,6 @@ def get_downstream_args():
         help="Name of the pretrained experiment",
     )
     parser.add_argument(
-        "checkpoint", type=str, default=None, help="checkpoint to be restored"
-    )
-    parser.add_argument(
         "experiment_type",
         type=str,
         default=None,
@@ -322,3 +320,18 @@ def restore_model(model, experiment_key: str, checkpoint: str = ""):
     ]
     model.load_state_dict(saved_state_dict)
     return model
+
+
+def get_checkpoints(experiment_key: str, number: int = 3) -> List[str]:
+    """Returns last 'n' checkpoints.
+
+    Args:
+        experiment_key (str): [description]
+        number (int, optional): [description]. Defaults to 3.
+
+    Returns:
+        List[str]: Name of last n checkpoints.
+    """
+    return sorted(
+        os.listdir(os.path.join(SAVED_MODELS_BASE_PATH, experiment_key, "checkpoints"))
+    )[::-1][:number]
