@@ -42,6 +42,7 @@ class SupervisedHead(LightningModule):
         encoder.load_state_dict(saved_model_state)
         for param in encoder.parameters():
             param.requires_grad = False
+        encoder.eval()
         return encoder
 
     def forward(self, x):
