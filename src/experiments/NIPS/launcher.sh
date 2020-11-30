@@ -38,6 +38,23 @@ launch_experimentA1 () {
     python src/experiments/NIPS/nips_A1_experiment.py $3
 
 }
+# To launch experiment 1A on cluster.
+# Arguments:
+# $1 : time
+# $2 : cpu cores
+# $3 : GPU model
+# $4 : experiment_key
+# $5 : experiment_name
+launch_experimentA1_downstream () {
+    # Launching on Cluster.
+    echo "Experiment $5 downstream experiment submitted!"
+    bsub -J "A1_$3" -W "$1:00" \-o "/cluster/scratch//adahiya/ssl_$5_logs.out" \
+    -n $2 -R "rusage[mem=7892, ngpus_excl_p=1]" \
+    -R  "select[gpu_model0==$4]" \
+    -G ls_infk \
+    python src/experiments/NIPS/downstream_experiment.py $4 $5
+
+}
 
 if [ $# -eq 0 ]; then
     echo "No Experiment selected!"
@@ -88,6 +105,13 @@ case $EXPERIMENT in
         launch_experimentA1 $TIME $CORES "sobel_filter" $GPU_MODEL
          # sanity check no augmentation
         launch_experimentA1 $TIME $CORES "resize" $GPU_MODEL
+        ;;
+    A1_DOWN)
+        echo "Launching downstream experiments for SIMCLR ablative studies."
+        while IFS=',' read -r experiment_name experiment_key
+            do
+            launch_experimentA1_downstream $TIME $CORES $GPU_MODEL $experiment_key $experiment_name
+            done < $DATA_PATH/models/nips_A1_experiment
         ;;
     *)
         echo "Experiment not recognized!"
