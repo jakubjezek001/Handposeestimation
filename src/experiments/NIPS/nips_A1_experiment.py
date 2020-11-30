@@ -26,6 +26,7 @@ def main():
     params.data_param.augmentation_flags[args.augmentation] = True
     params.data_param.augmentation_flags.resize = True
 
+    seed_everything(params.data_param.seed)
     # data preperation
     data = Data_Set(
         config=params.data_param,
