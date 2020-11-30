@@ -24,6 +24,9 @@ HYBRID_CONFIG = os.path.join(
 NIPS_A1_CONFIG = os.path.join(
     MASTER_THESIS_DIR, "src", "experiments", "config", "nips_a1_config.json"
 )
+NIPS_A2_CONFIG = os.path.join(
+    MASTER_THESIS_DIR, "src", "experiments", "config", "nips_a2_config.json"
+)
 DOWNSTREAM_CONFIG = os.path.join(
     MASTER_THESIS_DIR, "src", "experiments", "config", "downstream_config.json"
 )

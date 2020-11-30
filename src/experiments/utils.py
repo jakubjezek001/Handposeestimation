@@ -245,9 +245,20 @@ def save_experiment_key(
         f.write(f"{experiment_name},{experiment_key}\n")
 
 
-def get_nips_1a_args():
+def get_nips_a1_args():
     parser = argparse.ArgumentParser(
-        description="Experiment NIPS 1A: SIMCLR ablative studies"
+        description="Experiment NIPS A1: SIMCLR ablative studies"
+    )
+    parser.add_argument(
+        "augmentation", type=str, default=None, help="Select augmentation to apply"
+    )
+    args = parser.parse_args()
+    return args
+
+
+def get_nips_a2_args():
+    parser = argparse.ArgumentParser(
+        description="Experiment NIPS A2: Pairwise ablative studies"
     )
     parser.add_argument(
         "augmentation", type=str, default=None, help="Select augmentation to apply"

@@ -72,7 +72,11 @@ class Data_Set(Dataset):
         elif self.experiment_type == "pairwise":
             sample = self.prepare_pairwise_sample(sample)
         elif self.experiment_type == "experiment4_pretraining":
+            # for simclr ablative, for nips A1
             sample = self.prepare_experiment4_pretraining(sample)
+        elif self.experiment_type == "pairwise_ablative":
+            # for nips A2
+            sample = self.prepare_pairwise_ablative(sample)
         else:
             sample = self.prepare_supervised_sample(sample)
         return sample
@@ -164,6 +168,7 @@ class Data_Set(Dataset):
         image and keepinf track of the relative parameters.
         Note: Gaussian blur and Flip are treated as boolean. Also it was decided not to
         use them for experiment.
+        The effects of transformations are isolated.
 
         Args:
             sample (dict): Underlying data from dataloader class.
@@ -178,6 +183,7 @@ class Data_Set(Dataset):
                 'jitter' ...
         """
         joints25D, _ = convert_to_2_5D(sample["K"], sample["joints3D"])
+
         img1, joints1, _ = self.augmenter.transform_sample(
             sample["image"], joints25D.clone()
         )
@@ -185,6 +191,62 @@ class Data_Set(Dataset):
 
         img2, joints2, _ = self.augmenter.transform_sample(
             sample["image"], joints25D.clone()
+        )
+        param2 = self.get_random_augment_param()
+
+        # relative transform calculation.
+        rel_param = self.get_relative_param(param1, param2)
+
+        # Applying only image related transform
+        if self.transform:
+            img1 = self.transform(img1)
+            img2 = self.transform(img2)
+
+        return {
+            **{
+                "transformed_image1": img1,
+                "transformed_image2": img2,
+                "joints1": joints1,
+                "joints2": joints2,
+            },
+            **rel_param,
+        }
+
+    def prepare_pairwise_ablative(self, sample: dict) -> dict:
+        """Prepares samples according to pairwise experiment, i.e. transforming the
+        image and keeping track of the relative parameters. Augmentations are isolated.
+        Args:
+            sample (dict): Underlying data from dataloader class.
+
+        Returns:
+            dict: sample containing following elements
+                'transformed_image1'
+                'transformed_image2'
+                'joints1' (2.5D joints)
+                'joints2' (2.5D joints)
+                'rotation'
+                'jitter' ...
+        """
+        joints25D, _ = convert_to_2_5D(sample["K"], sample["joints3D"])
+        if self.augmenter.crop:
+            override_jitter = None
+        else:
+            # Zero jitter is added incase the cropping is off. It is done to trigger the
+            # cropping but always with no translation in image.
+            override_jitter = [0, 0]
+        if self.augmenter.rotate:
+            override_angle = None
+        else:
+            override_angle = None
+            # override_angle = random.uniform(1, 360)
+            # uncomment line baove to add this rotation  to both channels
+        img1, joints1, _ = self.augmenter.transform_sample(
+            sample["image"], joints25D.clone(), override_angle, override_jitter
+        )
+        param1 = self.get_random_augment_param()
+
+        img2, joints2, _ = self.augmenter.transform_sample(
+            sample["image"], joints25D.clone(), override_angle, override_jitter
         )
         param2 = self.get_random_augment_param()
 
