@@ -42,16 +42,15 @@ else
     done
 fi
 
-echo $FOLDER $FROM_CLUSTER
-# # Main process
-# if $FROM_CLUSTER eq true; then
-#     echo "Copying experiment folder from cluster"
-#     scp -r  \
-#     "adahiya@login.leonhard.ethz.ch:/cluster/scratch/adahiya/data/models/master-thesis/$FOLDER" \
-#     "data/models/master-thesis/$FOLDER"
-# else
-#     echo "Copying experiment folder from Lab PC"
-#     scp -r  \
-#     "data/models/master-thesis/$FOLDER" \
-#     "adahiya@login.leonhard.ethz.ch:/cluster/scratch/adahiya/data/models/master-thesis/$FOLDER"   
-# fi
+# Main process
+if $FROM_CLUSTER eq true; then
+    echo "Copying experiment folder from cluster"
+    scp -r  \
+    "adahiya@login.leonhard.ethz.ch:/cluster/scratch/adahiya/data/models/master-thesis/$FOLDER" \
+    "data/models/master-thesis/$FOLDER"
+else
+    echo "Copying experiment folder from Lab PC"
+    scp -r  \
+    "data/models/master-thesis/$FOLDER" \
+    "adahiya@login.leonhard.ethz.ch:/cluster/scratch/adahiya/data/models/master-thesis/$FOLDER"   
+fi
