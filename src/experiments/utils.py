@@ -2,16 +2,21 @@ import argparse
 import os
 from logging import Logger
 from pprint import pformat
-from typing import List
+from typing import List, Tuple
 
+import torch
+from comet_ml import Experiment
 from easydict import EasyDict as edict
 from src.constants import (
+    DATA_PATH,
     MASTER_THESIS_DIR,
     MODEL_CONFIG_PATH,
     TRAINING_CONFIG_PATH,
-    DATA_PATH,
 )
+from src.data_loader.data_set import Data_Set
+from src.models.utils import get_latest_checkpoint
 from src.utils import read_json
+from src.experiments.evaluation_utils import evaluate
 
 
 def get_experiement_args() -> argparse.Namespace:
@@ -248,3 +253,72 @@ def get_nips_1a_args():
     )
     args = parser.parse_args()
     return args
+
+
+def get_downstream_args():
+    parser = argparse.ArgumentParser(description="Downstream training experiment")
+    parser.add_argument("experiment_key", type=str, default=None, help="Experiment key")
+    parser.add_argument(
+        "experiment_name",
+        type=str,
+        default=None,
+        help="Name of the pretrained experiment",
+    )
+    parser.add_argument(
+        "checkpoint", type=str, default=None, help="checkpoint to be restored"
+    )
+    parser.add_argument(
+        "experiment_type",
+        type=str,
+        default=None,
+        help="Type of experiment for tagging.",
+    )
+    args = parser.parse_args()
+    args = parser.parse_args()
+    return args
+
+
+def downstream_evaluation(
+    model, data: Data_Set, num_workers: int, batch_size: int, logger: Experiment
+) -> Tuple[dict, dict]:
+    """Returns train and validate results respectively.
+
+    Args:
+        model ([type]): [description]
+        data (Data_Set): [description]
+        num_workers (int): [description]
+        batch_size (int): [description]
+        logger (Experiment):
+
+    Returns:
+        Tuple[dict, dict]: [description]
+    """
+
+    model.eval()
+    data.is_training(False)
+    validate_results = evaluate(
+        model, data, num_workers=num_workers, batch_size=batch_size
+    )
+    with logger.experiment.validate():
+        logger.experiment.log_metrics(validate_results)
+
+    data.is_training(True)
+    train_results = evaluate(
+        model, data, num_workers=num_workers, batch_size=batch_size
+    )
+
+    with logger.experiment.train():
+        logger.experiment.log_metrics(train_results)
+
+
+def restore_model(model, experiment_key: str, checkpoint: str = ""):
+    """Restores the experiment with the most recent checkpoint.
+
+    Args:
+        experiment_key (str): experiment key
+    """
+    saved_state_dict = torch.load(get_latest_checkpoint(experiment_key, checkpoint))[
+        "state_dict"
+    ]
+    model.load_state_dict(saved_state_dict)
+    return model
