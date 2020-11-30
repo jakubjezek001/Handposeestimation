@@ -32,7 +32,8 @@ launch_experimentA1 () {
     # -G ls_infk \
     # python src/experiments/NIPS/nips_A1_experiment.py $3"
     bsub -J "A1_$3" -W "$1:00" \-o "/cluster/scratch//adahiya/nipsa1_$3_logs.out" \
-    -n $2 -R "rusage[mem=7892, ngpus_excl_p=1 gpu_model0==$4]" \
+    -n $2 -R "rusage[mem=7892, ngpus_excl_p=1]" \
+    -R  "select[gpu_model0==$4]" \
     -G ls_infk \
     python src/experiments/NIPS/nips_A1_experiment.py $3
 
