@@ -5,7 +5,12 @@ from pprint import pformat
 from typing import List
 
 from easydict import EasyDict as edict
-from src.constants import MASTER_THESIS_DIR, MODEL_CONFIG_PATH, TRAINING_CONFIG_PATH
+from src.constants import (
+    MASTER_THESIS_DIR,
+    MODEL_CONFIG_PATH,
+    TRAINING_CONFIG_PATH,
+    DATA_PATH,
+)
 from src.utils import read_json
 
 
@@ -228,7 +233,7 @@ def save_experiment_key(
         filename (str, optional): Name of the file where the info should be appended.
          Defaults to "default.csv".
     """
-    with open(os.path.join(MASTER_THESIS_DIR, "data", "models", filename), "a") as f:
+    with open(os.path.join(DATA_PATH, "models", filename), "a") as f:
         f.write(f"{experiment_name},{experiment_key}\n")
 
 
