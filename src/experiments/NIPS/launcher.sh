@@ -133,7 +133,7 @@ case $EXPERIMENT in
         echo "Launching downstream experiments for SIMCLR ablative studies."
         while IFS=',' read -r experiment_name experiment_key
             do
-            launch_experimentA1_downstream $TIME $CORES $GPU_MODEL $experiment_key $experiment_name
+            launch_experimentA_downstream $TIME $CORES $GPU_MODEL $experiment_key $experiment_name
             done < $DATA_PATH/models/nips_A1_experiment
         ;;
     A2)
@@ -149,7 +149,7 @@ case $EXPERIMENT in
         echo "Launching downstream experiments for Pairwise ablative studies."
         while IFS=',' read -r experiment_name experiment_key
             do
-            launch_experimentA1_downstream $TIME $CORES $GPU_MODEL $experiment_key $experiment_name
+            launch_experimentA_downstream $TIME $CORES $GPU_MODEL $experiment_key $experiment_name
             done < $DATA_PATH/models/nips_A2_experiment
         ;;
 
