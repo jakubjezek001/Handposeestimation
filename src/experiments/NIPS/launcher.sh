@@ -42,10 +42,30 @@ launch_experimentA1 () {
 # Arguments:
 # $1 : time
 # $2 : cpu cores
+# $3 : augmentation
+# $4 : GPU model
+launch_experimentA2 () {
+    # Launching on Cluster.
+    echo "Augmentation: $3 "
+    # echo " bsub -J A1_$3 -W $1:00 \-o /cluster/scratch//adahiya/nipsa1_$3_logs.out \
+    # -n $2 -R 'rusage[mem=7892, ngpus_excl_p=1 gpu_model0==$4]' \
+    # -G ls_infk \
+    # python src/experiments/NIPS/nips_A1_experiment.py $3"
+    bsub -J "A1_$3" -W "$1:00" \-o "/cluster/scratch//adahiya/nipsa2_$3_logs.out" \
+    -n $2 -R "rusage[mem=7892, ngpus_excl_p=1]" \
+    -R  "select[gpu_model0==$4]" \
+    -G ls_infk \
+    python src/experiments/NIPS/nips_A2_experiment.py $3
+
+}
+# To launch experiment 1A on cluster.
+# Arguments:
+# $1 : time
+# $2 : cpu cores
 # $3 : GPU model
 # $4 : experiment_key
 # $5 : experiment_name
-launch_experimentA1_downstream () {
+launch_experimentA_downstream () {
     # Launching on Cluster.
     echo "Experiment $5 downstream experiment submitted!"
     bsub -J "A1_$3" -W "$1:00" \-o "/cluster/scratch//adahiya/ssl_$5_logs.out" \
@@ -109,13 +129,32 @@ case $EXPERIMENT in
         launch_experimentA1 $TIME $CORES "resize" $GPU_MODEL
         ;;
     A1_DOWN)
-        mv "$DATA_PATH/models/nips_A1_downstream" "$DATA_PATH/models/nips_A1_downstream.bkp.$DATE"
+        mv "$DATA_PATH/models/nips_A_downstream" "$DATA_PATH/models/nips_A1_downstream.bkp.$DATE"
         echo "Launching downstream experiments for SIMCLR ablative studies."
         while IFS=',' read -r experiment_name experiment_key
             do
             launch_experimentA1_downstream $TIME $CORES $GPU_MODEL $experiment_key $experiment_name
             done < $DATA_PATH/models/nips_A1_experiment
         ;;
+    A2)
+        # moving the reference to old experiments in bkp file to make space for new series. 
+        mv "$DATA_PATH/models/nips_A2_experiment" "$DATA_PATH/models/nips_A2_experiment.bkp.$DATE"
+        echo "Launching NIPS experiment A2 . Ablative studies for Pairwise."
+        launch_experimentA2 $TIME $CORES "color_jitter" $GPU_MODEL
+        launch_experimentA2 $TIME $CORES "rotate" $GPU_MODEL
+        launch_experimentA2 $TIME $CORES "crop" $GPU_MODEL 
+         # sanity check no augmentation
+        launch_experimentA1 $TIME $CORES "resize" $GPU_MODEL
+        ;;
+    A2_DOWN)
+        mv "$DATA_PATH/models/nips_A2_downstream" "$DATA_PATH/models/nips_A2_downstream.bkp.$DATE"
+        echo "Launching downstream experiments for Pairwise ablative studies."
+        while IFS=',' read -r experiment_name experiment_key
+            do
+            launch_experimentA1_downstream $TIME $CORES $GPU_MODEL $experiment_key $experiment_name
+            done < $DATA_PATH/models/nips_A2_experiment
+        ;;
+
     *)
         echo "Experiment not recognized!"
         echo "(Run $0 -h for help)"
