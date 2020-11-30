@@ -109,6 +109,7 @@ case $EXPERIMENT in
         launch_experimentA1 $TIME $CORES "resize" $GPU_MODEL
         ;;
     A1_DOWN)
+        mv "$DATA_PATH/models/nips_A1_downstream" "$DATA_PATH/models/nips_A1_downstream.bkp.$DATE"
         echo "Launching downstream experiments for SIMCLR ablative studies."
         while IFS=',' read -r experiment_name experiment_key
             do
