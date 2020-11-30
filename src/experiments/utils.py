@@ -208,6 +208,8 @@ def prepare_name(prefix: str, train_param: edict) -> str:
         "random_crop": "RC",
         "resize": "Re",
         "rotate": "Ro",
+        "sobel_filter": "SF",
+        "gaussian_noise": "GN",
     }
     augmentations = "_".join(
         sorted(
