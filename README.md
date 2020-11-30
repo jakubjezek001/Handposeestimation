@@ -63,6 +63,13 @@ To conduct experiments for figure 5. train networks with specific augmentations.
 example.
 ```python src/experiments/simclr_experiment.py --resize --crop --gaussian_blur```
 
+#### NIPS proposal Experiments:
+A1 : Simclr ablative studies
+Individual experiment without leonhard.
+```python src/experiments/NIPS/nips_A1_experiment.py <augmentation> ```
+Launching the whole experiment with leonhard
+```bash src/experiments/NIPS/launcher.sh A1 --time 12```
+
 Project Organization
 ------------
 
