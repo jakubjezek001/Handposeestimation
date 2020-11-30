@@ -77,7 +77,17 @@ fi
 case $EXPERIMENT in
     A1)
         echo "Launching NIPS experiment A1 . Ablative studies for SIMCLR."
+        launch_experimentA1 $TIME $CORES "color_drop" $GPU_MODEL
+        launch_experimentA1 $TIME $CORES "color_jitter" $GPU_MODEL
+        launch_experimentA1 $TIME $CORES "crop" $GPU_MODEL # Translation jitter.
+        launch_experimentA1 $TIME $CORES "cut_out" $GPU_MODEL
+        launch_experimentA1 $TIME $CORES "gaussian_blur" $GPU_MODEL
+        launch_experimentA1 $TIME $CORES "random_crop" $GPU_MODEL
         launch_experimentA1 $TIME $CORES "rotate" $GPU_MODEL
+        launch_experimentA1 $TIME $CORES "gaussian_noise" $GPU_MODEL
+        launch_experimentA1 $TIME $CORES "sobel_filter" $GPU_MODEL
+         # sanity check no augmentation
+        launch_experimentA1 $TIME $CORES "resize" $GPU_MODEL
         ;;
     *)
         echo "Experiment not recognized!"
