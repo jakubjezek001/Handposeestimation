@@ -142,7 +142,7 @@ class SampleAugmenter:
         """
         gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         sobel_x = cv2.Sobel(gray_image, cv2.CV_64F, 1, 0, ksize=self.sobel_kernel)
-        sobel_y = cv2.Sobel(gray_image, cv2.CV_64F, 1, 0, ksize=self.sobel_kernel)
+        sobel_y = cv2.Sobel(gray_image, cv2.CV_64F, 0, 1, ksize=self.sobel_kernel)
         # replicating same filter across all channels to keep the image channel consistent.
         image[:, :, :] = (sobel_x + sobel_y).reshape(list(image.shape[:2]) + [1])
         return image, joints
