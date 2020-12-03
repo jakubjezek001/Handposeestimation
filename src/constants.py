@@ -6,8 +6,8 @@ FREIHAND_DATA = os.path.join(DATA_PATH, "raw", "FreiHAND_pub_v2")
 TRAINING_CONFIG_PATH = os.path.join(
     MASTER_THESIS_DIR, "src", "experiments", "config", "training_config.json"
 )
-MODEL_CONFIG_PATH = os.path.join(
-    MASTER_THESIS_DIR, "src", "experiments", "config", "model_config.json"
+SUPERVISED_CONFIG_PATH = os.path.join(
+    MASTER_THESIS_DIR, "src", "experiments", "config", "supervised_config.json"
 )
 SIMCLR_CONFIG = os.path.join(
     MASTER_THESIS_DIR, "src", "experiments", "config", "simclr_config.json"
