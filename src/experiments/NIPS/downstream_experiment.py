@@ -4,22 +4,21 @@ from easydict import EasyDict as edict
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
-from src.constants import DATA_PATH, MASTER_THESIS_DIR, DOWNSTREAM_CONFIG
+from src.constants import DATA_PATH, DOWNSTREAM_CONFIG, MASTER_THESIS_DIR
 from src.data_loader.data_set import Data_Set
 from src.data_loader.utils import get_train_val_split
 from src.experiments.utils import (
+    downstream_evaluation,
+    get_checkpoints,
     get_downstream_args,
     prepare_name,
-    process_experiment_args,
-    downstream_evaluation,
     restore_model,
     save_experiment_key,
-    get_checkpoints,
 )
 from src.models.callbacks.upload_comet_logs import UploadCometLogs
+from src.models.supervised_head_model import SupervisedHead
 from src.utils import get_console_logger, read_json
 from torchvision import transforms
-from src.models.supervised_head_model import SupervisedHead
 
 
 def main():

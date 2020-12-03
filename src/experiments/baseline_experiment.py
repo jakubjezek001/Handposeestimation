@@ -79,7 +79,7 @@ def main():
     )
     # Trainer setup
     trainer = Trainer(
-        accumulate_grad_batches=1,
+        accumulate_grad_batches=train_param.accumulate_grad_batches,
         gpus="0",
         logger=comet_logger,
         max_epochs=train_param.epochs,

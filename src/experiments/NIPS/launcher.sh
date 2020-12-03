@@ -76,6 +76,22 @@ launch_experimentA_downstream () {
 
 }
 
+# To launch Imagenet encoder for downstream.
+# Arguments:
+# $1 : time
+# $2 : cpu cores
+# $3 : GPU model
+launch_imagenet_downstream () {
+    # Launching on Cluster.
+    echo "Experiment Imagenet downstream experiment submitted!"
+    bsub -J "imagenet_downstream" -W "$1:00" \-o "/cluster/scratch//adahiya/ssl_imagenet_logs.out" \
+    -n $2 -R "rusage[mem=4092, ngpus_excl_p=1]" \
+    -R  "select[gpu_model0==$3]" \
+    -G ls_infk \
+    python src/experiments/NIPS/downstream_experiment.py imagenet imagenet IMAGENET
+
+}
+
 if [ $# -eq 0 ]; then
     echo "No Experiment selected!"
 elif [[ $1 == "-h"  ]]; then
@@ -152,6 +168,9 @@ case $EXPERIMENT in
             launch_experimentA_downstream $TIME $CORES $GPU_MODEL $experiment_key $experiment_name
             done < $DATA_PATH/models/nips_A2_experiment
         ;;
+    IMAGENET_DOWN)
+        echo "Launching downstream experiments for trained Imagenet."
+        launch_imagenet_downstream $TIME $CORES $GPU_MODEL
 
     *)
         echo "Experiment not recognized!"
