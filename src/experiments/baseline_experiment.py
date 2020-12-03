@@ -1,29 +1,40 @@
 import os
+from pprint import pformat
 
+from easydict import EasyDict as edict
 from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.callbacks import LearningRateMonitor
+from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
-from src.constants import DATA_PATH, MASTER_THESIS_DIR
+from src.constants import (
+    DATA_PATH,
+    MASTER_THESIS_DIR,
+    SUPERVISED_CONFIG_PATH,
+    TRAINING_CONFIG_PATH,
+)
 from src.data_loader.data_set import Data_Set
 from src.data_loader.utils import get_train_val_split
 from src.experiments.utils import (
-    get_experiement_args,
+    downstream_evaluation,
+    get_general_args,
     prepare_name,
-    process_experiment_args,
+    restore_model,
+    update_train_params,
 )
 from src.models.baseline_model import BaselineModel
 from src.models.callbacks.upload_comet_logs import UploadCometLogs
-from src.utils import get_console_logger
+from src.utils import get_console_logger, read_json
 from torchvision import transforms
-from src.experiments.evaluation_utils import evaluate
 
 
 def main():
     # get configs
-
     console_logger = get_console_logger(__name__)
-    args = get_experiement_args()
-    train_param, model_param = process_experiment_args(args, console_logger)
+    args = get_general_args()
+
+    train_param = edict(read_json(TRAINING_CONFIG_PATH))
+    model_param = edict(read_json(SUPERVISED_CONFIG_PATH))
+    train_param = update_train_params(args, train_param)
+    console_logger.info(f"Train parameters {pformat(train_param)}")
     seed_everything(train_param.seed)
 
     # data preperation
@@ -32,6 +43,7 @@ def main():
         config=train_param,
         transform=transforms.Compose([transforms.ToTensor()]),
         train_set=True,
+        experiment_type="supervised",
     )
     train_data_loader, val_data_loader = get_train_val_split(
         data,
@@ -41,7 +53,6 @@ def main():
     )
 
     # logger
-
     comet_logger = CometLogger(
         api_key=os.environ.get("COMET_API_KEY"),
         project_name="master-thesis",
@@ -50,60 +61,53 @@ def main():
         experiment_name=prepare_name("sup", train_param),
     )
 
-    # model
+    # Model
     model_param.num_samples = len(data)
     model_param.batch_size = train_param.batch_size
+    console_logger.info(f"Model parameters {pformat(model_param)}")
     model = BaselineModel(config=model_param)
 
     # callbacks
-    logging_interval = "step"
+    logging_interval = "epoch"
     upload_comet_logs = UploadCometLogs(
         logging_interval, get_console_logger("callback"), "supervised"
     )
     lr_monitor = LearningRateMonitor(logging_interval=logging_interval)
-
-    # Training
-
+    # saving the best model as per the validation loss.
+    checkpoint_callback = ModelCheckpoint(
+        save_top_k=1, period=1, monitor="checkpoint_saving_loss"
+    )
+    # Trainer setup
     trainer = Trainer(
-        accumulate_grad_batches=train_param.accumulate_grad_batches,
-        max_epochs=train_param.epochs,
+        accumulate_grad_batches=1,
+        gpus="0",
         logger=comet_logger,
+        max_epochs=train_param.epochs,
         precision=train_param.precision,
         amp_backend="native",
-        gpus="1" if args.gpu_slow else "0",
         callbacks=[lr_monitor, upload_comet_logs],
+        checkpoint_callback=checkpoint_callback,
     )
-
-    trainer.logger.experiment.log_parameters({"train_param": train_param})
     trainer.logger.experiment.set_code(
         overwrite=True,
-        filename=os.path.join(MASTER_THESIS_DIR, "src", "models", "baseline_model.py"),
+        filename=os.path.join(
+            MASTER_THESIS_DIR, "src", "experiments", "baseline_experiment.py"
+        ),
     )
-    trainer.logger.experiment.log_parameters({"model_param": model_param})
+    trainer.logger.experiment.add_tags(["SUPERVISED", "downstream", "baseline"])
+    trainer.logger.experiment.log_parameters(train_param)
+    trainer.logger.experiment.log_parameters(model_param)
+
+    # fit model
     trainer.fit(model, train_data_loader, val_data_loader)
 
-    # evaluation:
-    model.eval()
+    # restore the best model
+    model = restore_model(model, trainer.logger.experiment.get_key())
 
-    data.is_training(False)
-    results = evaluate(
-        model,
-        data,
-        num_workers=train_param.num_workers,
-        batch_size=train_param.batch_size,
+    # evaluation
+    downstream_evaluation(
+        model, data, train_param.num_workers, train_param.batch_size, trainer.logger
     )
-    with trainer.logger.experiment.validate():
-        trainer.logger.experiment.log_metrics(results)
-
-    data.is_training(True)
-    results = evaluate(
-        model,
-        data,
-        num_workers=train_param.num_workers,
-        batch_size=train_param.batch_size,
-    )
-    with trainer.logger.experiment.train():
-        trainer.logger.experiment.log_metrics(results)
 
 
 if __name__ == "__main__":

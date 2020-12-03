@@ -23,12 +23,12 @@ class BaselineModel(LightningModule):
         super().__init__()
         self.config = config
         self.console_logger = get_console_logger("baseline_model")
-        self.resnet18 = torchvision.models.resnet18(pretrained=False)
+        self.encoder = torchvision.models.resnet18(pretrained=False)
         if not self.config["resnet_trainable"]:
             self.console_logger.warning("Freeizing the underlying  Resnet !")
-            for param in self.resnet18.parameters():
+            for param in self.encoder.parameters():
                 param.requires_grad = False
-        self.resnet18.fc = nn.Sequential()
+        self.encoder.fc = nn.Sequential()
         self.final_layers = nn.Sequential(
             nn.Linear(512, 128), nn.BatchNorm1d(128), nn.ReLU(), nn.Linear(128, 21 * 3)
         )
@@ -39,7 +39,7 @@ class BaselineModel(LightningModule):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         batch_size, channel, width, height = x.size()
-        x = self.resnet18(x)
+        x = self.encoder(x)
         x = self.final_layers(x)
         x = x.view(batch_size, 21, 3)
 
@@ -189,4 +189,5 @@ class BaselineModel(LightningModule):
             "loss_2d": loss_2d,
             "loss_z_unscaled": loss_z_unscaled,
         }
+        self.log("checkpoint_saving_loss", loss)
         self.validation_metrics_epoch = metrics
