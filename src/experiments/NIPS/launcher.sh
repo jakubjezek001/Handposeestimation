@@ -171,12 +171,23 @@ case $EXPERIMENT in
     IMAGENET_DOWN)
         echo "Launching downstream experiments for trained Imagenet."
         launch_imagenet_downstream $TIME $CORES $GPU_MODEL
-
+    
+    SUPERVISED)
+        epochs="50"
+        num_workers="12"
+        batch_size="128"
+        echo "Launching baseline experiment forn $epochs epochs "
+        python src/experiments/baseline_experiment.py --rotate --crop --resize \
+            -epochs $epochs -batch_size $batch_size -num_workers $num_workers
+        ;;
+        
     *)
         echo "Experiment not recognized!"
         echo "(Run $0 -h for help)"
         exit -1
         ;;
+
+
 esac
 
 echo "All experiment successfully launched!"
