@@ -7,6 +7,7 @@ import torch
 import torchvision
 from easydict import EasyDict as edict
 from sklearn.model_selection import train_test_split
+from torchvision import transforms
 from src.constants import FREIHAND_DATA
 from src.data_loader.freihand_loader import F_DB
 from src.data_loader.sample_augmenter import SampleAugmenter
@@ -29,6 +30,7 @@ class Data_Set(Dataset):
         To create simulatenous instances of validation and training, make a shallow copy and change the
         mode with ``is_training()``
 
+        See 03-Data_handler.ipynb for visualization.
         Args:
             config (e): Configuraction dict must have  "seed" and "train_ratio".
             transforms ([type]): torch transforms or composition of them.
@@ -47,34 +49,34 @@ class Data_Set(Dataset):
         self.transform = transform
         self.config = config
         self.augmenter = self.get_sample_augmenter(
-            config.augmentation_params,
-            config.augmentation_flags,
-            config.augmentation_order,
-        )
-        # this augmenter is apllied to one branch of simclr and other branch uses
-        # self.augmenter.
-        self.base_augmenter = self.get_sample_augmenter(
-            config.augmentation_params, config.augmentation_flags0, []
+            config.augmentation_params, config.augmentation_flags
         )
         self._train_set = train_set
         self.experiment_type = experiment_type
+
         # The real amount of input images (excluding the augmented background.)
         self._size_f_db = len(self.f_db) // 4
         self.f_db_train_indices, self.f_db_val_indices = self.get_f_db_indices()
 
     def __getitem__(self, idx: int):
         # As of now all the data would be passed as is,
-        #  because there is only one dataset.
+        #  because there is only Freihand dataset support.
         if self._train_set:
             sample = self.f_db[self.f_db_train_indices[idx]]
         else:
             sample = self.f_db[self.f_db_val_indices[idx]]
+
+        # Returning data as per the experiment.
         if self.experiment_type == "simclr":
             sample = self.prepare_simclr_sample(sample)
         elif self.experiment_type == "pairwise":
             sample = self.prepare_pairwise_sample(sample)
         elif self.experiment_type == "experiment4_pretraining":
+            # for simclr ablative, for nips A1
             sample = self.prepare_experiment4_pretraining(sample)
+        elif self.experiment_type == "pairwise_ablative":
+            # for nips A2
+            sample = self.prepare_pairwise_ablative(sample)
         else:
             sample = self.prepare_supervised_sample(sample)
         return sample
@@ -86,30 +88,33 @@ class Data_Set(Dataset):
             return sum([len(self.f_db_val_indices)])
 
     def get_sample_augmenter(
-        self, augmentation_params: edict, augmentation_flags: edict, augmentation_order
+        self, augmentation_params: edict, augmentation_flags: edict
     ) -> SampleAugmenter:
         return SampleAugmenter(
             augmentation_params=augmentation_params,
             augmentation_flags=augmentation_flags,
-            augmentation_order=augmentation_order,
         )
 
     def prepare_simclr_sample(self, sample: dict) -> dict:
+        """Prepares sample according to SimCLR experiment.
+        For each sample two transformations of an image are returned.
+        Note: Rotation and jitter is kept same in both the transformations.
+        Args:
+            sample (dict): Underlying data from dataloader class.
+
+        Returns:
+            dict: sample containing 'transformed_image1' and 'transformed_image2'
+        """
         joints25D, _ = convert_to_2_5D(sample["K"], sample["joints3D"])
-        img1, _ = self.base_augmenter.transform_sample(
-            sample["image"], joints25D.clone()
+        img1, _, _ = self.augmenter.transform_sample(sample["image"], joints25D.clone())
+
+        # To keep rotation and jitter consistent between the two transformations.
+        override_angle = self.augmenter.angle
+        overrride_jitter = self.augmenter.jitter
+
+        img2, _, _ = self.augmenter.transform_sample(
+            sample["image"], joints25D.clone(), override_angle, overrride_jitter
         )
-        override_angle = self.base_augmenter.angle
-        overrride_jitter = self.base_augmenter.jitter
-        if len(self.config.augmentation_order) != 0:
-            img2, _ = self.augmenter.transform_with_order(
-                sample["image"], joints25D.clone(), override_angle, overrride_jitter
-            )
-        else:
-            # angle and jitter are provide to ensure equivariance.
-            img2, _ = self.augmenter.transform_sample(
-                sample["image"], joints25D.clone(), override_angle, overrride_jitter
-            )
 
         # Applying only image related transform
         if self.transform:
@@ -118,23 +123,36 @@ class Data_Set(Dataset):
         return {"transformed_image1": img1, "transformed_image2": img2}
 
     def prepare_experiment4_pretraining(self, sample: dict) -> dict:
+        """Prepares samples for ablative studies on Simclr. This function isolates the
+        effect of each transform. Make sure no other transformation is applied except
+        the one you want to isolate. (Resize is allowed). Samples are not
+        artificially increased by changing rotation and jitter for both samples.
+
+        Args:
+            sample (dict): Underlying data from dataloader class.
+
+        Returns:
+            dict: sample containing 'transformed_image1' and 'transformed_image2'
+        """
 
         joints25D, _ = convert_to_2_5D(sample["K"], sample["joints3D"])
         if self.augmenter.crop:
             override_jitter = None
         else:
-            # will induce a jitter of 0 to 5 pixels and make the augmenter crop
-            override_jitter = 0
+            # Zero jitter is added incase the cropping is off. It is done to trigger the
+            # cropping but always with no translation in image.
+            override_jitter = [0, 0]
         if self.augmenter.rotate:
             override_angle = None
         else:
             override_angle = None
             # override_angle = random.uniform(1, 360)
+            # uncomment line baove to add this rotation  to both channels
 
-        img1, _ = self.augmenter.transform_sample(
+        img1, _, _ = self.augmenter.transform_sample(
             sample["image"], joints25D.clone(), override_angle, override_jitter
         )
-        img2, _ = self.augmenter.transform_sample(
+        img2, _, _ = self.augmenter.transform_sample(
             sample["image"], joints25D.clone(), override_angle, override_jitter
         )
 
@@ -146,13 +164,32 @@ class Data_Set(Dataset):
         return {"transformed_image1": img1, "transformed_image2": img2}
 
     def prepare_pairwise_sample(self, sample: dict) -> dict:
+        """Prepares samples according to pairwise experiment, i.e. transforming the
+        image and keepinf track of the relative parameters.
+        Note: Gaussian blur and Flip are treated as boolean. Also it was decided not to
+        use them for experiment.
+        The effects of transformations are isolated.
+
+        Args:
+            sample (dict): Underlying data from dataloader class.
+
+        Returns:
+            dict: sample containing following elements
+                'transformed_image1'
+                'transformed_image2'
+                'joints1' (2.5D joints)
+                'joints2' (2.5D joints)
+                'rotation'
+                'jitter' ...
+        """
         joints25D, _ = convert_to_2_5D(sample["K"], sample["joints3D"])
-        img1, joints1 = self.augmenter.transform_sample(
+
+        img1, joints1, _ = self.augmenter.transform_sample(
             sample["image"], joints25D.clone()
         )
         param1 = self.get_random_augment_param()
 
-        img2, joints2 = self.augmenter.transform_sample(
+        img2, joints2, _ = self.augmenter.transform_sample(
             sample["image"], joints25D.clone()
         )
         param2 = self.get_random_augment_param()
@@ -175,9 +212,83 @@ class Data_Set(Dataset):
             **rel_param,
         }
 
+    def prepare_pairwise_ablative(self, sample: dict) -> dict:
+        """Prepares samples according to pairwise experiment, i.e. transforming the
+        image and keeping track of the relative parameters. Augmentations are isolated.
+        Args:
+            sample (dict): Underlying data from dataloader class.
+
+        Returns:
+            dict: sample containing following elements
+                'transformed_image1'
+                'transformed_image2'
+                'joints1' (2.5D joints)
+                'joints2' (2.5D joints)
+                'rotation'
+                'jitter' ...
+        """
+        joints25D, _ = convert_to_2_5D(sample["K"], sample["joints3D"])
+        if self.augmenter.crop:
+            override_jitter = None
+        else:
+            # Zero jitter is added incase the cropping is off. It is done to trigger the
+            # cropping but always with no translation in image.
+            override_jitter = [0, 0]
+        if self.augmenter.rotate:
+            override_angle = None
+        else:
+            override_angle = None
+            # override_angle = random.uniform(1, 360)
+            # uncomment line baove to add this rotation  to both channels
+        img1, joints1, _ = self.augmenter.transform_sample(
+            sample["image"], joints25D.clone(), override_angle, override_jitter
+        )
+        param1 = self.get_random_augment_param()
+
+        img2, joints2, _ = self.augmenter.transform_sample(
+            sample["image"], joints25D.clone(), override_angle, override_jitter
+        )
+        param2 = self.get_random_augment_param()
+
+        # relative transform calculation.
+        rel_param = self.get_relative_param(param1, param2)
+
+        # Applying only image related transform
+        if self.transform:
+            img1 = self.transform(img1)
+            img2 = self.transform(img2)
+
+        return {
+            **{
+                "transformed_image1": img1,
+                "transformed_image2": img2,
+                "joints1": joints1,
+                "joints2": joints2,
+            },
+            **rel_param,
+        }
+
     def prepare_supervised_sample(self, sample: dict) -> dict:
-        joints25D, scale = convert_to_2_5D(sample["K"], sample["joints3D"])
-        image, joints25D = self.augmenter.transform_sample(sample["image"], joints25D)
+        """Prepares samples for supervised experiment with keypoints.
+
+        Args:
+            sample (dict): Underlying data from dataloader class.
+
+        Returns:
+            dict: sample containing following elements
+                'image'
+                'joints'
+                'joints3D'
+                'K'
+                'scale'
+                'joints3D_recreated'
+        """
+        joints25D_raw, scale = convert_to_2_5D(sample["K"], sample["joints3D"])
+        image, joints25D, transformation_matrix = self.augmenter.transform_sample(
+            sample["image"], joints25D_raw
+        )
+        # transformation_matrix = torch.inverse(joints25D[1]) @ joints25D_raw[1]
+        sample["K"] = torch.Tensor(transformation_matrix) @ sample["K"]
         joints3D_recreated = convert_2_5D_to_3D(joints25D, scale, sample["K"])
         if self.transform:
             image = self.transform(image)
@@ -234,18 +345,26 @@ class Data_Set(Dataset):
         )
         return train_indices, val_indices
 
-    def update_augmenter(
-        self,
-        augmentation_params: edict,
-        augmentation_flags: edict,
-        augmentation_order: list,
-    ):
+    def update_augmenter(self, augmentation_params: edict, augmentation_flags: edict):
 
         self.augmenter = self.get_sample_augmenter(
-            augmentation_params, augmentation_flags, augmentation_order
+            augmentation_params, augmentation_flags
         )
 
     def get_random_augment_param(self) -> dict:
+        """Reads the random paramters from the augmenter for calulation of relative
+        transformation
+
+        Returns:
+            dict: Containsangle
+                    'jitter_x' (translation of centriod of hand)
+                    'jitter_y' (translation of centriod of hand)
+                    'h' (hue factor)
+                    's' (sat factor)
+                    'a' (brightness factor)
+                    'b' (brightness additive term)
+                    'blur_flag'
+        """
         angle = self.augmenter.angle
         jitter_x = self.augmenter.jitter_x
         jitter_y = self.augmenter.jitter_y
@@ -253,7 +372,6 @@ class Data_Set(Dataset):
         s = self.augmenter.s
         a = self.augmenter.a
         b = self.augmenter.b
-        flip_flag = self.augmenter._flip
         blur_flag = self.augmenter._gaussian_blur
         return {
             "angle": angle,
@@ -263,11 +381,20 @@ class Data_Set(Dataset):
             "s": s,
             "a": a,
             "b": b,
-            "flip_flag": flip_flag,
             "blur_flag": blur_flag,
         }
 
     def get_relative_param(self, param1: dict, param2: dict) -> dict:
+        """Calculates relative parameters between two set of augmentation params.
+
+        Args:
+            param1 (dict): 1st image  augmetation parameters
+                            (from get_random_augment_param())
+            param2 (dict): 2nd image augmentation parameters
+
+        Returns:
+            dict: relative transformation param
+        """
         rel_param = {}
 
         if self.augmenter.crop:
@@ -281,10 +408,6 @@ class Data_Set(Dataset):
             a = param1["a"] - param2["a"]
             b = param1["b"] - param2["b"]
             rel_param.update({"color_jitter": torch.tensor([h, s, a, b])})
-
-        if self.augmenter.flip:
-            flip_flag = param1["flip_flag"] ^ param2["flip_flag"]
-            rel_param.update({"flip": torch.Tensor([flip_flag * 1])})
 
         if self.augmenter.gaussian_blur:
             blur_flag = param1["blur_flag"] ^ param2["blur_flag"]

@@ -42,6 +42,7 @@ class SupervisedHead(LightningModule):
         encoder.load_state_dict(saved_model_state)
         for param in encoder.parameters():
             param.requires_grad = False
+        encoder.eval()
         return encoder
 
     def forward(self, x):
@@ -158,4 +159,5 @@ class SupervisedHead(LightningModule):
             "loss_2d": loss_2d,
             "loss_z_unscaled": loss_z_unscaled,
         }
+        self.log("checkpoint_saving_loss", loss)
         self.validation_metrics_epoch = metrics

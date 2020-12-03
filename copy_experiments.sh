@@ -1,36 +1,36 @@
 #!/bin/bash
 
 # VARIABLES
-FOLDER=""
+FOLDER="d818d4d306954c1dbcfb24cb30f55c8e"
 FROM_CLUSTER=true
 
 # Hidden variables
 
-_help_description="
-Script to transfer the experiment from LabPC to leonhard and vice a versa
+_help_description="Script to transfer the experiment from LabPC to leonhard and vice a versa
+To transfer from  pc to cluster
+bash $0 <experiment_name> --pc 
+To trasnfer from cluster to pc:
+bash $0 <experiment_name> --cluster
 "
 
 
 if [ $# -eq 0 ]; then
     echo "No folder provided!"
+elif [[ $1 == "-h"  ]]; then
+    echo "$_help_description"
+            exit 0
 else
+    FOLDER="$1"
+    shift
     while [ -n "$1" ]; do
         case "$1" in
-        -cluster)
+        --cluster)
             FROM_CLUSTER=true
             shift
             ;;
-        -pc)
+        --pc)
             FROM_CLUSTER=false
             shift
-            ;;
-        -folder)
-            FOLDER="$2"
-            shift
-            ;;
-        -h)
-            echo "$_help_description"
-            exit 0
             ;;
         *)
             echo "Option $1 not recognized"
