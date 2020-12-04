@@ -4,6 +4,7 @@
 TIME=4
 CORES=8
 GPU_MODEL="GeForceRTX2080Ti"
+MEMORY="7892"
 DATE=$(date +'D%_d-%m-%y-T%H-%M-%S')
 # Hidden variables
 
@@ -16,6 +17,7 @@ OPTIONS:
     --cores     : cpu cores to reserve. Default is 8.
     --gpu_model : GPU model. 
                 [GeForceRTX2080Ti, GeForceGTX1080Ti, GeForceGTX1080, TeslaV100_SXM2_32GB]
+    --memory    : Memeory to reserve. Defalut is 7892.
 "
 
 # To launch experiment 1A on cluster.
@@ -32,7 +34,7 @@ launch_experimentA1 () {
     # -G ls_infk \
     # python src/experiments/NIPS/nips_A1_experiment.py $3"
     bsub -J "A1_$3" -W "$1:00" \-o "/cluster/scratch//adahiya/nipsa1_$3_logs.out" \
-    -n $2 -R "rusage[mem=7892, ngpus_excl_p=1]" \
+    -n $2 -R "rusage[mem=$MEMORY, ngpus_excl_p=1]" \
     -R  "select[gpu_model0==$4]" \
     -G ls_infk \
     python src/experiments/NIPS/nips_A1_experiment.py $3
@@ -52,7 +54,7 @@ launch_experimentA2 () {
     # -G ls_infk \
     # python src/experiments/NIPS/nips_A1_experiment.py $3"
     bsub -J "A2_$3" -W "$1:00" \-o "/cluster/scratch//adahiya/nipsa2_$3_logs.out" \
-    -n $2 -R "rusage[mem=7892, ngpus_excl_p=1]" \
+    -n $2 -R "rusage[mem=$MEMORY, ngpus_excl_p=1]" \
     -R  "select[gpu_model0==$4]" \
     -G ls_infk \
     python src/experiments/NIPS/nips_A2_experiment.py $3
@@ -65,14 +67,15 @@ launch_experimentA2 () {
 # $3 : GPU model
 # $4 : experiment_key
 # $5 : experiment_name
+# $6 : experiment_type
 launch_experimentA_downstream () {
     # Launching on Cluster.
     echo "Experiment $5 downstream experiment submitted!"
-    bsub -J "A1_$3" -W "$1:00" \-o "/cluster/scratch//adahiya/ssl_$5_logs.out" \
-    -n $2 -R "rusage[mem=7892, ngpus_excl_p=1]" \
-    -R  "select[gpu_model0==$4]" \
+    bsub -J "A1_$5" -W "$1:00" \-o "/cluster/scratch//adahiya/ssl_$5_logs.out" \
+    -n $2 -R "rusage[mem=$MEMORY, ngpus_excl_p=1]" \
+    -R  "select[gpu_model0==$3]" \
     -G ls_infk \
-    python src/experiments/NIPS/downstream_experiment.py $4 $5
+    python src/experiments/NIPS/downstream_experiment.py $4 $5 $6
 
 }
 
@@ -85,7 +88,7 @@ launch_imagenet_downstream () {
     # Launching on Cluster.
     echo "Experiment Imagenet downstream experiment submitted!"
     bsub -J "imagenet_downstream" -W "$1:00" \-o "/cluster/scratch//adahiya/ssl_imagenet_logs.out" \
-    -n $2 -R "rusage[mem=4092, ngpus_excl_p=1]" \
+    -n $2 -R "rusage[mem=$MEMORY, ngpus_excl_p=1]" \
     -R  "select[gpu_model0==$3]" \
     -G ls_infk \
     python src/experiments/NIPS/downstream_experiment.py imagenet imagenet IMAGENET
@@ -115,6 +118,8 @@ else
             GPU_MODEL=$2
             shift
             ;;
+        --memory)
+            MEMORY=$2
         *)
             echo "Option $1 not recognized"
             echo "(Run $0 -h for help)"
@@ -149,7 +154,7 @@ case $EXPERIMENT in
         echo "Launching downstream experiments for SIMCLR ablative studies."
         while IFS=',' read -r experiment_name experiment_key
             do
-            launch_experimentA_downstream $TIME $CORES $GPU_MODEL $experiment_key $experiment_name
+            launch_experimentA_downstream $TIME $CORES $GPU_MODEL $experiment_key $experiment_name "NIPS_A1"
             done < $DATA_PATH/models/nips_A1_experiment
         ;;
     A2)
@@ -165,7 +170,7 @@ case $EXPERIMENT in
         echo "Launching downstream experiments for Pairwise ablative studies."
         while IFS=',' read -r experiment_name experiment_key
             do
-            launch_experimentA_downstream $TIME $CORES $GPU_MODEL $experiment_key $experiment_name
+            launch_experimentA_downstream $TIME $CORES $GPU_MODEL $experiment_key $experiment_name "NIPS_A2"
             done < $DATA_PATH/models/nips_A2_experiment
         ;;
     IMAGENET_DOWN)
