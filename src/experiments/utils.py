@@ -280,13 +280,13 @@ def downstream_evaluation(
     with logger.experiment.validate():
         logger.experiment.log_metrics(validate_results)
 
-    data.is_training(True)
-    train_results = evaluate(
-        model, data, num_workers=num_workers, batch_size=batch_size
-    )
+    # data.is_training(True)
+    # train_results = evaluate(
+    #     model, data, num_workers=num_workers, batch_size=batch_size
+    # )
 
-    with logger.experiment.train():
-        logger.experiment.log_metrics(train_results)
+    # with logger.experiment.train():
+    #     logger.experiment.log_metrics(train_results)
 
 
 def restore_model(model, experiment_key: str, checkpoint: str = ""):
