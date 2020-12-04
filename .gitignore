@@ -93,3 +93,4 @@ notebooks/*.png
 
 papers/*.pdf
 notebooks/Plot_creator.ipynb
+temp.sh
