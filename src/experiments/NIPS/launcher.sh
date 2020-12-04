@@ -120,6 +120,8 @@ else
             ;;
         --memory)
             MEMORY=$2
+            shift
+            ;;
         *)
             echo "Option $1 not recognized"
             echo "(Run $0 -h for help)"
@@ -165,6 +167,7 @@ case $EXPERIMENT in
         launch_experimentA2 $TIME $CORES "rotate" $GPU_MODEL
         launch_experimentA2 $TIME $CORES "crop" $GPU_MODEL 
         ;;
+        
     A2_DOWN)
         mv "$DATA_PATH/models/nips_A2_downstream" "$DATA_PATH/models/nips_A2_downstream.bkp.$DATE"
         echo "Launching downstream experiments for Pairwise ablative studies."
@@ -173,9 +176,11 @@ case $EXPERIMENT in
             launch_experimentA_downstream $TIME $CORES $GPU_MODEL $experiment_key $experiment_name "NIPS_A2"
             done < $DATA_PATH/models/nips_A2_experiment
         ;;
+
     IMAGENET_DOWN)
         echo "Launching downstream experiments for trained Imagenet."
         launch_imagenet_downstream $TIME $CORES $GPU_MODEL
+        ;;
     
     SUPERVISED)
         epochs="50"
