@@ -29,7 +29,7 @@ from torchvision import transforms
 def main():
     # get configs
     console_logger = get_console_logger(__name__)
-    args = get_general_args()
+    args = get_general_args("Baseline model training script.")
 
     train_param = edict(read_json(TRAINING_CONFIG_PATH))
     model_param = edict(read_json(SUPERVISED_CONFIG_PATH))
