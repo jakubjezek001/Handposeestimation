@@ -43,7 +43,7 @@ export SAVED_MODEL_BASE_PATH="$MASTER_THESIS_PATH/data/models/master-thesis"
 3.  Follow the setup instructions FROM above.
 
 
-#### Submitting jobs :
+### Submitting jobs :
 - For all options check this : [LSF mini ref](https://scicomp.ethz.ch/wiki/LSF_mini_reference)
 - For basic GPU usage with the cluster : [Getting started with GPU](https://scicomp.ethz.ch/wiki/Getting_started_with_GPUs)
 Quick bsub commands 
@@ -59,13 +59,13 @@ Note: Do not submit without specifying the memory otherwise the job fails.
 Note to add the faster and newer GPU use following.
 -R "select[gpu_model0==GeForceGTX2080]"
 
-#### Augmentations Visulaization and Model Evaluation.
+### Augmentations Visulaization and Model Evaluation.
 ```
 voila notebooks/01-Data_handler.ipynb --theme=dark
 voila notebooks/02-Model-Evaluation.ipynb --theme=dark
 ```
 
-#### Experiments:
+### Experiments:
 
 #### NIPS proposal Experiments:
 1. Ablative studies. 
@@ -113,7 +113,21 @@ bash src/experiments/NIPS/launcher.sh IMAGENET --time 4
 # or
 python src/experiments/NIPS/downstream_experiment.py imagenet imagenet IMAGENET
 ```
+### Moving Experiments from cluster.
+TO PC:
 
+```
+bash copy_experiments.sh "../nips_a2_downstream"        # to transfer meta_file
+# Transfter all experiments in the meta file.
+bash copy_experiments.sh nips_a1_downstream --from_meta_file 
+# transfering only one experiment.
+bash copy_experiments.sh <experiment_key>
+```
+Note: to transfer from pc to cluster add ```--pc```
+example:
+```
+bash copy_experiments.sh <experiment_key> --pc
+```
 
 Project Organization
 ------------
