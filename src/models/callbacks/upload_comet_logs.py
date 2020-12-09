@@ -21,7 +21,7 @@ class UploadCometLogs(Callback):
         self.console_logger = console_logger
         self.valid_logger = False
         self.experiment_type = experiment_type
-        if experiment_type == "simclr" or experiment_type == "pairwise":
+        if experiment_type in ["simclr", "pairwise", "hybrid1"]:
             self.supervised = False
         else:
             self.supervised = True
@@ -69,9 +69,24 @@ class UploadCometLogs(Callback):
                             context_val=False,
                             comet_logger=pl_module.logger.experiment,
                         )
+                    elif self.experiment_type == "hybrid1":
+                        log_pairwise_images(
+                            img1=pl_module.plot_params_pairwise["image1"],
+                            img2=pl_module.plot_params_pairwise["image2"],
+                            gt_pred=pl_module.plot_params_pairwise["gt_pred"],
+                            context_val=False,
+                            comet_logger=pl_module.logger.experiment,
+                        )
+                        log_simclr_images(
+                            img1=pl_module.plot_params_contrastive["image1"],
+                            img2=pl_module.plot_params_contrastive["image2"],
+                            context_val=False,
+                            comet_logger=pl_module.logger.experiment,
+                        )
                 except Exception as e:
                     self.console_logger.error("Unable to upload the images to logger")
                     self.console_logger.info(e)
+
             if self.frequency == "step":
                 try:
                     log_metrics(
@@ -145,6 +160,20 @@ class UploadCometLogs(Callback):
                             img1=pl_module.plot_params["image1"],
                             img2=pl_module.plot_params["image2"],
                             gt_pred=pl_module.plot_params["gt_pred"],
+                            context_val=True,
+                            comet_logger=pl_module.logger.experiment,
+                        )
+                    elif self.experiment_type == "hybrid1":
+                        log_simclr_images(
+                            img1=pl_module.plot_params_contrastive["image1"],
+                            img2=pl_module.plot_params_contrastive["image2"],
+                            context_val=True,
+                            comet_logger=pl_module.logger.experiment,
+                        )
+                        log_pairwise_images(
+                            img1=pl_module.plot_params_pairwise["image1"],
+                            img2=pl_module.plot_params_pairwise["image2"],
+                            gt_pred=pl_module.plot_params_pairwise["gt_pred"],
                             context_val=True,
                             comet_logger=pl_module.logger.experiment,
                         )

@@ -52,7 +52,7 @@ class Data_Set(Dataset):
         self.experiment_type = experiment_type
         self._train_set = train_set
 
-        if self.experiment_type == "hybrid":
+        if self.experiment_type == "hybrid1":
             # Two augmenters are used when hybrid experiment data params are passed.
             self.pairwise_augmenter = self.get_sample_augmenter(
                 config.augmentation_params, config.pairwise.augmentation_flags
@@ -88,9 +88,9 @@ class Data_Set(Dataset):
         elif self.experiment_type == "pairwise_ablative":
             # for nips A2
             sample = self.prepare_pairwise_ablative(sample, self.augmenter)
-        elif self.experiment_type == "hybrid":
+        elif self.experiment_type == "hybrid1":
             sample = self.prepare_hybrid1_sample(
-                sample, self.contrastive_augmenter, self.pairwise_augmenter
+                sample, self.pairwise_augmenter, self.contrastive_augmenter
             )
         else:
             sample = self.prepare_supervised_sample(sample, self.augmenter)
@@ -363,7 +363,7 @@ class Data_Set(Dataset):
         self._train_set = value
 
     def get_f_db_indices(self) -> Tuple[np.array, np.array]:
-        """Randomly samples the trainnig and validation indices for Freihand dataset.
+        """Randomly samples the training and validation indices for Freihand dataset.
         Since Freihand data is augmented 4 times by chnaging background the validation set is created only
         from the same real image images and there augmentations.
 
@@ -398,7 +398,7 @@ class Data_Set(Dataset):
         return train_indices, val_indices
 
     def get_random_augment_param(self, augmenter: SampleAugmenter) -> dict:
-        """Reads the random paramters from the augmenter for calulation of relative
+        """Reads the random parameters from the augmenter for calulation of relative
         transformation
         Args:
             augmenter (SampleAugmenter): Augmenter used to transform the sample.
