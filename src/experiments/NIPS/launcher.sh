@@ -102,7 +102,7 @@ launch_experimentB() {
     command=" -n $2 -R 'rusage[mem=$MEMORY, ngpus_excl_p=1]' \
             -R  'select[gpu_model0==$3]' -G ls_infk \
             python src/experiments/hybrid1_experiment.py -batch_size 512 \
-            -accumulate_grad_batches $5 -epochs $4 "
+            -accumulate_grad_batches $5 -epochs $4 -tag NIPS_B"
     declare -a contrastive_augment=("-contrastive color_jitter"
         "-contrastive rotate"
         "-contrastive crop"
@@ -224,7 +224,7 @@ SUPERVISED)
         -epochs $epochs -batch_size $batch_size -num_workers $num_workers
     ;;
 HYBRID1)
-    epoch="300"
+    epochs="300"
     num_workers="12"
     batch_size="512"
     accumulate_grad_batches="4"
