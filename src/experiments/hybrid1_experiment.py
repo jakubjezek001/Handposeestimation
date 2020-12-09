@@ -18,6 +18,7 @@ from src.experiments.utils import (
     get_hybrid1_args,
     prepare_name,
     update_hybrid1_train_args,
+    save_experiment_key,
 )
 from src.models.callbacks.upload_comet_logs import UploadCometLogs
 from src.models.hybrid1_model import Hybrid1Model
@@ -53,12 +54,13 @@ def main():
     )
 
     # logger
+    experiment_name = prepare_name("hybrid1_", train_param, hybrid_naming=True)
     comet_logger = CometLogger(
         api_key=os.environ.get("COMET_API_KEY"),
         project_name="master-thesis",
         workspace="dahiyaaneesh",
         save_dir=os.path.join(DATA_PATH, "models"),
-        experiment_name=prepare_name("hybrid1_", train_param, hybrid_naming=True),
+        experiment_name=experiment_name,
     )
     # model
     model_param.num_samples = len(data)
@@ -96,6 +98,11 @@ def main():
         filename=os.path.join(
             MASTER_THESIS_DIR, "src", "experiments", "hybrid1_experiment.py"
         ),
+    )
+    save_experiment_key(
+        experiment_name,
+        trainer.logger.experiment.get_key(),
+        os.path.basename(__file__).replace(".py", ""),
     )
     trainer.logger.experiment.log_parameters(train_param)
     trainer.logger.experiment.log_parameters(model_param)
