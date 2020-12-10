@@ -124,17 +124,17 @@ launch_experimentB() {
     K=1
     for i in "${contrastive_augment[@]}"; do
         for j in "${pairwise_augment[@]}"; do
-            echo "bsub -J 'HY1_$K' -W '$1:00' -o '/cluster/scratch//adahiya/nipsB_$K_logs.out' \
+            # echo "bsub -J 'HY1_$K' -W '$1:00' -o '/cluster/scratch//adahiya/nipsB_$K_logs.out' \
+            #         $command $j $i"
+            eval "bsub -J 'HY1_$K' -W '$1:00' -o '/cluster/scratch//adahiya/nipsB_$K_logs.out' \
                     $command $j $i"
-            eval $("bsub -J 'HY1_$K' -W '$1:00' -o '/cluster/scratch//adahiya/nipsB_$K_logs.out' \
-                    $command $j $i")
             K=$(($K + 1))
         done
     done
-    echo "bsub -J 'HY1_$K' -W '$1:00' -o '/cluster/scratch//adahiya/nipsB_$K_logs.out' \
+    # echo "bsub -J 'HY1_$K' -W '$1:00' -o '/cluster/scratch//adahiya/nipsB_$K_logs.out' \
+    #                 $command "-contrastive color_jitter" $i"
+    eval "bsub -J 'HY1_$K' -W '$1:00' -o '/cluster/scratch//adahiya/nipsB_$K_logs.out' \
                     $command "-contrastive color_jitter" $i"
-    eval $("bsub -J 'HY1_$K' -W '$1:00' -o '/cluster/scratch//adahiya/nipsB_$K_logs.out' \
-                    $command "-contrastive color_jitter" $i")
 }
 if [ $# -eq 0 ]; then
     echo "No Experiment selected!"
