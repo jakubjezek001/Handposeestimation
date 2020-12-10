@@ -103,29 +103,38 @@ launch_experimentB() {
             -R  'select[gpu_model0==$3]' -G ls_infk \
             python src/experiments/hybrid1_experiment.py -batch_size 512 \
             -accumulate_grad_batches $5 -epochs $4 -tag NIPS_B"
+    # declare -a contrastive_augment=("-contrastive color_jitter"
+    #     "-contrastive rotate"
+    #     "-contrastive crop"
+    #     "-contrastive crop -contrastive color_jitter"
+    #     "-contrastive crop -contrastive rotate"
+    #     "-contrastive color_jitter -contrastive rotate"
+    #     "-contrastive crop -contrastive rotate -contrastive color_jitter")
+    # declare -a pairwise_augment=("-pairwise rotate"
+    #     "-pairwise crop"
+    #     "-pairwise crop -pairwise color_jitter"
+    #     "-pairwise crop -pairwise rotate"
+    #     "-pairwise color_jitter -pairwise rotate"
+    #     "-pairwise crop -pairwise rotate -pairwise color_jitter")
     declare -a contrastive_augment=("-contrastive color_jitter"
-        "-contrastive rotate"
-        "-contrastive crop"
-        "-contrastive crop -contrastive color_jitter"
-        "-contrastive crop -contrastive rotate"
-        "-contrastive color_jitter -contrastive rotate"
-        "-contrastive crop -contrastive rotate -contrastive color_jitter")
-    declare -a pairwise_augment=("-pairwise color_jitter"
-        "-pairwise rotate"
+        "")
+    declare -a pairwise_augment=("-pairwise rotate"
         "-pairwise crop"
-        "-pairwise crop -pairwise color_jitter"
-        "-pairwise crop -pairwise rotate"
-        "-pairwise color_jitter -pairwise rotate"
-        "-pairwise crop -pairwise rotate -pairwise color_jitter")
+        "-pairwise crop -pairwise rotate")
     K=1
     for i in "${contrastive_augment[@]}"; do
         for j in "${pairwise_augment[@]}"; do
             echo "bsub -J 'HY1_$K' -W '$1:00' -o '/cluster/scratch//adahiya/nipsB_$K_logs.out' \
                     $command $j $i"
+            eval $("bsub -J 'HY1_$K' -W '$1:00' -o '/cluster/scratch//adahiya/nipsB_$K_logs.out' \
+                    $command $j $i")
             K=$(($K + 1))
         done
     done
-
+    echo "bsub -J 'HY1_$K' -W '$1:00' -o '/cluster/scratch//adahiya/nipsB_$K_logs.out' \
+                    $command "-contrastive color_jitter" $i"
+    eval $("bsub -J 'HY1_$K' -W '$1:00' -o '/cluster/scratch//adahiya/nipsB_$K_logs.out' \
+                    $command "-contrastive color_jitter" $i")
 }
 if [ $# -eq 0 ]; then
     echo "No Experiment selected!"
