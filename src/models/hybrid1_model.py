@@ -23,7 +23,14 @@ class Hybrid1Model(LightningModule):
         self.regress_jitter = False
         self.regress_color_jitter = False
         self.log_keys = ["loss"]
-
+        try:
+            self.config.pairwise.augmentation.remove("resize")
+        except Exception as e:
+            print(e)
+        try:
+            self.config.contrastive.augmentation.remove("resize")
+        except Exception as e:
+            print(e)
         # transformations head.
         if len(self.config.pairwise.augmentation) != 0:
             self.make_pairwise_training = True
@@ -205,6 +212,7 @@ class Hybrid1Model(LightningModule):
     def training_step(self, batch, batch_idx):
         loss = 0
         losses_all = {}
+        self.train_metrics = {}
         if self.make_contrastive_training:
             loss_contrastive = self.calculate_contrastive_loss(batch["contrastive"])
             loss += (

@@ -66,8 +66,10 @@ def main():
     model_param.num_samples = len(data)
     model_param.batch_size = train_param.batch_size
     model_param.num_of_mini_batch = train_param.accumulate_grad_batches
-    model_param.contrastive.augmentation = args.contrastive
-    model_param.pairwise.augmentation = args.pairwise
+    if args.contrastive is not None:
+        model_param.contrastive.augmentation = args.contrastive
+    if args.pairwise is not None:
+        model_param.pairwise.augmentation = args.pairwise
     console_logger.info(f"Model parameters {pformat(model_param)}")
     model = Hybrid1Model(model_param)
 
