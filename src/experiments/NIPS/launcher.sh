@@ -248,6 +248,7 @@ HYBRID1)
         -accumulate_grad_batches $accumulate_grad_batches
     ;;
 NIPS_B)
+    mv "$DATA_PATH/models/hybrid1_experiment" "$DATA_PATH/models/hybrid1_experiment.bkp.$DATE"
     epochs="100"
     accumulate_grad_batches="4"
     launch_experimentB $TIME $CORES $GPU_MODEL $epochs $accumulate_grad_batches
