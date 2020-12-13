@@ -252,6 +252,13 @@ NIPS_B)
     accumulate_grad_batches="4"
     launch_experimentB $TIME $CORES $GPU_MODEL $epochs $accumulate_grad_batches
     ;;
+NIPS_B_DOWN)
+    mv "$DATA_PATH/models/nips_B_downstream" "$DATA_PATH/models/nips_B_downstream.bkp.$DATE"
+    echo "Launching downstream experiments for Hybrid ablative studies."
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_experimentA_downstream $TIME $CORES $GPU_MODEL $experiment_key $experiment_name "NIPS_B"
+    done <$DATA_PATH/models/hybrid1_experiment
+    ;;
 *)
     echo "Experiment not recognized!"
     echo "(Run $0 -h for help)"
