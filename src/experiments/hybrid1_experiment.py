@@ -81,7 +81,7 @@ def main():
     lr_monitor = LearningRateMonitor(logging_interval=logging_interval)
     # saving the best model as per the validation loss.
     checkpoint_callback = ModelCheckpoint(
-        save_top_k=1, period=1, monitor="checkpoint_saving_loss"
+        save_top_k=3, period=1, monitor="checkpoint_saving_loss"
     )
 
     # trainer
