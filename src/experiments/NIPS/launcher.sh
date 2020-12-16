@@ -191,6 +191,7 @@ A1)
     # sanity check no augmentation
     launch_experimentA1 $TIME $CORES "resize" $GPU_MODEL
     ;;
+    
 A1_DOWN)
     mv "$DATA_PATH/models/nips_A_downstream" "$DATA_PATH/models/nips_A1_downstream.bkp.$DATE"
     echo "Launching downstream experiments for SIMCLR ablative studies."
@@ -232,6 +233,7 @@ SUPERVISED)
         python src/experiments/baseline_experiment.py --rotate --crop --resize \
         -epochs $epochs -batch_size $batch_size -num_workers $num_workers
     ;;
+
 HYBRID1)
     epochs="300"
     num_workers="12"
@@ -247,6 +249,7 @@ HYBRID1)
         -epochs $epochs -batch_size $batch_size -num_workers $num_workers \
         -accumulate_grad_batches $accumulate_grad_batches
     ;;
+
 NIPS_B)
     mv "$DATA_PATH/models/hybrid1_experiment" "$DATA_PATH/models/hybrid1_experiment.bkp.$DATE"
     epochs="100"
@@ -260,6 +263,22 @@ NIPS_B_DOWN)
         launch_experimentA_downstream $TIME $CORES $GPU_MODEL $experiment_key $experiment_name "NIPS_B"
     done <$DATA_PATH/models/hybrid1_experiment
     ;;
+
+HYBRID2)
+    epochs="300"
+    num_workers="12"
+    batch_size="512"
+    accumulate_grad_batches="4"
+    echo "Launching Hybrid 2 experiment for $epochs epochs"
+    bsub -J "Hybrid_02" -W "$TIME:00" \-o "/cluster/scratch//adahiya/hybrid02_logs.out" \
+        -n $CORES -R "rusage[mem=$MEMORY, ngpus_excl_p=1]" \
+        -R "select[gpu_model0==$GPU_MODEL]" \
+        -G ls_infk \
+        python src/experiments/hybrid2_experiment.py --rotate --crop --resize \
+        --gaussian_noise --gaussian_blur --color_jitter \
+        -epochs $epochs -batch_size $batch_size -num_workers $num_workers
+    ;;
+
 *)
     echo "Experiment not recognized!"
     echo "(Run $0 -h for help)"
