@@ -8,6 +8,7 @@ from src.models.utils import (
     log_metrics,
     log_simclr_images,
     log_pairwise_images,
+    log_hybrid2_images,
 )
 
 
@@ -21,7 +22,7 @@ class UploadCometLogs(Callback):
         self.console_logger = console_logger
         self.valid_logger = False
         self.experiment_type = experiment_type
-        if experiment_type in ["simclr", "pairwise", "hybrid1"]:
+        if experiment_type in ["simclr", "pairwise", "hybrid1", "hybrid2"]:
             self.supervised = False
         else:
             self.supervised = True
@@ -85,6 +86,14 @@ class UploadCometLogs(Callback):
                                 context_val=False,
                                 comet_logger=pl_module.logger.experiment,
                             )
+                    elif self.experiment_type == "hybrid2":
+                        log_hybrid2_images(
+                            img1=pl_module.plot_params["image1"],
+                            img2=pl_module.plot_params["image2"],
+                            params=pl_module.plot_params["params"],
+                            context_val=False,
+                            comet_logger=pl_module.logger.experiment,
+                        )
                 except Exception as e:
                     self.console_logger.error("Unable to upload the images to logger")
                     self.console_logger.info(e)
@@ -181,6 +190,14 @@ class UploadCometLogs(Callback):
                                 context_val=True,
                                 comet_logger=pl_module.logger.experiment,
                             )
+                    elif self.experiment_type == "hybrid2":
+                        log_hybrid2_images(
+                            img1=pl_module.plot_params["image1"],
+                            img2=pl_module.plot_params["image2"],
+                            params=pl_module.plot_params["params"],
+                            context_val=True,
+                            comet_logger=pl_module.logger.experiment,
+                        )
                 except Exception as e:
                     self.console_logger.error("Unable to upload the images to logger")
                     self.console_logger.info(e)

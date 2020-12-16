@@ -21,6 +21,9 @@ PAIRWISE_CONFIG = os.path.join(
 HYBRID1_CONFIG = os.path.join(
     MASTER_THESIS_DIR, "src", "experiments", "config", "hybrid1_config.json"
 )
+HYBRID2_CONFIG = os.path.join(
+    MASTER_THESIS_DIR, "src", "experiments", "config", "hybrid2_config.json"
+)
 NIPS_A1_CONFIG = os.path.join(
     MASTER_THESIS_DIR, "src", "experiments", "config", "nips_a1_config.json"
 )

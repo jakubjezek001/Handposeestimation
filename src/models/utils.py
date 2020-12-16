@@ -1,12 +1,14 @@
 import os
 from typing import Tuple
 import torch
+import numpy as np
 from comet_ml import Experiment
 from src.constants import SAVED_MODELS_BASE_PATH
 from src.visualization.visualize import (
     plot_simclr_images,
     plot_truth_vs_prediction,
     plot_pairwise_images,
+    plot_hybrid2_images,
 )
 from torch.nn import L1Loss
 
@@ -173,3 +175,86 @@ def log_pairwise_images(img1, img2, gt_pred, context_val, comet_logger):
             plot_pairwise_images(
                 img1.data[0].cpu(), img2.data[0].cpu(), gt_pred, comet_logger
             )
+
+
+def log_hybrid2_images(img1, img2, params, context_val, comet_logger):
+    params = {k: v.data[0].cpu() for k, v in params.items()}
+    if context_val:
+        with comet_logger.validate():
+            plot_hybrid2_images(
+                img1.data[0].cpu(), img2.data[0].cpu(), params, comet_logger
+            )
+    else:
+        with comet_logger.train():
+            plot_hybrid2_images(
+                img1.data[0].cpu(), img2.data[0].cpu(), params, comet_logger
+            )
+
+
+def get_rotation_2D_matrix(
+    angle: torch.tensor,
+    center_x: torch.tensor,
+    center_y: torch.tensor,
+    scale: torch.tensor,
+) -> torch.tensor:
+    """Generates 2D rotation matrix transpose. the matrix generated is for the whole batch.
+    The implementation of 2D matrix is same as that in openCV.
+
+    Args:
+        angle (torch.tensor): 1D tensor of rotation angles for the batch
+        center_x (torch.tensor): 1D tensor of x coord of center of the keypoints.
+        center_y (torch.tensor): 1D tensor of x coord of center of the keypoints.
+        scale (torch.tensor): Scale, set it to 1.0.
+
+    Returns:
+        torch.tensor: Returns a tensor of 2D rotation matrix for the batch.
+    """
+    # convert to radians
+    angle = angle * np.pi / 180
+    alpha = scale * torch.cos(angle)
+    beta = scale * torch.sin(angle)
+    rot_mat = torch.zeros((len(angle), 3, 2))
+    rot_mat[:, :, 0] = torch.stack(
+        [alpha, beta, (1 - alpha) * center_x - beta * center_y], dim=1
+    )
+    rot_mat[:, :, 1] = torch.stack(
+        [-beta, alpha, (1 - alpha) * center_y + beta * center_x], dim=1
+    )
+
+    return rot_mat
+
+
+def rotate_encoding(encoding, angle) -> torch.tensor:
+    """Function to 2D rotate a batch of encodings by a batch of angles.
+    The third dimension is n not changed.
+
+    Args:
+        encoding (torch.tensor): Encodings of shape (batch_size,m,3)
+        angle ([type]): batch of angles (batch_size,)
+
+    Returns:
+        torch.tensor: Rotated batch of keypoints.
+    """
+    center_xyz = torch.mean(encoding, 1)
+    rot_mat = get_rotation_2D_matrix(
+        angle, center_xyz[:, 0], center_xyz[:, 1], scale=1.0
+    )
+    rot_mat = rot_mat.cuda(encoding.device) if encoding.is_cuda else rot_mat
+    encoding_xy = torch.bmm(encoding, rot_mat)
+    return torch.cat([encoding_xy, encoding[:, :, -1:]], dim=-1)
+
+
+def translate_encodings(encoding, translate_x, translate_y):
+    """Function to translate the e
+
+    Args:
+        encoding ([type]): [description]
+        translate_x ([type]): [description]
+        translate_y ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """
+    encoding[:, :, 0] += translate_x.view((-1, 1))
+    encoding[:, :, 1] += translate_y.view((-1, 1))
+    return encoding
