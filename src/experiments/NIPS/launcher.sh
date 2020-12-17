@@ -278,6 +278,12 @@ HYBRID2)
         --gaussian_noise --gaussian_blur --color_jitter \
         -epochs $epochs -batch_size $batch_size -num_workers $num_workers
     ;;
+    HYBRID2_DOWN)
+    echo "Launching Hybrid 2 Downstream experiment for "
+     while IFS=',' read -r experiment_name experiment_key; do
+        launch_experimentA_downstream $TIME $CORES $GPU_MODEL $experiment_key $experiment_name 'HYBRID2'
+    done <$DATA_PATH/models/hybrid2_experiment
+    ;;
 
 *)
     echo "Experiment not recognized!"
