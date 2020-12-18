@@ -239,9 +239,11 @@ def rotate_encoding(encoding, angle) -> torch.tensor:
     rot_mat = get_rotation_2D_matrix(
         angle, center_xyz[:, 0], center_xyz[:, 1], scale=1.0
     )
+    encoding_z = encoding[:, :, -1:].clone()
+    encoding[:, :, -1] = 1.0
     rot_mat = rot_mat.cuda(encoding.device) if encoding.is_cuda else rot_mat
     encoding_xy = torch.bmm(encoding, rot_mat)
-    return torch.cat([encoding_xy, encoding[:, :, -1:]], dim=-1)
+    return torch.cat([encoding_xy, encoding_z], dim=-1)
 
 
 def translate_encodings(encoding, translate_x, translate_y):
