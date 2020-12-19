@@ -94,7 +94,9 @@ def main():
             MASTER_THESIS_DIR, "src", "experiments", "baseline_experiment.py"
         ),
     )
-    trainer.logger.experiment.add_tags(["SUPERVISED", "downstream", "baseline"])
+    trainer.logger.experiment.add_tags(
+        ["SUPERVISED", "downstream", "baseline"] + args.tag
+    )
     trainer.logger.experiment.log_parameters(train_param)
     trainer.logger.experiment.log_parameters(model_param)
 

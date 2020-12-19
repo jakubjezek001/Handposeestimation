@@ -60,7 +60,7 @@ def get_general_args(
     parser.add_argument(
         "--gaussian_noise", action="store_true", help="To add gaussian noise."
     )
-
+    parser.add_argument("-tag", action="append", help="Tag for comet", default=[])
     # Training  and data loader params.
     parser.add_argument("-batch_size", type=int, help="Batch size")
     parser.add_argument("-epochs", type=int, help="Number of epochs")
@@ -70,6 +70,11 @@ def get_general_args(
     )
     parser.add_argument(
         "-train_ratio", type=float, help="Ratio of train:validation split."
+    )
+    parser.add_argument(
+        "-accumulate_grad_batches",
+        type=int,
+        help="Number of batches to accumulate gradient.",
     )
     args = parser.parse_args()
     return args
@@ -176,6 +181,8 @@ def update_train_params(args: argparse.Namespace, train_param: edict) -> edict:
             "gaussian_noise",
         ],
     )
+    if args.accumulate_grad_batches is not None:
+        train_param.accumulate_grad_batches = args.accumulate_grad_batches
     return train_param
 
 
