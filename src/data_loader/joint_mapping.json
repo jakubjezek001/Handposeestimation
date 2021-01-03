@@ -1,5 +1,5 @@
 {
-    "freihand": {
+    "ait": {
         "wrist": 0,
         "thumb_mcp": 1,
         "index_mcp": 2,
@@ -22,7 +22,7 @@
         "ring_tip": 19,
         "pinky_tip": 20
     },
-    "ait": {
+    "freihand": {
         "wrist": 0,
         "thumb_mcp": 1,
         "index_mcp": 5,
@@ -44,5 +44,28 @@
         "middle_tip": 12,
         "ring_tip": 16,
         "pinky_tip": 20
+    },
+    "interhand": {
+        "wrist": 20,
+        "thumb_mcp": 3,
+        "index_mcp": 7,
+        "middle_mcp": 11,
+        "ring_mcp": 15,
+        "pinky_mcp": 19,
+        "thumb_pip": 2,
+        "index_pip": 6,
+        "middle_pip": 10,
+        "ring_pip": 14,
+        "pinky_pip": 18,
+        "thumb_dip": 1,
+        "index_dip": 5,
+        "middle_dip": 9,
+        "ring_dip": 13,
+        "pinky_dip": 17,
+        "thumb_tip": 0,
+        "index_tip": 4,
+        "middle_tip": 8,
+        "ring_tip": 12,
+        "pinky_tip": 16
     }
 }
