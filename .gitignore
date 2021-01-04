@@ -95,3 +95,5 @@ papers/*.pdf
 notebooks/Plot_creator.ipynb
 temp.sh
 notebooks/*.svg
+src/data_loader/data_tester.py
+notebooks/06-Equivariance_analysis.ipynb
