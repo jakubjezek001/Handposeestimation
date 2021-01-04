@@ -61,6 +61,9 @@ class Hybrid2Model(LightningModule):
         batch_transform = torch.cat(
             (batch["transformed_image1"], batch["transformed_image2"]), dim=0
         )
+        # Assuming shape of batch is [batch, channels, width, height]
+        image1_shape = batch["transformed_image1"].size()[-2:]
+        image2_shape = batch["transformed_image2"].size()[-2:]
         batch_size = int(len(batch_transform) / 2)
         encodings = self.encoder(batch_transform)
         projections = self.projection_head(encodings).view((batch_size * 2, -1, 3))
@@ -71,8 +74,31 @@ class Hybrid2Model(LightningModule):
             # rotating the projections in opposite direction
             projections = rotate_encoding(projections, -angles)
         if "crop" in self.config.augmentation:
-            jitter_x = torch.cat((batch["jitter_x_1"], batch["jitter_x_2"]), dim=0)
-            jitter_y = torch.cat((batch["jitter_y_1"], batch["jitter_y_2"]), dim=0)
+            # jitter_x = torch.cat((batch["jitter_x_1"], batch["jitter_x_2"]), dim=0)
+            # jitter_y = torch.cat((batch["jitter_y_1"], batch["jitter_y_2"]), dim=0)
+
+            max_projections = torch.max(projections, dim=1).values
+
+            jitter_x = (
+                torch.cat(
+                    (
+                        batch["jitter_x_1"] / image1_shape[0],
+                        batch["jitter_x_2"] / image2_shape[0],
+                    ),
+                    dim=0,
+                )
+                * max_projections[:, 0]
+            )
+            jitter_y = (
+                torch.cat(
+                    (
+                        batch["jitter_y_1"] / image1_shape[1],
+                        batch["jitter_y_2"] / image2_shape[1],
+                    ),
+                    dim=0,
+                )
+                * max_projections[:, 1]
+            )
             # moving the encodings by same amount.
             projections = translate_encodings(projections, -jitter_x, -jitter_y)
 
