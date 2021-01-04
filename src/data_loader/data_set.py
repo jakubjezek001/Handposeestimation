@@ -7,12 +7,13 @@ import torch
 import torchvision
 from easydict import EasyDict as edict
 from sklearn.model_selection import train_test_split
-from torchvision import transforms
-from src.constants import FREIHAND_DATA
+from src.constants import FREIHAND_DATA, INTERHAND_DATA
 from src.data_loader.freihand_loader import F_DB
+from src.data_loader.interhand_loader import IH_DB
 from src.data_loader.sample_augmenter import SampleAugmenter
 from src.data_loader.utils import convert_2_5D_to_3D, convert_to_2_5D
 from torch.utils.data import Dataset
+from torchvision import transforms
 
 
 class Data_Set(Dataset):
@@ -22,6 +23,7 @@ class Data_Set(Dataset):
         transform: torchvision.transforms,
         train_set: bool = True,
         experiment_type: str = "supervised",
+        source: str = "interhand",
     ):
         """This class acts as overarching data_loader.
         It coordinates the indices that must go to the train and validation set.
@@ -40,14 +42,12 @@ class Data_Set(Dataset):
         """
         # Individual data loader initialization.
         self.config = config
-        self.f_db = F_DB(
-            root_dir=os.path.join(FREIHAND_DATA, "training", "rgb"),
-            labels_path=os.path.join(FREIHAND_DATA, "training_xyz.json"),
-            camera_param_path=os.path.join(FREIHAND_DATA, "training_K.json"),
-            config=self.config,
-        )
+        self.source = source
+        self.db = None
+        self.train_indices, self.val_indices = [], []
+        self.initialize_data_loaders()
+
         self.transform = transform
-        self.config = config
         self.experiment_type = experiment_type
         self._train_set = train_set
 
@@ -64,17 +64,31 @@ class Data_Set(Dataset):
                 config.augmentation_params, config.augmentation_flags
             )
 
-        # The real amount of input images (excluding the augmented background.)
-        self._size_f_db = len(self.f_db) // 4
-        self.f_db_train_indices, self.f_db_val_indices = self.get_f_db_indices()
+    def initialize_data_loaders(self):
+        if self.source == "freihand":
+            self.db = F_DB(
+                root_dir=os.path.join(FREIHAND_DATA, "training", "rgb"),
+                labels_path=os.path.join(FREIHAND_DATA, "training_xyz.json"),
+                camera_param_path=os.path.join(FREIHAND_DATA, "training_K.json"),
+                config=self.config,
+            )
+            # The real amount of input images (excluding the augmented background.)
+            self._size_f_db = len(self.db) // 4
+            self.train_indices, self.val_indices = self.get_f_db_indices()
+
+        elif self.source == "interhand":
+            self.db = IH_DB(root_dir=INTERHAND_DATA, split="train")
+            self.train_indices, self.val_indices = train_test_split(
+                np.arange(0, len(self.db)),
+                train_size=self.config.train_ratio,
+                random_state=self.config.seed,
+            )
 
     def __getitem__(self, idx: int):
-        # As of now all the data would be passed as is,
-        #  because there is only Freihand dataset support.
         if self._train_set:
-            sample = self.f_db[self.f_db_train_indices[idx]]
+            sample = self.db[self.train_indices[idx]]
         else:
-            sample = self.f_db[self.f_db_val_indices[idx]]
+            sample = self.db[self.val_indices[idx]]
 
         # Returning data as per the experiment.
         if self.experiment_type == "simclr":
@@ -99,9 +113,9 @@ class Data_Set(Dataset):
 
     def __len__(self):
         if self._train_set:
-            return sum([len(self.f_db_train_indices)])
+            return len(self.train_indices)
         else:
-            return sum([len(self.f_db_val_indices)])
+            return len(self.val_indices)
 
     def get_sample_augmenter(
         self, augmentation_params: edict, augmentation_flags: edict
