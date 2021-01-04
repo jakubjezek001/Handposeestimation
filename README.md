@@ -117,7 +117,13 @@ python src/experiments/NIPS/downstream_experiment.py imagenet imagenet IMAGENET
 2. Augmentation composition
 
 ```
-bash src/experiments/NIPS/launcher.sh NIPS_B -memory 11175 --time 18 
+bash src/experiments/NIPS/launcher.sh NIPS_B --memory 11175 --time 18 
+```
+
+3. Hybrid 2 model
+
+```
+bash src/experiments/NIPS/launcher.sh HYBRID2 --memory 11175 --time 18 
 ```
 
 ### Moving Experiments from cluster.

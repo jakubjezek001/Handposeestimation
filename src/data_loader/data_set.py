@@ -1,6 +1,5 @@
 import os
 import random
-from types import prepare_class
 from typing import Tuple
 
 import numpy as np
@@ -92,6 +91,8 @@ class Data_Set(Dataset):
             sample = self.prepare_hybrid1_sample(
                 sample, self.pairwise_augmenter, self.contrastive_augmenter
             )
+        elif self.experiment_type == "hybrid2":
+            sample = self.prepare_hybrid2_sample(sample, self.augmenter)
         else:
             sample = self.prepare_supervised_sample(sample, self.augmenter)
         return sample
@@ -352,6 +353,35 @@ class Data_Set(Dataset):
             sample, contrastive_augmenter
         )
         return {"contrastive": contrastive_sample, "pairwise": pairwise_sample}
+
+    def prepare_hybrid2_sample(self, sample: dict, augmenter: SampleAugmenter) -> dict:
+        joints25D, _ = convert_to_2_5D(sample["K"], sample["joints3D"])
+        if augmenter.crop:
+            override_jitter = None
+        else:
+            # Zero jitter is added incase the cropping is off. It is done to trigger the
+            # cropping but always with no translation in image.
+            override_jitter = [0, 0]
+        img1, joints1, _ = augmenter.transform_sample(
+            sample["image"], joints25D.clone(), None, override_jitter
+        )
+        param1 = self.get_random_augment_param(augmenter)
+
+        img2, joints2, _ = augmenter.transform_sample(
+            sample["image"], joints25D.clone(), None, override_jitter
+        )
+        param2 = self.get_random_augment_param(augmenter)
+
+        # Applying only image related transform
+        if self.transform:
+            img1 = self.transform(img1)
+            img2 = self.transform(img2)
+
+        return {
+            **{"transformed_image1": img1, "transformed_image2": img2},
+            **{f"{k}_1": v for k, v in param1.items() if v is not None},
+            **{f"{k}_2": v for k, v in param2.items() if v is not None},
+        }
 
     def is_training(self, value: bool):
         """Switches the mode of the data.
