@@ -89,7 +89,8 @@ class IH_DB(Dataset):
             camera_param.focal[camera],
             camera_param.princpt[camera],
         )
-        intrinsic_param = np.array([[fx, 0, px], [0, fy, py], [0, 0, 1]])
+        intrinsic_param = np.array([[fx, 0, px], [0, fy, py], [0, 0, 1.0]])
+        # intrinsic_param = np.array([[fx, 0, px], [0, fy, py]])
         return intrinsic_param, np.array(r), np.array(t)
 
     def get_joints(
@@ -139,11 +140,11 @@ class IH_DB(Dataset):
         )
         joints_camera_frame = (joints - camera_t) @ camera_rot.T
         # To avoid division by zero.
-        joints_camera_frame[:, -1] += 1e-6
+        joints_camera_frame[:, -1] += 1e-5
         sample = {
             "image": image,
             "K": torch.tensor(intrinsic_camera_matrix).float(),
-            "joints3D": torch.tensor(joints_camera_frame).float(),
-            "joints3DWorld": torch.tensor(joints).float(),
+            "joints3D": torch.tensor(joints_camera_frame).float() / 1000.0,
+            "joints3DWorld": torch.tensor(joints).float() / 1000.0,
         }
         return sample
