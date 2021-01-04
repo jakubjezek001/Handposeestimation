@@ -44,4 +44,5 @@ HYBRID1_AUGMENTATION_CONFIG = os.path.join(
 
 ANGLES = [i for i in range(10, 360, 10)]
 SAVED_MODELS_BASE_PATH = os.environ.get("SAVED_MODELS_BASE_PATH")
+SAVED_META_INFO_PATH = os.environ.get("SAVED_META_INFO_PATH")
 STD_LOGGING_FORMAT = "%(name)s -%(levelname)s - %(message)s"

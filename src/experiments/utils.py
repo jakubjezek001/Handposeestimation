@@ -13,6 +13,7 @@ from src.constants import (
     SUPERVISED_CONFIG_PATH,
     TRAINING_CONFIG_PATH,
     SAVED_MODELS_BASE_PATH,
+    SAVED_META_INFO_PATH,
 )
 from src.data_loader.data_set import Data_Set
 from src.models.utils import get_latest_checkpoint
@@ -277,7 +278,7 @@ def save_experiment_key(
         filename (str, optional): Name of the file where the info should be appended.
          Defaults to "default.csv".
     """
-    with open(os.path.join(DATA_PATH, "models", filename), "a") as f:
+    with open(os.path.join(SAVED_META_INFO_PATH, filename), "a") as f:
         f.write(f"{experiment_name},{experiment_key}\n")
 
 
