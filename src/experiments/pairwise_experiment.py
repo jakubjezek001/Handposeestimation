@@ -6,7 +6,7 @@ from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
 from src.constants import (
-    DATA_PATH,
+    SAVED_META_INFO_PATH,
     PAIRWISE_CONFIG,
     TRAINING_CONFIG_PATH,
     MASTER_THESIS_DIR,
@@ -58,7 +58,7 @@ def main():
         api_key=os.environ.get("COMET_API_KEY"),
         project_name="master-thesis",
         workspace="dahiyaaneesh",
-        save_dir=os.path.join(DATA_PATH, "models"),
+        save_dir=SAVED_META_INFO_PATH,
         experiment_name=prepare_name("pair_exp3", train_param),
     )
     # model
