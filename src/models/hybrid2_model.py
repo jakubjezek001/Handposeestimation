@@ -82,8 +82,8 @@ class Hybrid2Model(LightningModule):
             jitter_x = (
                 torch.cat(
                     (
-                        batch["jitter_x_1"] / image1_shape[0],
-                        batch["jitter_x_2"] / image2_shape[0],
+                        batch["jitter_x_1"] / float(image1_shape[0]),
+                        batch["jitter_x_2"] / float(image2_shape[0]),
                     ),
                     dim=0,
                 )
@@ -92,8 +92,8 @@ class Hybrid2Model(LightningModule):
             jitter_y = (
                 torch.cat(
                     (
-                        batch["jitter_y_1"] / image1_shape[1],
-                        batch["jitter_y_2"] / image2_shape[1],
+                        batch["jitter_y_1"] / float(image1_shape[1]),
+                        batch["jitter_y_2"] / float(image2_shape[1]),
                     ),
                     dim=0,
                 )
