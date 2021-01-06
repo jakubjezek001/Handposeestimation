@@ -23,7 +23,7 @@ class Data_Set(Dataset):
         transform: torchvision.transforms,
         train_set: bool = True,
         experiment_type: str = "supervised",
-        source: str = "interhand",
+        source: str = "freihand",
     ):
         """This class acts as overarching data_loader.
         It coordinates the indices that must go to the train and validation set.
