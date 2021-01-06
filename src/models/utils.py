@@ -22,7 +22,7 @@ def cal_l1_loss(
     Args:
         pred_joints (torch.Tensor): Predicted 2.5D joints.
         true_joints (torch.Tensor): True 2.5D joints.
-        scale (torch.tensor): Scale to unscale the z coordinate. If not provide unscaled
+        scale (torch.Tensor): Scale to unscale the z coordinate. If not provide unscaled
             loss_z is returned, otherwise scaled loss_z is returned.
 
     Returns:
@@ -192,22 +192,22 @@ def log_hybrid2_images(img1, img2, params, context_val, comet_logger):
 
 
 def get_rotation_2D_matrix(
-    angle: torch.tensor,
-    center_x: torch.tensor,
-    center_y: torch.tensor,
-    scale: torch.tensor,
-) -> torch.tensor:
+    angle: torch.Tensor,
+    center_x: torch.Tensor,
+    center_y: torch.Tensor,
+    scale: torch.Tensor,
+) -> torch.Tensor:
     """Generates 2D rotation matrix transpose. the matrix generated is for the whole batch.
     The implementation of 2D matrix is same as that in openCV.
 
     Args:
-        angle (torch.tensor): 1D tensor of rotation angles for the batch
-        center_x (torch.tensor): 1D tensor of x coord of center of the keypoints.
-        center_y (torch.tensor): 1D tensor of x coord of center of the keypoints.
-        scale (torch.tensor): Scale, set it to 1.0.
+        angle (torch.Tensor): 1D tensor of rotation angles for the batch
+        center_x (torch.Tensor): 1D tensor of x coord of center of the keypoints.
+        center_y (torch.Tensor): 1D tensor of x coord of center of the keypoints.
+        scale (torch.Tensor): Scale, set it to 1.0.
 
     Returns:
-        torch.tensor: Returns a tensor of 2D rotation matrix for the batch.
+        torch.Tensor: Returns a tensor of 2D rotation matrix for the batch.
     """
     # convert to radians
     angle = angle * np.pi / 180
@@ -224,16 +224,16 @@ def get_rotation_2D_matrix(
     return rot_mat
 
 
-def rotate_encoding(encoding, angle) -> torch.tensor:
+def rotate_encoding(encoding, angle) -> torch.Tensor:
     """Function to 2D rotate a batch of encodings by a batch of angles.
     The third dimension is n not changed.
 
     Args:
-        encoding (torch.tensor): Encodings of shape (batch_size,m,3)
+        encoding (torch.Tensor): Encodings of shape (batch_size,m,3)
         angle ([type]): batch of angles (batch_size,)
 
     Returns:
-        torch.tensor: Rotated batch of keypoints.
+        torch.Tensor: Rotated batch of keypoints.
     """
     center_xyz = torch.mean(encoding, 1)
     rot_mat = get_rotation_2D_matrix(
@@ -246,17 +246,25 @@ def rotate_encoding(encoding, angle) -> torch.tensor:
     return torch.cat([encoding_xy, encoding_z], dim=-1)
 
 
-def translate_encodings(encoding, translate_x, translate_y):
-    """Function to translate the e
+def translate_encodings(
+    encoding: torch.Tensor, translate_x: torch.Tensor, translate_y: torch.Tensor
+) -> torch.Tensor:
+    """Translates the encodings along first two dimensions with linear scaling
 
     Args:
-        encoding ([type]): [description]
-        translate_x ([type]): [description]
-        translate_y ([type]): [description]
+        encoding (torch.Tensor): image encodings/projections from the network
+        translate_x (torch.Tensor): normlaized jitter along x axis of the input image
+        translate_y (torch.Tensor): normalized jitter along y axis of the input image.
 
     Returns:
-        [type]: [description]
+        torch.Tensor: Translated encodings based on scaled normalized jitter.
     """
-    encoding[:, :, 0] += translate_x.view((-1, 1))
-    encoding[:, :, 1] += translate_y.view((-1, 1))
+    max_encodings = torch.max(encoding, dim=1).values
+    min_encodings = torch.min(encoding, dim=1).values
+    encoding[:, :, 0] += (
+        translate_x * (max_encodings[:, 0] - min_encodings[:, 0])
+    ).view((-1, 1))
+    encoding[:, :, 1] += (
+        translate_y * (max_encodings[:, 1] - min_encodings[:, 1])
+    ).view((-1, 1))
     return encoding
