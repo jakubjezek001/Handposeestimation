@@ -78,27 +78,21 @@ class Hybrid2Model(LightningModule):
             # jitter_y = torch.cat((batch["jitter_y_1"], batch["jitter_y_2"]), dim=0)
 
             max_projections = torch.max(projections, dim=1).values
-
-            jitter_x = (
-                torch.cat(
-                    (
-                        batch["jitter_x_1"] / float(image1_shape[0]),
-                        batch["jitter_x_2"] / float(image2_shape[0]),
-                    ),
-                    dim=0,
-                )
-                * max_projections[:, 0]
-            )
-            jitter_y = (
-                torch.cat(
-                    (
-                        batch["jitter_y_1"] / float(image1_shape[1]),
-                        batch["jitter_y_2"] / float(image2_shape[1]),
-                    ),
-                    dim=0,
-                )
-                * max_projections[:, 1]
-            )
+            min_projections = torch.max(projections, dim=1).values
+            jitter_x = torch.cat(
+                (
+                    batch["jitter_x_1"] / float(image1_shape[0]),
+                    batch["jitter_x_2"] / float(image2_shape[0]),
+                ),
+                dim=0,
+            ) * (max_projections[:, 0] - min_projections[:, 0])
+            jitter_y = torch.cat(
+                (
+                    batch["jitter_y_1"] / float(image1_shape[1]),
+                    batch["jitter_y_2"] / float(image2_shape[1]),
+                ),
+                dim=0,
+            ) * (max_projections[:, 1] - min_projections[:, 1])
             # moving the encodings by same amount.
             projections = translate_encodings(projections, -jitter_x, -jitter_y)
 
