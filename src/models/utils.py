@@ -235,16 +235,26 @@ def rotate_encoding(encoding, angle) -> torch.Tensor:
     Returns:
         torch.Tensor: Rotated batch of keypoints.
     """
-    center_xyz = torch.mean(encoding.detach(), 1)
+    # center_xyz = torch.mean(encoding.detach(), 1)
+    # rot_mat = get_rotation_2D_matrix(
+    #     angle, center_xyz[:, 0], center_xyz[:, 1], scale=1.0
+    # )
+    # rot_mat = rot_mat.cuda(encoding.device) if encoding.is_cuda else rot_mat
+    # encoding[:, :, :2] = torch.bmm(
+    #     torch.cat((encoding[:, :, :2], torch.ones_like(encoding[:, :, -1:])), dim=2),
+    #     rot_mat,
+    # )
+    # return encoding
+    center_xyz = torch.mean(encoding, 1)
     rot_mat = get_rotation_2D_matrix(
         angle, center_xyz[:, 0], center_xyz[:, 1], scale=1.0
     )
+    encoding_z = encoding[:, :, -1:].clone()
+    encoding[:, :, -1] = 1.0
     rot_mat = rot_mat.cuda(encoding.device) if encoding.is_cuda else rot_mat
-    encoding[:, :, :2] = torch.bmm(
-        torch.cat((encoding[:, :, :2], torch.ones_like(encoding[:, :, -1:])), dim=2),
-        rot_mat,
-    )
-    return encoding
+    encoding_xy = torch.bmm(encoding, rot_mat)
+
+    return torch.cat([encoding_xy, encoding_z], dim=-1)
 
 
 def translate_encodings(
