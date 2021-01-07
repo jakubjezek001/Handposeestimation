@@ -5,7 +5,7 @@ from numpy.core.numerictypes import _construct_lookups
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
-from src.constants import DATA_PATH, MASTER_THESIS_DIR, NIPS_A1_CONFIG
+from src.constants import SAVED_META_INFO_PATH, MASTER_THESIS_DIR, NIPS_A1_CONFIG
 from src.data_loader.data_set import Data_Set
 from src.data_loader.utils import get_train_val_split
 from src.experiments.utils import prepare_name, save_experiment_key, get_nips_a1_args
@@ -48,7 +48,7 @@ def main():
         api_key=os.environ.get("COMET_API_KEY"),
         project_name="master-thesis",
         workspace="dahiyaaneesh",
-        save_dir=os.path.join(DATA_PATH, "models"),
+        save_dir=SAVED_META_INFO_PATH,
         experiment_name=experiment_name,
     )
 

@@ -169,7 +169,7 @@ fi
 case $EXPERIMENT in
 A1)
     # moving the reference to old experiments in bkp file to make space for new series.
-    mv "$DATA_PATH/models/nips_A1_experiment" "$DATA_PATH/models/nips_A1_experiment.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/models/nips_A1_experiment" "$SAVED_META_INFO_PATH/models/nips_A1_experiment.bkp.$DATE"
     echo "Launching NIPS experiment A1 . Ablative studies for SIMCLR."
     launch_experimentA1 $TIME $CORES "color_drop" $GPU_MODEL
     launch_experimentA1 $TIME $CORES "color_jitter" $GPU_MODEL
@@ -185,15 +185,15 @@ A1)
     ;;
 
 A1_DOWN)
-    mv "$DATA_PATH/models/nips_A_downstream" "$DATA_PATH/models/nips_A1_downstream.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/models/nips_A_downstream" "$SAVED_META_INFO_PATH/models/nips_A1_downstream.bkp.$DATE"
     echo "Launching downstream experiments for SIMCLR ablative studies."
     while IFS=',' read -r experiment_name experiment_key; do
         launch_experimentA_downstream $TIME $CORES $GPU_MODEL $experiment_key $experiment_name "NIPS_A1"
-    done <$DATA_PATH/models/nips_A1_experiment
+    done <$SAVED_META_INFO_PATH/models/nips_A1_experiment
     ;;
 A2)
     # moving the reference to old experiments in bkp file to make space for new series.
-    mv "$DATA_PATH/models/nips_A2_experiment" "$DATA_PATH/models/nips_A2_experiment.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/models/nips_A2_experiment" "$SAVED_META_INFO_PATH/models/nips_A2_experiment.bkp.$DATE"
     echo "Launching NIPS experiment A2 . Ablative studies for Pairwise."
     launch_experimentA2 $TIME $CORES "color_jitter" $GPU_MODEL
     launch_experimentA2 $TIME $CORES "rotate" $GPU_MODEL
@@ -201,11 +201,11 @@ A2)
     ;;
 
 A2_DOWN)
-    mv "$DATA_PATH/models/nips_A2_downstream" "$DATA_PATH/models/nips_A2_downstream.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/models/nips_A2_downstream" "$SAVED_META_INFO_PATH/models/nips_A2_downstream.bkp.$DATE"
     echo "Launching downstream experiments for Pairwise ablative studies."
     while IFS=',' read -r experiment_name experiment_key; do
         launch_experimentA_downstream $TIME $CORES $GPU_MODEL $experiment_key $experiment_name "NIPS_A2"
-    done <$DATA_PATH/models/nips_A2_experiment
+    done <$SAVED_META_INFO_PATH/models/nips_A2_experiment
     ;;
 
 IMAGENET_DOWN)
@@ -243,17 +243,17 @@ HYBRID1)
     ;;
 
 NIPS_B)
-    mv "$DATA_PATH/models/hybrid1_experiment" "$DATA_PATH/models/hybrid1_experiment.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/models/hybrid1_experiment" "$SAVED_META_INFO_PATH/models/hybrid1_experiment.bkp.$DATE"
     epochs="100"
     accumulate_grad_batches="4"
     launch_experimentB $TIME $CORES $GPU_MODEL $epochs $accumulate_grad_batches
     ;;
 NIPS_B_DOWN)
-    mv "$DATA_PATH/models/nips_B_downstream" "$DATA_PATH/models/nips_B_downstream.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/models/nips_B_downstream" "$SAVED_META_INFO_PATH/models/nips_B_downstream.bkp.$DATE"
     echo "Launching downstream experiments for Hybrid ablative studies."
     while IFS=',' read -r experiment_name experiment_key; do
         launch_experimentA_downstream $TIME $CORES $GPU_MODEL $experiment_key $experiment_name "NIPS_B"
-    done <$DATA_PATH/models/hybrid1_experiment
+    done <$SAVED_META_INFO_PATH/models/hybrid1_experiment
     ;;
 HYBRID2)
     epochs="300"
@@ -274,7 +274,7 @@ HYBRID2_DOWN)
     echo "Launching Hybrid 2 Downstream experiment for "
     while IFS=',' read -r experiment_name experiment_key; do
         launch_experimentA_downstream $TIME $CORES $GPU_MODEL $experiment_key $experiment_name 'HYBRID2'
-    done <$DATA_PATH/models/hybrid2_experiment
+    done <$SAVED_META_INFO_PATH/models/hybrid2_experiment
     ;;
 BSUB)
     echo " bsub -J $NAME -W $TIME:00 -o /cluster/scratch//adahiya/${NAME}_logs.out \
