@@ -235,15 +235,29 @@ def rotate_encoding(encoding, angle) -> torch.Tensor:
     Returns:
         torch.Tensor: Rotated batch of keypoints.
     """
-    center_xyz = torch.mean(encoding, 1)
+    # new rotation
+    center_xyz = torch.mean(encoding.detach(), 1)
     rot_mat = get_rotation_2D_matrix(
         angle, center_xyz[:, 0], center_xyz[:, 1], scale=1.0
     )
-    encoding_z = encoding[:, :, -1:].clone()
-    encoding[:, :, -1] = 1.0
-    rot_mat = rot_mat.cuda(encoding.device) if encoding.is_cuda else rot_mat
-    encoding_xy = torch.bmm(encoding, rot_mat)
-    return torch.cat([encoding_xy, encoding_z], dim=-1)
+    rot_mat = rot_mat.to(encoding.device)
+    encoding[..., :2] = torch.bmm(
+        torch.cat((encoding[..., :2], torch.ones_like(encoding[..., -1:])), dim=2),
+        rot_mat,
+    )
+    return encoding
+
+    ## old rotation
+    # center_xyz = torch.mean(encoding, 1)
+    # rot_mat = get_rotation_2D_matrix(
+    #     angle, center_xyz[:, 0], center_xyz[:, 1], scale=1.0
+    # )
+    # encoding_z = encoding[..., -1:].clone()
+    # encoding[..., -1] = 1.0
+    # rot_mat = rot_mat.to(encoding.device)
+    # encoding_xy = torch.bmm(encoding, rot_mat)
+
+    # return torch.cat([encoding_xy, encoding_z], dim=-1)
 
 
 def translate_encodings(
@@ -259,12 +273,12 @@ def translate_encodings(
     Returns:
         torch.Tensor: Translated encodings based on scaled normalized jitter.
     """
-    max_encodings = torch.max(encoding, dim=1).values
-    min_encodings = torch.min(encoding, dim=1).values
-    encoding[:, :, 0] += (
+    max_encodings = torch.max(encoding.detach(), dim=1).values
+    min_encodings = torch.min(encoding.detach(), dim=1).values
+    encoding[..., 0] += (
         translate_x * (max_encodings[:, 0] - min_encodings[:, 0])
     ).view((-1, 1))
-    encoding[:, :, 1] += (
+    encoding[..., 1] += (
         translate_y * (max_encodings[:, 1] - min_encodings[:, 1])
     ).view((-1, 1))
     return encoding
