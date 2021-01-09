@@ -235,6 +235,7 @@ def rotate_encoding(encoding, angle) -> torch.Tensor:
     Returns:
         torch.Tensor: Rotated batch of keypoints.
     """
+    # # new rotation
     # center_xyz = torch.mean(encoding.detach(), 1)
     # rot_mat = get_rotation_2D_matrix(
     #     angle, center_xyz[:, 0], center_xyz[:, 1], scale=1.0
@@ -245,6 +246,8 @@ def rotate_encoding(encoding, angle) -> torch.Tensor:
     #     rot_mat,
     # )
     # return encoding
+
+    ## old rotation
     center_xyz = torch.mean(encoding, 1)
     rot_mat = get_rotation_2D_matrix(
         angle, center_xyz[:, 0], center_xyz[:, 1], scale=1.0
@@ -270,8 +273,8 @@ def translate_encodings(
     Returns:
         torch.Tensor: Translated encodings based on scaled normalized jitter.
     """
-    max_encodings = torch.max(encoding, dim=1).values
-    min_encodings = torch.min(encoding, dim=1).values
+    max_encodings = torch.max(encoding.detach(), dim=1).values
+    min_encodings = torch.min(encoding.detach(), dim=1).values
     encoding[:, :, 0] += (
         translate_x * (max_encodings[:, 0] - min_encodings[:, 0])
     ).view((-1, 1))
