@@ -240,9 +240,9 @@ def rotate_encoding(encoding, angle) -> torch.Tensor:
     # rot_mat = get_rotation_2D_matrix(
     #     angle, center_xyz[:, 0], center_xyz[:, 1], scale=1.0
     # )
-    # rot_mat = rot_mat.cuda(encoding.device) if encoding.is_cuda else rot_mat
-    # encoding[:, :, :2] = torch.bmm(
-    #     torch.cat((encoding[:, :, :2], torch.ones_like(encoding[:, :, -1:])), dim=2),
+    # rot_mat = rot_mat.to(encoding.device)
+    # encoding[..., :2] = torch.bmm(
+    #     torch.cat((encoding[..., :2], torch.ones_like(encoding[..., -1:])), dim=2),
     #     rot_mat,
     # )
     # return encoding
@@ -252,9 +252,9 @@ def rotate_encoding(encoding, angle) -> torch.Tensor:
     rot_mat = get_rotation_2D_matrix(
         angle, center_xyz[:, 0], center_xyz[:, 1], scale=1.0
     )
-    encoding_z = encoding[:, :, -1:].clone()
-    encoding[:, :, -1] = 1.0
-    rot_mat = rot_mat.cuda(encoding.device) if encoding.is_cuda else rot_mat
+    encoding_z = encoding[..., -1:].clone()
+    encoding[..., -1] = 1.0
+    rot_mat = rot_mat.to(encoding.device)
     encoding_xy = torch.bmm(encoding, rot_mat)
 
     return torch.cat([encoding_xy, encoding_z], dim=-1)
@@ -275,10 +275,10 @@ def translate_encodings(
     """
     max_encodings = torch.max(encoding.detach(), dim=1).values
     min_encodings = torch.min(encoding.detach(), dim=1).values
-    encoding[:, :, 0] += (
+    encoding[..., 0] += (
         translate_x * (max_encodings[:, 0] - min_encodings[:, 0])
     ).view((-1, 1))
-    encoding[:, :, 1] += (
+    encoding[..., 1] += (
         translate_y * (max_encodings[:, 1] - min_encodings[:, 1])
     ).view((-1, 1))
     return encoding
