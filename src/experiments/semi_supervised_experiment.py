@@ -1,5 +1,5 @@
 import os
-
+from pprint import pformat
 from easydict import EasyDict as edict
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import LearningRateMonitor
@@ -12,24 +12,22 @@ from src.constants import (
 )
 from src.data_loader.data_set import Data_Set
 from src.data_loader.utils import get_train_val_split
-from src.experiments.utils import (
-    get_experiement_args,
-    prepare_name,
-    process_experiment_args,
-)
+from src.experiments.utils import get_general_args, prepare_name, update_train_params
 from src.models.callbacks.upload_comet_logs import UploadCometLogs
 from src.utils import get_console_logger, read_json
 from torchvision import transforms
 from src.models.supervised_head_model import SupervisedHead
+from src.models.denoised_supervised_head_model import DenoisedSupervisedHead
 
 
 def main():
     # get configs
     console_logger = get_console_logger(__name__)
     train_param = edict(read_json(TRAINING_CONFIG_PATH))
-    args = get_experiement_args()
-    train_param, model_param = process_experiment_args(args, console_logger)
+    args = get_general_args()
+    train_param = update_train_params(args, train_param)
     seed_everything(train_param.seed)
+    console_logger.info(f"Train parameters {pformat(train_param)}")
 
     # data preperation
     data = Data_Set(
@@ -52,14 +50,19 @@ def main():
         workspace="dahiyaaneesh",
         save_dir=SAVED_META_INFO_PATH,
         experiment_name=prepare_name("ssl", train_param),
-        disabled=args.testing,
     )
 
     # model.
 
     model_param = edict(read_json(SSL_CONFIG))
     model_param.num_samples = len(data)
-    model = SupervisedHead(model_param)
+    model_param.batch_size = train_param.batch_size
+    # model = SupervisedHead(model_param)
+    console_logger.info(f"Model parameters {pformat(model_param)}")
+    if args.denoiser:
+        model = DenoisedSupervisedHead(model_param)
+    else:
+        model = SupervisedHead(model_param)
 
     # callbacks
     logging_interval = "step"
@@ -71,7 +74,7 @@ def main():
 
     trainer = Trainer(
         accumulate_grad_batches=train_param.accumulate_grad_batches,
-        gpus="1" if args.gpu_slow else "0",
+        gpus="0",
         logger=comet_logger,
         max_epochs=train_param.epochs,
         precision=train_param.precision,

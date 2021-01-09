@@ -1,5 +1,7 @@
 import copy
 from math import cos, pi, sin
+from os.path import join
+from src.models.utils import get_latest_checkpoint
 from typing import Tuple
 
 import torch
@@ -32,7 +34,11 @@ def convert_to_2_5D(K: CAMERA_PARAM, joints_3D: JOINTS_3D) -> Tuple[JOINTS_25D, 
 
 
 def convert_2_5D_to_3D(
-    joints_25D: JOINTS_25D, scale: SCALE, K: CAMERA_PARAM
+    joints_25D: JOINTS_25D,
+    scale: SCALE,
+    K: CAMERA_PARAM,
+    is_batch: bool = False,
+    Z_root_calc: torch.Tensor = None,
 ) -> JOINTS_3D:
     """Converts coordinates from 2.5 Dimesnions to original 3 Dimensions.
     Refer: https://arxiv.org/pdf/1804.09534.pdf
@@ -45,17 +51,25 @@ def convert_2_5D_to_3D(
     Returns:
         JOINTS_3D: Obtained 3D coordinates from 2.5D coordinates and scale information.
     """
-    Z_root, K_inv = get_root_depth(joints_25D, K)
-    Z_coord = (joints_25D[:, -1:] + Z_root) * scale
+
+    Z_root, K_inv = get_root_depth(joints_25D, K, is_batch)
+    Z_root = Z_root_calc if Z_root_calc is not None else Z_root
     camera_projection = joints_25D.clone()
-    # print(joints_25D)
-    camera_projection[:, -1] = 1
-    joints_3D = ((K_inv @ (camera_projection.T)).T) * Z_coord
+    if is_batch:
+        Z_coord = (joints_25D[:, :, -1:] + Z_root.view((-1, 1, 1))) * scale.view(
+            (-1, 1, 1)
+        )
+        camera_projection[:, :, -1] = 1.0
+        joints_3D = torch.bmm(camera_projection, torch.transpose(K_inv, 1, 2)) * Z_coord
+    else:
+        Z_coord = (joints_25D[:, -1:] + Z_root) * scale
+        camera_projection[:, -1] = 1.0
+        joints_3D = (camera_projection @ (K_inv.T)) * Z_coord
     return joints_3D
 
 
 def get_root_depth(
-    joints_25D: JOINTS_25D, K: CAMERA_PARAM
+    joints_25D: JOINTS_25D, K: CAMERA_PARAM, is_batch: bool = False
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """Gets the scale normalized  Z_root from the joints coordinates using the result
     in https://arxiv.org/pdf/1804.09534.pdf equation 6 and 7.
@@ -70,15 +84,10 @@ def get_root_depth(
         Tuple[torch.Tensor, torch.Tensor]: scaled root Z coordinate and inverted camera parameters.
     """
     K_inv = torch.inverse(K)
-    x_n, y_n, _ = K_inv @ torch.cat(
-        (joints_25D[PARENT_JOINT, :-1], torch.tensor([1.0])), 0
+    x_n, y_n, Z_n, x_m, y_m, Z_m, C = get_zroot_constraint_terms(
+        joints_25D, K_inv, is_batch
     )
-    Z_n = joints_25D[PARENT_JOINT, -1]
-    x_m, y_m, _ = K_inv @ torch.cat(
-        (joints_25D[CHILD_JOINT, :-1], torch.tensor([1.0])), 0
-    )
-    Z_m = joints_25D[CHILD_JOINT, -1]
-    C = 1
+
     a = (x_n - x_m) ** 2 + (y_n - y_m) ** 2
     b = 2 * (
         Z_n * (x_n ** 2 + y_n ** 2 - x_n * x_m - y_n * y_m)
@@ -231,3 +240,54 @@ def get_train_val_split(data, **kwargs) -> Tuple[DataLoader, DataLoader]:
         DataLoader(data, **kwargs),
         DataLoader(val_data, **{**kwargs, "shuffle": False}),
     )
+
+
+def get_zroot_constraint_terms(
+    joints_25D: JOINTS_25D, K_inv: torch.Tensor, is_batch: bool
+) -> Tuple[
+    torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor
+]:
+    """returns parent ,child coordinates and C used for calculating in zroot
+
+    Args:
+        joints_25D (JOINTS_25D): [description]
+        K_inv (torch.Tensor): [description]
+        is_batch (bool): [description]
+
+    Returns:
+        Tuple[ torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor ]: [description]
+    """
+    if is_batch:
+        batch_size = joints_25D.size()[0]
+        joint_n = torch.cat(
+            (
+                joints_25D[:, PARENT_JOINT, :-1],
+                torch.ones_like(joints_25D[:, PARENT_JOINT, -1:]),
+            ),
+            1,
+        ).view(batch_size, 3, 1)
+        joint_m = torch.cat(
+            (
+                joints_25D[:, CHILD_JOINT, :-1],
+                torch.ones_like(joints_25D[:, CHILD_JOINT, -1:]),
+            ),
+            1,
+        ).view(batch_size, 3, 1)
+        xyz_n = torch.bmm(K_inv, joint_n).view(batch_size, 3)
+        xyz_m = torch.bmm(K_inv, joint_m).view(batch_size, 3)
+        x_n, y_n = xyz_n[:, 0], xyz_n[:, 1]
+        Z_n = joints_25D[:, PARENT_JOINT, -1]
+        x_m, y_m = xyz_m[:, 0], xyz_m[:, 1]
+        Z_m = joints_25D[:, CHILD_JOINT, -1]
+        C = torch.ones_like(x_n)
+    else:
+        x_n, y_n, _ = K_inv @ torch.cat(
+            (joints_25D[PARENT_JOINT, :-1], torch.tensor([1.0])), 0
+        )
+        Z_n = joints_25D[PARENT_JOINT, -1]
+        x_m, y_m, _ = K_inv @ torch.cat(
+            (joints_25D[CHILD_JOINT, :-1], torch.tensor([1.0])), 0
+        )
+        Z_m = joints_25D[CHILD_JOINT, -1]
+        C = 1
+    return x_n, y_n, Z_n, x_m, y_m, Z_m, C

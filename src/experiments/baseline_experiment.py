@@ -6,8 +6,8 @@ from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
 from src.constants import (
-    SAVED_META_INFO_PATH,
     MASTER_THESIS_DIR,
+    SAVED_META_INFO_PATH,
     SUPERVISED_CONFIG_PATH,
     TRAINING_CONFIG_PATH,
 )
@@ -22,6 +22,7 @@ from src.experiments.utils import (
 )
 from src.models.baseline_model import BaselineModel
 from src.models.callbacks.upload_comet_logs import UploadCometLogs
+from src.models.denoised_baseline import DenoisedBaselineModel
 from src.utils import get_console_logger, read_json
 from torchvision import transforms
 
@@ -65,10 +66,13 @@ def main():
     model_param.num_samples = len(data)
     model_param.batch_size = train_param.batch_size
     console_logger.info(f"Model parameters {pformat(model_param)}")
-    model = BaselineModel(config=model_param)
+    if args.denoiser:
+        model = DenoisedBaselineModel(config=model_param)
+    else:
+        model = BaselineModel(config=model_param)
 
     # callbacks
-    logging_interval = "epoch"
+    logging_interval = "step"
     upload_comet_logs = UploadCometLogs(
         logging_interval, get_console_logger("callback"), "supervised"
     )

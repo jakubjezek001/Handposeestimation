@@ -77,6 +77,9 @@ def get_general_args(
         type=int,
         help="Number of batches to accumulate gradient.",
     )
+    parser.add_argument(
+        "--denoiser", action="store_true", help="To enable denoising", default=False
+    )
     args = parser.parse_args()
     return args
 
