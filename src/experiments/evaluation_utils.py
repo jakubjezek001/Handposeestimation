@@ -108,30 +108,49 @@ def get_predictions_and_ground_truth(
     ground_truth_recreated_3d = []
     scale = []
     camera_param = []
+    z_root_calc_denoised = []
     with torch.no_grad():
         for i, batch in tqdm(enumerate(data_loader)):
             input_tensor = batch["image"].to(device)
             ground_truth.append(batch["joints"])
             ground_truth_3d.append(batch["joints3D"])
             ground_truth_recreated_3d.append(batch["joints3D_recreated"])
-            scale.append(batch["scale"])
-            camera_param.append(batch["K"])
+            scale.append(batch["scale"].to(device))
+            camera_param.append(batch["K"].to(device))
             predictions.append(model(input_tensor))
+            if hasattr(model, "denoiser"):
+                z_root_calc_denoised.append(
+                    model.get_denoised_z_root_calc(predictions[-1], camera_param[-1])
+                )
     predictions = torch.cat(predictions, axis=0)
     scale = torch.cat(scale, axis=0)
     camera_param = torch.cat(camera_param, axis=0)
-    predictions_3d = calculate_predicted_3D(predictions, camera_param, scale)
+    predictions_3d = convert_2_5D_to_3D(predictions, scale, camera_param, True)
+
+    if hasattr(model, "denoiser"):
+        z_root_calc_denoised = torch.cat(z_root_calc_denoised, axis=0)
+        predictions_3d_denoised = convert_2_5D_to_3D(
+            predictions, scale, camera_param, True, z_root_calc_denoised
+        )
+        denoised_pred = {"predictions_3d_denoised": predictions_3d_denoised}
+    else:
+        denoised_pred = {}
+
+    # predictions_3d = calculate_predicted_3D(predictions, camera_param, scale)
     ground_truth = torch.cat(ground_truth, axis=0)
     ground_truth_3d = torch.cat(ground_truth_3d, axis=0)
     ground_truth_recreated_3d = torch.cat(ground_truth_recreated_3d, axis=0)
     return {
-        "predictions": predictions,
-        "ground_truth": ground_truth,
-        "ground_truth_3d": ground_truth_3d,
-        "ground_truth_recreated_3d": ground_truth_recreated_3d,
-        "predictions_3d": predictions_3d,
-        "camera_param": camera_param,
-        "scale": scale,
+        **{
+            "predictions": predictions,
+            "ground_truth": ground_truth,
+            "ground_truth_3d": ground_truth_3d,
+            "ground_truth_recreated_3d": ground_truth_recreated_3d,
+            "predictions_3d": predictions_3d,
+            "camera_param": camera_param,
+            "scale": scale,
+        },
+        **denoised_pred,
     }
 
 
@@ -152,28 +171,43 @@ def evaluate(model: LightningModule, data: Data_Set, **dataloader_args) -> dict:
     epe_3D = calculate_epe_statistics(
         prediction_dict["predictions_3d"], prediction_dict["ground_truth_3d"], dim=3
     )
-    epe_3D_recreated = calculate_epe_statistics(
-        prediction_dict["predictions_3d"],
-        prediction_dict["ground_truth_recreated_3d"],
-        dim=3,
-    )
-    epe_3D__gt_vs_3D_recreated = calculate_epe_statistics(
+    # epe_3D_recreated = calculate_epe_statistics(
+    #     prediction_dict["predictions_3d"],
+    #     prediction_dict["ground_truth_recreated_3d"],
+    #     dim=3,
+    # )
+    epe_3D_gt_vs_3D_recreated = calculate_epe_statistics(
         prediction_dict["ground_truth_3d"],
         prediction_dict["ground_truth_recreated_3d"],
         dim=3,
     )
+    if hasattr(model, "denoiser"):
+        epe_3D_gt_vs_denoised = calculate_epe_statistics(
+            prediction_dict["ground_truth_3d"],
+            prediction_dict["predictions_3d_denoised"],
+            dim=3,
+        )
+        auc_denoised = np.mean(cal_auc_joints(epe_3D_gt_vs_denoised["eucledian_dist"]))
+        denoised_results = {
+            "Mean_EPE_3D_denoised": epe_3D_gt_vs_denoised["mean"].cpu(),
+            "Median_EPE_3D_denoised": epe_3D_gt_vs_denoised["median"].cpu(),
+            "auc_denoised": auc_denoised,
+        }
+    else:
+        denoised_results = {}
     # y,x  = get_pck_curves(epe_3D['eucledian_dist'])
     auc = np.mean(cal_auc_joints(epe_3D["eucledian_dist"]))
+
     return {
-        "Mean_EPE_2D": epe_2D["mean"].cpu(),
-        "Median_EPE_2D": epe_2D["median"].cpu(),
-        "Mean_EPE_3D": epe_3D["mean"].cpu(),
-        "Median_EPE_3D": epe_3D["median"].cpu(),
-        "Mean_EPE_3D_R": epe_3D_recreated["mean"].cpu(),
-        "Median_EPE_3D_R": epe_3D_recreated["median"].cpu(),
-        "Mean_EPE_3D_R_v_3D": epe_3D__gt_vs_3D_recreated["mean"].cpu(),
-        "Median_EPE_3D_R_V_3D": epe_3D__gt_vs_3D_recreated["median"].cpu(),
-        "AUC": auc,
+        **{
+            "Mean_EPE_2D": epe_2D["mean"].cpu(),
+            "Median_EPE_2D": epe_2D["median"].cpu(),
+            "Mean_EPE_3D": epe_3D["mean"].cpu(),
+            "Median_EPE_3D": epe_3D["median"].cpu(),
+            "Median_EPE_3D_R_V_3D": epe_3D_gt_vs_3D_recreated["median"].cpu(),
+            "AUC": auc,
+        },
+        **denoised_results,
     }
 
 
