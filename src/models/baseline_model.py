@@ -11,8 +11,8 @@ from typing import Dict
 class BaselineModel(BaseModel):
     def __init__(self, config: edict):
         """Class wrapper for the fully supervised model used as baseline.
-        It uses Resnet as the base model.
-        Appends more layers in the end to fit the HPE Task.
+        It uses Resnet as the base model and appends more layers in the end to fit the
+        HPE Task.
         Args:
             config (dict): Model configurations passed as an easy dict.
         """
