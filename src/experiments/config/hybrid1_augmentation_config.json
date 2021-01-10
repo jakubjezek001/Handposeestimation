@@ -26,5 +26,6 @@
             "gaussian_noise": false,
             "sobel_filter": false
         }
-    }
+    },
+    "optimizer": "LARS"
 }

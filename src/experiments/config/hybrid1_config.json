@@ -14,5 +14,6 @@
         "augmentation": [],
         "transformation_head_hidden_dim": 1024,
         "transformation_head_input_dim": 512
-    }
+    },
+    "optimizer": "LARS"
 }

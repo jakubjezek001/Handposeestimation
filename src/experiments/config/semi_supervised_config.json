@@ -6,5 +6,6 @@
     "saved_model_name":"9f302cea72a2459eb14dfad33b1a9783",
     "alpha": 5,
     "gpu": true,
-    "checkpoint":""
+    "checkpoint":"",
+    "optimizer": "LARS"
 }

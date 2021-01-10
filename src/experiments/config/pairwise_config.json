@@ -8,5 +8,6 @@
     "transformation_output_dim": {
         "rotation": 1
     },
-    "warmup_epochs": 10
+    "warmup_epochs": 10,
+    "optimizer": "LARS"
 }

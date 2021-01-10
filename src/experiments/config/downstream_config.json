@@ -68,6 +68,7 @@
         "saved_model_name": "",
         "alpha": 5,
         "gpu": true,
-        "checkpoint": ""
+        "checkpoint": "",
+        "optimizer": "LARS"
     }
 }
