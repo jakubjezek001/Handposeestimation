@@ -35,6 +35,18 @@ class Hybrid2Model(SimCLR):
         batch_size = int(len(batch_transform) / 2)
         encodings = self.encoder(batch_transform)
         projections = self.projection_head(encodings).view((batch_size * 2, -1, 3))
+        projection1_stat = self.get_projection_stats(
+            projections[:batch_size].detach(), "proj1"
+        )
+        projection2_stat = self.get_projection_stats(
+            projections[batch_size:].detach(), "proj2"
+        )
+
+        self.train_metrics = (
+            {**self.train_metrics, **projection1_stat, **projection2_stat}
+            if self.train_metrics is not None
+            else None
+        )
 
         if "rotate" in self.config.augmentation:
             # make sure the shape is (batch,-1,3).
@@ -69,3 +81,19 @@ class Hybrid2Model(SimCLR):
         projection1, projection2 = self.get_transformed_projections(batch)
         loss = vanila_contrastive_loss(projection1, projection2)
         return loss
+
+    def get_projection_stats(self, projection: Tensor, name: str) -> dict:
+        projection_mean = torch.mean(projection, dim=1)
+        projection_median = torch.median(projection, dim=1).values
+        projection_min = torch.min(projection, dim=1).values
+        projection_max = torch.max(projection, dim=1).values
+        return {
+            f"{name}x_mean": torch.mean(projection_mean, dim=0)[0],
+            f"{name}x_median": torch.mean(projection_median, dim=0)[0],
+            f"{name}x_min": torch.mean(projection_min, dim=0)[0],
+            f"{name}x_max": torch.mean(projection_max, dim=0)[0],
+            f"{name}y_mean": torch.mean(projection_mean, dim=0)[1],
+            f"{name}y_median": torch.mean(projection_median, dim=0)[1],
+            f"{name}y_min": torch.mean(projection_min, dim=0)[1],
+            f"{name}y_max": torch.mean(projection_max, dim=0)[1],
+        }
