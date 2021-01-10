@@ -6,18 +6,17 @@ from src.data_loader.utils import PARENT_JOINT, get_root_depth
 from src.models.baseline_model import BaselineModel
 from src.models.utils import cal_l1_loss
 from src.utils import get_console_logger
-from torch import nn
+from torch import nn, Tensor
 from torch.nn.modules.loss import L1Loss
 
 
 class DenoisedBaselineModel(BaselineModel):
-    def __init__(self, config: edict):
-        """Class wrapper for the baseline supervised model.
+    """Class wrapper for the baseline supervised model.
         Uses Resnet as the base model.
         Appends more layers in the end to fit the HPE Task.
-        Args:
-            config (dict): Model configurations passed as an easy dict.
-        """
+    """
+
+    def __init__(self, config: edict):
         super().__init__(config)
         self.console_logger = get_console_logger("denoised_baseline_model")
         self.denoiser = nn.Sequential(
@@ -31,8 +30,8 @@ class DenoisedBaselineModel(BaselineModel):
         )
 
     def training_step(
-        self, batch: Dict[str, torch.Tensor], batch_idx: int
-    ) -> Dict[str, torch.Tensor]:
+        self, batch: Dict[str, Tensor], batch_idx: int
+    ) -> Dict[str, Tensor]:
 
         x, y, scale, k = batch["image"], batch["joints"], batch["scale"], batch["K"]
         prediction = self(x)
@@ -61,9 +60,7 @@ class DenoisedBaselineModel(BaselineModel):
             "loss_z_denoise": loss_z_denoise,
         }
 
-    def get_denoised_z_root_calc(
-        self, joints25D: torch.Tensor, k: torch.Tensor
-    ) -> torch.Tensor:
+    def get_denoised_z_root_calc(self, joints25D: Tensor, k: Tensor) -> Tensor:
 
         z_root_calc, k_inv = get_root_depth(joints25D, k, is_batch=True)
         z_root_calc = z_root_calc.view((-1, 1))
@@ -79,8 +76,8 @@ class DenoisedBaselineModel(BaselineModel):
         return self.denoiser(denoising_input.detach()) + z_root_calc.detach()
 
     def validation_step(
-        self, batch: Dict[str, torch.Tensor], batch_idx: int
-    ) -> Dict[str, torch.Tensor]:
+        self, batch: Dict[str, Tensor], batch_idx: int
+    ) -> Dict[str, Tensor]:
         x, y, scale, k = batch["image"], batch["joints"], batch["scale"], batch["K"]
         prediction = self(x)
         loss_2d, loss_z, loss_z_unscaled = cal_l1_loss(prediction, y, scale)

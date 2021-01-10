@@ -1,7 +1,9 @@
 import math
-from typing import List
+from typing import Dict, Iterator, List, Tuple, Union
 
 import torch
+import torchvision
+from easydict import EasyDict as edict
 from pl_bolts.optimizers.lars_scheduling import LARSWrapper
 from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
 from pytorch_lightning.core.lightning import LightningModule
@@ -13,8 +15,10 @@ class BaseModel(LightningModule):
     setting up optimizer, schedulers.
     """
 
-    def __init__(self, config):
+    def __init__(self, config: edict):
         super().__init__()
+        self.encoder = torchvision.models.resnet18(pretrained=True)
+        self.encoder.fc = torch.nn.Sequential()
         self.config = config
         self.train_metrics_epoch = None
         self.train_metrics = None
@@ -22,8 +26,12 @@ class BaseModel(LightningModule):
         self.plot_params = None
 
     def exclude_from_wt_decay(
-        self, named_params, weight_decay, skip_list: List[str] = ["bias", "bn"]
-    ):
+        self,
+        named_params: Iterator[Tuple[str, torch.Tensor]],
+        weight_decay: float,
+        skip_list: List[str] = ["bias", "bn"],
+    ) -> List[Dict[str, Union[list, float]]]:
+
         params = []
         excluded_params = []
 
@@ -44,7 +52,8 @@ class BaseModel(LightningModule):
         global_batch_size = self.trainer.world_size * self.config.batch_size
         self.train_iters_per_epoch = self.config.num_samples // global_batch_size
 
-    def configure_optimizers(self):
+    def configure_optimizers(self) -> Tuple[list, list]:
+
         parameters = self.exclude_from_wt_decay(
             self.named_parameters(), weight_decay=self.config.opt_weight_decay
         )
