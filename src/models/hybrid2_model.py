@@ -22,6 +22,7 @@ class Hybrid2Model(SimCLR):
 
     def __init__(self, config: edict):
         super().__init__(config)
+        self.train_metrics = {}
 
     def get_transformed_projections(
         self, batch: Dict[str, Tensor]
@@ -42,11 +43,11 @@ class Hybrid2Model(SimCLR):
             projections[batch_size:].detach(), "proj2"
         )
 
-        self.train_metrics = (
-            {**self.train_metrics, **projection1_stat, **projection2_stat}
-            if self.train_metrics is not None
-            else None
-        )
+        self.train_metrics = {
+            **self.train_metrics,
+            **projection1_stat,
+            **projection2_stat,
+        }
 
         if "rotate" in self.config.augmentation:
             # make sure the shape is (batch,-1,3).
