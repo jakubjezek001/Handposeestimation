@@ -68,8 +68,16 @@ class BaseModel(LightningModule):
                 parameters, lr=self.config.lr * math.sqrt(self.config.batch_size)
             )
 
-        warmup_epochs = self.config.warmup_epochs * self.train_iters_per_epoch
-        max_epochs = self.trainer.max_epochs * self.train_iters_per_epoch
+        warmup_epochs = (
+            self.config.warmup_epochs
+            * self.train_iters_per_epoch
+            // self.config.num_of_mini_batch
+        )
+        max_epochs = (
+            self.trainer.max_epochs
+            * self.train_iters_per_epoch
+            // self.config.num_of_mini_batch
+        )
 
         linear_warmup_cosine_decay = LinearWarmupCosineAnnealingLR(
             optimizer,
