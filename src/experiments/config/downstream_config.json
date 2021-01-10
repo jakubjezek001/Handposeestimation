@@ -69,6 +69,7 @@
         "alpha": 5,
         "gpu": true,
         "checkpoint": "",
-        "optimizer": "LARS"
+        "optimizer": "LARS",
+        "resnet_trainable":true
     }
 }
