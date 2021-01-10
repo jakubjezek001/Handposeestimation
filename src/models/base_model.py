@@ -57,16 +57,13 @@ class BaseModel(LightningModule):
         parameters = self.exclude_from_wt_decay(
             self.named_parameters(), weight_decay=self.config.opt_weight_decay
         )
+        optimizer = torch.optim.Adam(
+            parameters,
+            lr=self.config.lr
+            * math.sqrt(self.config.batch_size * self.config.num_of_mini_batch),
+        )
         if self.config.optimizer == "LARS":
-            optimizer = LARSWrapper(
-                torch.optim.Adam(
-                    parameters, lr=self.config.lr * math.sqrt(self.config.batch_size)
-                )
-            )
-        else:
-            optimizer = torch.optim.Adam(
-                parameters, lr=self.config.lr * math.sqrt(self.config.batch_size)
-            )
+            optimizer = LARSWrapper(optimizer)
 
         warmup_epochs = (
             self.config.warmup_epochs
