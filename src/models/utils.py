@@ -1,41 +1,42 @@
 import os
-from typing import Tuple
-import torch
+from typing import Dict, Tuple
+
 import numpy as np
+import torch
 from comet_ml import Experiment
 from src.constants import SAVED_MODELS_BASE_PATH
 from src.visualization.visualize import (
+    plot_hybrid2_images,
+    plot_pairwise_images,
     plot_simclr_images,
     plot_truth_vs_prediction,
-    plot_pairwise_images,
-    plot_hybrid2_images,
 )
-from torch.nn import L1Loss
+from torch import Tensor, nn
 
 
 def cal_l1_loss(
-    pred_joints: torch.Tensor, true_joints: torch.Tensor, scale: torch.Tensor = None
-) -> Tuple[torch.Tensor, torch.Tensor]:
+    pred_joints: Tensor, true_joints: Tensor, scale: Tensor = None
+) -> Tuple[Tensor, Tensor, Tensor]:
     """Calculates L1 loss between the predicted and true joints.  The relative unscaled
     depth (Z) is penalized seperately.
 
     Args:
-        pred_joints (torch.Tensor): Predicted 2.5D joints.
-        true_joints (torch.Tensor): True 2.5D joints.
-        scale (torch.Tensor): Scale to unscale the z coordinate. If not provide unscaled
+        pred_joints (Tensor): Predicted 2.5D joints.
+        true_joints (Tensor): True 2.5D joints.
+        scale (Tensor): Scale to unscale the z coordinate. If not provide unscaled
             loss_z is returned, otherwise scaled loss_z is returned.
 
     Returns:
-        Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: 2d loss, scaled z relative
+        Tuple[Tensor, Tensor, Tensor]: 2d loss, scaled z relative
             loss and unscaled z relative loss.
     """
     if scale is None:
         scale = 1.0
-    pred_uv = pred_joints[:, :, :-1]
-    pred_z = pred_joints[:, :, -1:]
-    true_uv = true_joints[:, :, :-1]
-    true_z = true_joints[:, :, -1:]
-    loss = L1Loss()
+    pred_uv = pred_joints[..., :-1]
+    pred_z = pred_joints[..., -1:]
+    true_uv = true_joints[..., :-1]
+    true_z = true_joints[..., -1:]
+    loss = nn.L1Loss()
     return (
         loss(pred_uv, true_uv),
         loss(pred_z, true_z),
@@ -44,13 +45,13 @@ def cal_l1_loss(
 
 
 def calculate_metrics(
-    y_pred: torch.Tensor, y_true: torch.Tensor, step: str = "train"
-) -> dict:
+    y_pred: Tensor, y_true: Tensor, step: str = "train"
+) -> Dict[str, Tensor]:
     """Calculates the metrics on a batch of predicted and true labels.
 
     Args:
-        y_pred (torch.Tensor): Batch of predicted labels.
-        y_true (torch.Tensor): Batch of True labesl.
+        y_pred (Tensor): Batch of predicted labels.
+        y_true (Tensor): Batch of True labesl.
         step (str, optional): This argument specifies whether the metrics are caclulated
             for train or val set. Appends suitable name to the keys in returned
             dictionary. Defaults to "train".
@@ -75,7 +76,14 @@ def log_metrics(metrics: dict, comet_logger: Experiment, epoch: int, context_val
             comet_logger.log_metrics(metrics, epoch=epoch)
 
 
-def log_image(prediction, y, x, gpu: bool, context_val: bool, comet_logger: Experiment):
+def log_image(
+    prediction: Tensor,
+    y: Tensor,
+    x: Tensor,
+    gpu: bool,
+    context_val: bool,
+    comet_logger: Experiment,
+):
     if gpu:
         pred_label = prediction.data[0].cpu().numpy()
         true_label = y.data[0].cpu().detach().numpy()
@@ -94,7 +102,9 @@ def log_image(prediction, y, x, gpu: bool, context_val: bool, comet_logger: Expe
             )
 
 
-def log_simclr_images(img1, img2, context_val: bool, comet_logger: Experiment):
+def log_simclr_images(
+    img1: Tensor, img2: Tensor, context_val: bool, comet_logger: Experiment
+):
 
     if context_val:
         with comet_logger.validate():
@@ -104,24 +114,22 @@ def log_simclr_images(img1, img2, context_val: bool, comet_logger: Experiment):
             plot_simclr_images(img1.data[0].cpu(), img2.data[0].cpu(), comet_logger)
 
 
-def vanila_contrastive_loss(
-    z1: torch.Tensor, z2: torch.Tensor, temperature=0.5
-) -> torch.Tensor:
+def vanila_contrastive_loss(z1: Tensor, z2: Tensor, temperature: float = 0.5) -> Tensor:
     """Calculates the contrastive loss as mentioned in SimCLR paper
         https://arxiv.org/pdf/2002.05709.pdf.
     Parts of the code adapted from pl_bolts nt_ext_loss.
 
     Args:
-        z1 (torch.Tensor): Tensor of normalized projections of the images.
+        z1 (Tensor): Tensor of normalized projections of the images.
             (#samples_in_batch x vector_dim).
-        z2 (torch.Tensor): Tensor of normalized projections of the same images but with
+        z2 (Tensor): Tensor of normalized projections of the same images but with
             different transformation.(#samples_in_batch x vector_dim)
         temperature (float, optional): Temperature term in the contrastive loss.
             Defaults to 0.5. In SimCLr paper it was shown t=0.5 is good for training
             with small batches.
 
     Returns:
-        torch.Tensor: Contrastive loss (1 x 1)
+        Tensor: Contrastive loss (1 x 1)
     """
     z = torch.cat([z1, z2], dim=0)
     n_samples = len(z)
@@ -146,7 +154,7 @@ def get_latest_checkpoint(experiment_name: str, checkpoint: str = "") -> str:
 
     Args:
         experiment_name (str): experiment name.
-
+        checkpoint (str): checkpoint name eg. 'epoch=99.ckpt'
     Returns:
         str: absolute path to the latest checkpoint
     """
@@ -160,7 +168,32 @@ def get_latest_checkpoint(experiment_name: str, checkpoint: str = "") -> str:
     return os.path.join(checkpoint_path, latest_checkpoint)
 
 
-def log_pairwise_images(img1, img2, gt_pred, context_val, comet_logger):
+def get_encoder_state_dict(saved_model_path: str, checkpoint: str) -> dict:
+    """state dict of encoder of the saved pretrained model at 'saved_model_path'.
+
+    Args:
+        experiment_name (str): experiment name.
+        checkpoint (str): checkpoint name eg. 'epoch=99.ckpt'
+
+    Returns:
+        dict: saved encoder weights.
+    """
+    saved_state_dict = torch.load(get_latest_checkpoint(saved_model_path, checkpoint))[
+        "state_dict"
+    ]
+    encoder_state_dict = {
+        key[8:]: value for key, value in saved_state_dict.items() if "encoder" in key
+    }
+    return encoder_state_dict
+
+
+def log_pairwise_images(
+    img1: Tensor,
+    img2: Tensor,
+    gt_pred: Dict[str, Tensor],
+    context_val: bool,
+    comet_logger: Experiment,
+):
     gt_pred = {
         k: [v[0].data[0].cpu().numpy(), v[1].data[0].cpu().numpy()]
         for k, v in gt_pred.items()
@@ -177,7 +210,13 @@ def log_pairwise_images(img1, img2, gt_pred, context_val, comet_logger):
             )
 
 
-def log_hybrid2_images(img1, img2, params, context_val, comet_logger):
+def log_hybrid2_images(
+    img1: Tensor,
+    img2: Tensor,
+    params: Dict[str, Tensor],
+    context_val: bool,
+    comet_logger: Experiment,
+):
     params = {k: v.data[0].cpu() for k, v in params.items()}
     if context_val:
         with comet_logger.validate():
@@ -192,22 +231,19 @@ def log_hybrid2_images(img1, img2, params, context_val, comet_logger):
 
 
 def get_rotation_2D_matrix(
-    angle: torch.Tensor,
-    center_x: torch.Tensor,
-    center_y: torch.Tensor,
-    scale: torch.Tensor,
-) -> torch.Tensor:
+    angle: Tensor, center_x: Tensor, center_y: Tensor, scale: Tensor
+) -> Tensor:
     """Generates 2D rotation matrix transpose. the matrix generated is for the whole batch.
     The implementation of 2D matrix is same as that in openCV.
 
     Args:
-        angle (torch.Tensor): 1D tensor of rotation angles for the batch
-        center_x (torch.Tensor): 1D tensor of x coord of center of the keypoints.
-        center_y (torch.Tensor): 1D tensor of x coord of center of the keypoints.
-        scale (torch.Tensor): Scale, set it to 1.0.
+        angle (Tensor): 1D tensor of rotation angles for the batch
+        center_x (Tensor): 1D tensor of x coord of center of the keypoints.
+        center_y (Tensor): 1D tensor of x coord of center of the keypoints.
+        scale (Tensor): Scale, set it to 1.0.
 
     Returns:
-        torch.Tensor: Returns a tensor of 2D rotation matrix for the batch.
+        Tensor: Returns a tensor of 2D rotation matrix for the batch.
     """
     # convert to radians
     angle = angle * np.pi / 180
@@ -224,16 +260,16 @@ def get_rotation_2D_matrix(
     return rot_mat
 
 
-def rotate_encoding(encoding, angle) -> torch.Tensor:
+def rotate_encoding(encoding: Tensor, angle: Tensor) -> Tensor:
     """Function to 2D rotate a batch of encodings by a batch of angles.
     The third dimension is n not changed.
 
     Args:
-        encoding (torch.Tensor): Encodings of shape (batch_size,m,3)
+        encoding (Tensor): Encodings of shape (batch_size,m,3)
         angle ([type]): batch of angles (batch_size,)
 
     Returns:
-        torch.Tensor: Rotated batch of keypoints.
+        Tensor: Rotated batch of keypoints.
     """
     # new rotation
     center_xyz = torch.mean(encoding.detach(), 1)
@@ -261,17 +297,17 @@ def rotate_encoding(encoding, angle) -> torch.Tensor:
 
 
 def translate_encodings(
-    encoding: torch.Tensor, translate_x: torch.Tensor, translate_y: torch.Tensor
-) -> torch.Tensor:
+    encoding: Tensor, translate_x: Tensor, translate_y: Tensor
+) -> Tensor:
     """Translates the encodings along first two dimensions with linear scaling
 
     Args:
-        encoding (torch.Tensor): image encodings/projections from the network
-        translate_x (torch.Tensor): normlaized jitter along x axis of the input image
-        translate_y (torch.Tensor): normalized jitter along y axis of the input image.
+        encoding (Tensor): image encodings/projections from the network
+        translate_x (Tensor): normlaized jitter along x axis of the input image
+        translate_y (Tensor): normalized jitter along y axis of the input image.
 
     Returns:
-        torch.Tensor: Translated encodings based on scaled normalized jitter.
+        Tensor: Translated encodings based on scaled normalized jitter.
     """
     max_encodings = torch.max(encoding.detach(), dim=1).values
     min_encodings = torch.min(encoding.detach(), dim=1).values
