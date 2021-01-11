@@ -22,6 +22,7 @@ class Hybrid2Model(SimCLR):
 
     def __init__(self, config: edict):
         super().__init__(config)
+        self.train_metrics = {}
 
     def get_transformed_projections(
         self, batch: Dict[str, Tensor]
@@ -34,7 +35,28 @@ class Hybrid2Model(SimCLR):
         image2_shape = batch["transformed_image2"].size()[-2:]
         batch_size = int(len(batch_transform) / 2)
         encodings = self.encoder(batch_transform)
-        projections = self.projection_head(encodings).view((batch_size * 2, -1, 3))
+        # projections = self.projection_head(encodings).view((batch_size * 2, -1, 3))
+
+        # normalizing before rotation
+        projection = self.projection_head(encodings)
+        norm_projection1 = F.normalize(projection[:batch_size])
+        norm_projection2 = F.normalize(projection[batch_size:])
+        projections = torch.cat([norm_projection1, norm_projection2], dim=0).view(
+            (batch_size * 2, -1, 2)
+        )
+
+        projection1_stat = self.get_projection_stats(
+            projections[:batch_size].detach(), "proj1"
+        )
+        projection2_stat = self.get_projection_stats(
+            projections[batch_size:].detach(), "proj2"
+        )
+
+        self.train_metrics = {
+            **self.train_metrics,
+            **projection1_stat,
+            **projection2_stat,
+        }
 
         if "rotate" in self.config.augmentation:
             # make sure the shape is (batch,-1,3).
@@ -69,3 +91,19 @@ class Hybrid2Model(SimCLR):
         projection1, projection2 = self.get_transformed_projections(batch)
         loss = vanila_contrastive_loss(projection1, projection2)
         return loss
+
+    def get_projection_stats(self, projection: Tensor, name: str) -> dict:
+        projection_mean = torch.mean(projection, dim=1)
+        projection_median = torch.median(projection, dim=1).values
+        projection_min = torch.min(projection, dim=1).values
+        projection_max = torch.max(projection, dim=1).values
+        return {
+            f"{name}x_mean": torch.mean(projection_mean, dim=0)[0],
+            f"{name}x_median": torch.mean(projection_median, dim=0)[0],
+            f"{name}x_min": torch.mean(projection_min, dim=0)[0],
+            f"{name}x_max": torch.mean(projection_max, dim=0)[0],
+            f"{name}y_mean": torch.mean(projection_mean, dim=0)[1],
+            f"{name}y_median": torch.mean(projection_median, dim=0)[1],
+            f"{name}y_min": torch.mean(projection_min, dim=0)[1],
+            f"{name}y_max": torch.mean(projection_max, dim=0)[1],
+        }

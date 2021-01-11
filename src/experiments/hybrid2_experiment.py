@@ -70,7 +70,7 @@ def main():
     model = Hybrid2Model(model_param)
 
     # callbacks
-    logging_interval = "epoch"
+    logging_interval = "step"
     upload_comet_logs = UploadCometLogs(
         logging_interval, get_console_logger("callback"), "hybrid2"
     )

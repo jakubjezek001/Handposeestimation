@@ -54,7 +54,7 @@ class SimCLR(BaseModel):
 
     def training_step(self, batch: dict, batch_idx: int) -> Dict[str, Tensor]:
         loss = self.contrastive_step(batch)
-        self.train_metrics = {"loss": loss.detach()}
+        self.train_metrics = {**self.train_metrics, **{"loss": loss.detach()}}
         self.plot_params = {
             "image1": batch["transformed_image1"],
             "image2": batch["transformed_image2"],
