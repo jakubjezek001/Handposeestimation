@@ -98,3 +98,6 @@ notebooks/*.svg
 src/data_loader/data_tester.py
 notebooks/06-Equivariance_analysis.ipynb
 notebooks/07-Zroot_fine_tuning.ipynb
+src/experiments/supervised_debugger.py
+src/experiments/hybrid2_experiment_debug.py
+src/experiments/hybrid2_experiment_debug.py
