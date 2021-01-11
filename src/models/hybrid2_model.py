@@ -35,7 +35,16 @@ class Hybrid2Model(SimCLR):
         image2_shape = batch["transformed_image2"].size()[-2:]
         batch_size = int(len(batch_transform) / 2)
         encodings = self.encoder(batch_transform)
-        projections = self.projection_head(encodings).view((batch_size * 2, -1, 3))
+        # projections = self.projection_head(encodings).view((batch_size * 2, -1, 3))
+
+        # normalizing before rotation
+        projection = self.projection_head(encodings)
+        norm_projection1 = F.normalize(projection[:batch_size])
+        norm_projection2 = F.normalize(projection[batch_size:])
+        projections = torch.cat([norm_projection1, norm_projection2], dim=0).view(
+            (batch_size * 2, -1, 2)
+        )
+
         projection1_stat = self.get_projection_stats(
             projections[:batch_size].detach(), "proj1"
         )
