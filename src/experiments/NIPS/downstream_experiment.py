@@ -17,6 +17,7 @@ from src.experiments.utils import (
 )
 from src.models.callbacks.upload_comet_logs import UploadCometLogs
 from src.models.supervised_head_model import SupervisedHead
+from src.models.denoised_supervised_head_model import DenoisedSupervisedHead
 from src.utils import get_console_logger, read_json
 from torchvision import transforms
 
@@ -64,7 +65,10 @@ def main():
         model_param.saved_model_name = args.experiment_key
         model_param.checkpoint = checkpoint
         model_param.batch_size = data_param.batch_size
-        model = SupervisedHead(model_param)
+        if args.denoiser:
+            model = DenoisedSupervisedHead(config=model_param)
+        else:
+            model = SupervisedHead(config=model_param)
 
         # callbacks
         logging_interval = "epoch"

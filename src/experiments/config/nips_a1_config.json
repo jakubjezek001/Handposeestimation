@@ -67,6 +67,7 @@
         "output_dim": 128,
         "projection_head_hidden_dim": 2048,
         "projection_head_input_dim": 512,
-        "warmup_epochs": 10
+        "warmup_epochs": 10,
+        "optimizer": "LARS"
     }
 }

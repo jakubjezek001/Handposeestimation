@@ -322,6 +322,9 @@ def get_downstream_args():
         default=None,
         help="Type of experiment for tagging.",
     )
+    parser.add_argument(
+        "--denoiser", action="store_true", help="To enable denoising", default=False
+    )
     args = parser.parse_args()
     args = parser.parse_args()
     return args
