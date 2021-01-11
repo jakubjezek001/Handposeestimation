@@ -34,8 +34,8 @@
                 0.01,
                 1.0
             ],
-            "max_angle": 359,
-            "min_angle": 0,
+            "max_angle": 90,
+            "min_angle": -90,
             "resize_shape": [
                 128,
                 128
@@ -70,6 +70,7 @@
         "gpu": true,
         "checkpoint": "",
         "optimizer": "LARS",
-        "resnet_trainable":true
+        "resnet_trainable":true,
+        "num_of_mini_batch":1
     }
 }
