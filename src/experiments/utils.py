@@ -80,6 +80,13 @@ def get_general_args(
     parser.add_argument(
         "--denoiser", action="store_true", help="To enable denoising", default=False
     )
+    parser.add_argument(
+        "-log_interval",
+        type=str,
+        help="To enable denoising",
+        default="epoch",
+        choices=["step", "epoch"],
+    )
     args = parser.parse_args()
     return args
 
