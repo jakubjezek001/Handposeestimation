@@ -7,9 +7,10 @@ import torch
 import torchvision
 from easydict import EasyDict as edict
 from sklearn.model_selection import train_test_split
-from src.constants import FREIHAND_DATA, INTERHAND_DATA
+from src.constants import FREIHAND_DATA, INTERHAND_DATA, YOUTUBE_DATA
 from src.data_loader.freihand_loader import F_DB
 from src.data_loader.interhand_loader import IH_DB
+from src.data_loader.youtube_loader import YTB_DB
 from src.data_loader.sample_augmenter import SampleAugmenter
 from src.data_loader.utils import convert_2_5D_to_3D, convert_to_2_5D
 from torch.utils.data import Dataset
@@ -78,6 +79,13 @@ class Data_Set(Dataset):
 
         elif self.source == "interhand":
             self.db = IH_DB(root_dir=INTERHAND_DATA, split="train")
+            self.train_indices, self.val_indices = train_test_split(
+                np.arange(0, len(self.db)),
+                train_size=self.config.train_ratio,
+                random_state=self.config.seed,
+            )
+        elif self.source == "youtube":
+            self.db = YTB_DB(root_dir=YOUTUBE_DATA, split="train")
             self.train_indices, self.val_indices = train_test_split(
                 np.arange(0, len(self.db)),
                 train_size=self.config.train_ratio,
