@@ -22,7 +22,6 @@ class Hybrid2Model(SimCLR):
 
     def __init__(self, config: edict):
         super().__init__(config)
-        self.train_metrics = {}
 
     def get_transformed_projections(
         self, batch: Dict[str, Tensor]
