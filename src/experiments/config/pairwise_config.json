@@ -9,5 +9,6 @@
         "rotation": 1
     },
     "warmup_epochs": 10,
-    "optimizer": "LARS"
+    "optimizer": "LARS",
+    "num_of_mini_batch":1
 }

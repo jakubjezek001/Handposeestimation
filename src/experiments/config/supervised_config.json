@@ -6,5 +6,6 @@
     "opt_weight_decay": 0.0001,
     "resnet_trainable": true,
     "warmup_epochs": 10,
-    "optimizer": "LARS"
+    "optimizer": "LARS",
+    "num_of_mini_batch":1
 }

@@ -7,5 +7,6 @@
     "alpha": 5,
     "gpu": true,
     "checkpoint":"",
-    "optimizer": "LARS"
+    "optimizer": "LARS",
+    "num_of_mini_batch":1
 }
