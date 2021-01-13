@@ -3,10 +3,11 @@
     "lr": 0.0001,
     "opt_weight_decay": 0.0001,
     "warmup_epochs": 10,
-    "saved_model_name":"9f302cea72a2459eb14dfad33b1a9783",
+    "saved_model_name": "9f302cea72a2459eb14dfad33b1a9783",
     "alpha": 5,
     "gpu": true,
-    "checkpoint":"",
+    "checkpoint": "",
     "optimizer": "LARS",
-    "num_of_mini_batch":1
+    "num_of_mini_batch": 1,
+    "resenet_rainable": true
 }
