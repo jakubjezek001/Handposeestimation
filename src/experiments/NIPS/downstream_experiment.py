@@ -65,6 +65,7 @@ def main():
         model_param.saved_model_name = args.experiment_key
         model_param.checkpoint = checkpoint
         model_param.batch_size = data_param.batch_size
+        model_param.num_of_minibatch = data_param.accumulate_grad_batches
         if args.denoiser:
             model = DenoisedSupervisedHead(config=model_param)
         else:

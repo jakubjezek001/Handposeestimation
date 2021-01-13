@@ -87,6 +87,19 @@ def get_general_args(
         default="epoch",
         choices=["step", "epoch"],
     )
+    parser.add_argument(
+        "-experiment_key",
+        type=str,
+        help="Experiment key of pretrained encoder",
+        default=None,
+    )
+    parser.add_argument(
+        "-checkpoint", type=str, help="checkpoint name to restore.", default=""
+    )
+    parser.add_argument(
+        "-experiment_name", type=str, help="experiment name for logging", default=""
+    )
+
     args = parser.parse_args()
     return args
 
