@@ -24,3 +24,9 @@ def get_console_logger(script_name: str) -> logging.Logger:
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     return logger
+
+
+def save_json(obj: dict, file_path: str):
+    """Saves the object as a json at given path"""
+    with open(file_path, "w") as f:
+        json.dump(obj, f)
