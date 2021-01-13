@@ -32,7 +32,7 @@ def main():
         "Downstream experiment will be run for"
         f" {len(get_checkpoints(args.experiment_key))} checkpoints"
     )
-    for checkpoint in get_checkpoints(args.experiment_key):
+    for checkpoint in get_checkpoints(args.experiment_key, args.num_of_checkpoints):
         seed_everything(data_param.seed)
         console_logger.info(f"Checkpoint {args.experiment_name} {checkpoint}")
         # data preperation

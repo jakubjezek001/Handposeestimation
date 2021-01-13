@@ -332,6 +332,12 @@ def get_downstream_args():
     parser.add_argument(
         "--denoiser", action="store_true", help="To enable denoising", default=False
     )
+    parser.add_argument(
+        "-num_of_checkpoints",
+        type=int,
+        help="Numberof checkpoints to fine tune",
+        default=-1,
+    )
     args = parser.parse_args()
     args = parser.parse_args()
     return args
