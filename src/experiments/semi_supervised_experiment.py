@@ -103,7 +103,7 @@ def main():
         ),
     )
 
-    trainer.logger.experiment.add_tags([args.experiment_type, "SSL", "downstream"])
+    trainer.logger.experiment.add_tags(["HYBRID2", "SSL", "downstream"] + args.tag)
     trainer.logger.experiment.log_parameters(train_param)
     trainer.logger.experiment.log_parameters(model_param)
 
