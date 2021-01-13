@@ -9,5 +9,5 @@
     "checkpoint": "",
     "optimizer": "LARS",
     "num_of_mini_batch": 1,
-    "resenet_rainable": true
+    "resnet_trainable": true
 }
