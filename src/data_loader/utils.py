@@ -2,13 +2,13 @@ import copy
 from math import cos, pi, sin
 from os.path import join
 from src.models.utils import get_latest_checkpoint
-from typing import Tuple
+from typing import Tuple, Union
 import numpy as np
 import torch
 from PIL import Image
 from src.data_loader.joints import Joints
 from src.types import CAMERA_PARAM, JOINTS_3D, JOINTS_25D, SCALE
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, ConcatDataset, Dataset
 from torchvision import transforms
 
 JOINTS = Joints()
@@ -222,7 +222,9 @@ def sample_resizer(
     return image, joints_resized
 
 
-def get_train_val_split(data, **kwargs) -> Tuple[DataLoader, DataLoader]:
+def get_train_val_split(
+    data: Union[Dataset, ConcatDataset], **kwargs
+) -> Tuple[DataLoader, DataLoader]:
     """Creates validation and train dataloader from the Data_set object.
 
     Args:
@@ -233,13 +235,42 @@ def get_train_val_split(data, **kwargs) -> Tuple[DataLoader, DataLoader]:
     Returns:
         Tuple[DataLoader, DataLoader]: train and validation data loader respectively.
     """
-    data.is_training(True)
-    val_data = copy.copy(data)
-    val_data.is_training(False)
-    return (
-        DataLoader(data, **kwargs),
-        DataLoader(val_data, **{**kwargs, "shuffle": False}),
-    )
+
+    if isinstance(data, ConcatDataset):
+        val_datasets = []
+        for i in range(len(data.datasets)):
+            val_datasets.append(copy.copy(data.datasets[i]))
+            val_datasets[-1].is_training(False)
+        val_data = ConcatDataset(val_datasets)
+        return (
+            DataLoader(data, **kwargs),
+            DataLoader(val_data, **{**kwargs, "shuffle": False}),
+        )
+    else:
+        data.is_training(True)
+        val_data = copy.copy(data)
+        val_data.is_training(False)
+        return (
+            DataLoader(data, **kwargs),
+            DataLoader(val_data, **{**kwargs, "shuffle": False}),
+        )
+
+
+def get_data(data_class, train_param, sources: list, experiment_type: str = "hybrid2"):
+    datasets = []
+    for source in sources:
+        datasets.append(
+            data_class(
+                config=train_param,
+                transform=transforms.Compose([transforms.ToTensor()]),
+                train_set=True,
+                experiment_type=experiment_type,
+                source=source,
+            )
+        )
+
+    data = ConcatDataset(datasets)
+    return data
 
 
 def get_zroot_constraint_terms(
