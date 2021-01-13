@@ -3,7 +3,7 @@ from math import cos, pi, sin
 from os.path import join
 from src.models.utils import get_latest_checkpoint
 from typing import Tuple
-
+import numpy as np
 import torch
 from PIL import Image
 from src.data_loader.joints import Joints
@@ -291,3 +291,34 @@ def get_zroot_constraint_terms(
         Z_m = joints_25D[CHILD_JOINT, -1]
         C = 1
     return x_n, y_n, Z_n, x_m, y_m, Z_m, C
+
+
+def sudo_joint_bound(vertices: np.array):
+    """Calculates the bound box from the mano mesh vertices of youtube hand dataset.
+
+    Args:
+        vertices ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """
+    max_ver, min_ver = np.max(vertices, axis=0), np.min(vertices, axis=0)
+    center_ver = (max_ver + min_ver) / 2
+    return np.concatenate(
+        (
+            np.array([[max_ver[0], max_ver[1], max_ver[2]]] * 5),
+            np.array([[min_ver[0], min_ver[1], min_ver[2]]] * 5),
+            np.array([[min_ver[0], max_ver[1], min_ver[2]]] * 5),
+            np.array([[max_ver[0], min_ver[1], max_ver[2]]] * 5),
+            center_ver.reshape((1, -1)),
+        )
+    )
+    # return np.concatenate(
+    #     (
+    #         np.array([[max_ver[0], max_ver[1], 1.0]] * 5),
+    #         np.array([[min_ver[0], min_ver[1], 1.0]] * 5),
+    #         np.array([[min_ver[0], max_ver[1], 1.0]] * 5),
+    #         np.array([[max_ver[0], min_ver[1], 1.0]] * 5),
+    #         center_ver.reshape((1, -1)),
+    #     )
+    # )

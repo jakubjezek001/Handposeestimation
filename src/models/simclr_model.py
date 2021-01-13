@@ -54,13 +54,13 @@ class SimCLR(BaseModel):
 
     def training_step(self, batch: dict, batch_idx: int) -> Dict[str, Tensor]:
         loss = self.contrastive_step(batch)
-        self.train_metrics = {**self.train_metrics, **{"loss": loss.detach()}}
+        self.train_metrics = {**self.train_metrics, **{"loss": loss}}
         self.plot_params = {
             "image1": batch["transformed_image1"],
             "image2": batch["transformed_image2"],
             "params": {k: v for k, v in batch.items() if "image" not in k},
         }
-        return {"loss": loss}
+        return self.train_metrics
 
     def validation_step(self, batch: dict, batch_idx: int) -> Dict[str, Tensor]:
         loss = self.contrastive_step(batch)

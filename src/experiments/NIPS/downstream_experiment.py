@@ -32,7 +32,7 @@ def main():
         "Downstream experiment will be run for"
         f" {len(get_checkpoints(args.experiment_key))} checkpoints"
     )
-    for checkpoint in get_checkpoints(args.experiment_key):
+    for checkpoint in get_checkpoints(args.experiment_key, args.num_of_checkpoints):
         seed_everything(data_param.seed)
         console_logger.info(f"Checkpoint {args.experiment_name} {checkpoint}")
         # data preperation
@@ -65,6 +65,7 @@ def main():
         model_param.saved_model_name = args.experiment_key
         model_param.checkpoint = checkpoint
         model_param.batch_size = data_param.batch_size
+        model_param.num_of_minibatch = data_param.accumulate_grad_batches
         if args.denoiser:
             model = DenoisedSupervisedHead(config=model_param)
         else:

@@ -70,14 +70,14 @@ def main():
     model = Hybrid2Model(model_param)
 
     # callbacks
-    logging_interval = "step"
+    logging_interval = args.log_interval
     upload_comet_logs = UploadCometLogs(
         logging_interval, get_console_logger("callback"), "hybrid2"
     )
     lr_monitor = LearningRateMonitor(logging_interval=logging_interval)
     # saving the best model as per the validation loss.
     checkpoint_callback = ModelCheckpoint(
-        save_top_k=3, period=1, monitor="checkpoint_saving_loss"
+        save_top_k=-1, period=25, monitor="checkpoint_saving_loss"
     )
 
     # trainer

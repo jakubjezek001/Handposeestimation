@@ -20,10 +20,10 @@ class BaseModel(LightningModule):
         self.encoder = torchvision.models.resnet18(pretrained=True)
         self.encoder.fc = torch.nn.Sequential()
         self.config = config
-        self.train_metrics_epoch = None
-        self.train_metrics = None
-        self.validation_metrics_epoch = None
-        self.plot_params = None
+        self.train_metrics_epoch = {}
+        self.train_metrics = {}
+        self.validation_metrics_epoch = {}
+        self.plot_params = {}
 
     def exclude_from_wt_decay(
         self,
