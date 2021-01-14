@@ -12,7 +12,7 @@ from src.constants import (
     TRAINING_CONFIG_PATH,
 )
 from src.data_loader.data_set import Data_Set
-from src.data_loader.utils import get_train_val_split
+from src.data_loader.utils import get_train_val_split, get_data
 from src.experiments.utils import (
     get_general_args,
     prepare_name,
@@ -36,12 +36,18 @@ def main():
     console_logger.info(f"Train parameters {pformat(train_param)}")
     seed_everything(train_param.seed)
 
-    data = Data_Set(
-        config=train_param,
-        transform=transforms.Compose([transforms.ToTensor()]),
-        train_set=True,
+    data = get_data(
+        Data_Set,
+        train_param,
+        sources=["freihand", "youtube"],
         experiment_type="hybrid2",
     )
+    # data = Data_Set(
+    #     config=train_param,
+    #     transform=transforms.Compose([transforms.ToTensor()]),
+    #     train_set=True,
+    #     experiment_type="hybrid2",
+    # )
     train_data_loader, val_data_loader = get_train_val_split(
         data,
         batch_size=train_param.batch_size,
