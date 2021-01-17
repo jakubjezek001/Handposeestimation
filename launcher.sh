@@ -278,7 +278,7 @@ HYBRID2_DOWN)
     ;;
 BSUB)
     echo " bsub -J $NAME -W $TIME:00 -o /cluster/scratch//adahiya/${NAME}_logs.out \
-     -n $CORES -R 'rusage[mem=$MEMORY, ngpus_excl_p=1 gpu_model0==$GPU_MODEL]' \
+     -n $CORES -R 'rusage[mem=$MEMORY, ngpus_excl_p=1]' -R 'select[gpu_model0==$GPU_MODEL]' \
      -G ls_infk \
       python src/experiments/<SCRIPT>"
     ;;
