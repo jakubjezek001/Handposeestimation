@@ -256,13 +256,20 @@ def get_train_val_split(
         )
 
 
-def get_data(data_class, train_param, sources: list, experiment_type: str = "hybrid2"):
+def get_data(data_class, train_param, sources: list, experiment_type: str):
     datasets = []
     for source in sources:
         datasets.append(
             data_class(
                 config=train_param,
-                transform=transforms.Compose([transforms.ToTensor()]),
+                transform=transforms.Compose(
+                    [
+                        transforms.ToTensor(),
+                        transforms.Normalize(
+                            (0.485, 0.456, 0.406), (0.229, 0.224, 0.225)
+                        ),
+                    ]
+                ),
                 train_set=True,
                 experiment_type=experiment_type,
                 source=source,
