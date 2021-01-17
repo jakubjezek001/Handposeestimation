@@ -10,10 +10,12 @@ from src.constants import (
     HYBRID2_CONFIG,
     MASTER_THESIS_DIR,
     TRAINING_CONFIG_PATH,
+    COMET_KWARGS,
 )
 from src.data_loader.data_set import Data_Set
-from src.data_loader.utils import get_train_val_split
+from src.data_loader.utils import get_train_val_split, get_data
 from src.experiments.utils import (
+    get_callbacks,
     get_general_args,
     prepare_name,
     update_train_params,
@@ -27,6 +29,7 @@ from torchvision import transforms
 
 def main():
     # get configs
+    experiment_type = "hybrid2"
     console_logger = get_console_logger(__name__)
     args = get_general_args("Hybrid model 2 training script.")
 
@@ -36,11 +39,9 @@ def main():
     console_logger.info(f"Train parameters {pformat(train_param)}")
     seed_everything(train_param.seed)
 
-    data = Data_Set(
-        config=train_param,
-        transform=transforms.Compose([transforms.ToTensor()]),
-        train_set=True,
-        experiment_type="hybrid2",
+    # data preperation
+    data = get_data(
+        Data_Set, train_param, sources=args.sources, experiment_type=experiment_type
     )
     train_data_loader, val_data_loader = get_train_val_split(
         data,
@@ -48,16 +49,11 @@ def main():
         num_workers=train_param.num_workers,
         shuffle=True,
     )
-
     # Logger
-    experiment_name = prepare_name("hybrid2_", train_param, hybrid_naming=False)
-    comet_logger = CometLogger(
-        api_key=os.environ.get("COMET_API_KEY"),
-        project_name="master-thesis",
-        workspace="dahiyaaneesh",
-        save_dir=SAVED_META_INFO_PATH,
-        experiment_name=experiment_name,
+    experiment_name = prepare_name(
+        f"{experiment_type}_", train_param, hybrid_naming=False
     )
+    comet_logger = CometLogger(**COMET_KWARGS, experiment_name=experiment_name)
 
     # model
     model_param.num_samples = len(data)
@@ -70,26 +66,21 @@ def main():
     model = Hybrid2Model(model_param)
 
     # callbacks
-    logging_interval = args.log_interval
-    upload_comet_logs = UploadCometLogs(
-        logging_interval, get_console_logger("callback"), "hybrid2"
+    callbacks = get_callbacks(
+        logging_interval=args.log_interval,
+        experiment_type="hybrid2",
+        save_top_k=3,
+        period=1,
     )
-    lr_monitor = LearningRateMonitor(logging_interval=logging_interval)
-    # saving the best model as per the validation loss.
-    checkpoint_callback = ModelCheckpoint(
-        save_top_k=-1, period=25, monitor="checkpoint_saving_loss"
-    )
-
     # trainer
     trainer = Trainer(
         accumulate_grad_batches=train_param.accumulate_grad_batches,
         gpus="0",
-        checkpoint_callback=checkpoint_callback,
         logger=comet_logger,
         max_epochs=train_param.epochs,
         precision=train_param.precision,
         amp_backend="native",
-        callbacks=[lr_monitor, upload_comet_logs],
+        **callbacks,
     )
     trainer.logger.experiment.set_code(
         overwrite=True,

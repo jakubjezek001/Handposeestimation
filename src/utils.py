@@ -1,6 +1,7 @@
 import json
 from src.constants import STD_LOGGING_FORMAT
 import logging
+from yacs.config import load_cfg
 
 
 def read_json(file_path: str) -> dict:
@@ -30,3 +31,8 @@ def save_json(obj: dict, file_path: str):
     """Saves the object as a json at given path"""
     with open(file_path, "w") as f:
         json.dump(obj, f)
+
+
+def read_yaml(filepath: str):
+    with open(filepath, "r") as f:
+        return load_cfg(f)

@@ -318,3 +318,15 @@ def translate_encodings(
         translate_y * (max_encodings[:, 1] - min_encodings[:, 1])
     ).view((-1, 1))
     return encoding
+
+
+def normalize_heatmap(heatmap: Tensor, beta: Tensor = None):
+    n, c, _, _ = heatmap.size()
+    beta = (
+        torch.ones(size=(1, c, 1, 1), requires_grad=False).to(heatmap.device)
+        if beta is None
+        else beta
+    )
+    heatmap = torch.exp(heatmap) * beta
+    channel_sum = torch.sum(heatmap, dim=[2, 3])
+    return heatmap / channel_sum.view([n, c, 1, 1])
