@@ -55,3 +55,9 @@ ANGLES = [i for i in range(10, 360, 10)]
 SAVED_MODELS_BASE_PATH = os.environ.get("SAVED_MODELS_BASE_PATH")
 SAVED_META_INFO_PATH = os.environ.get("SAVED_META_INFO_PATH")
 STD_LOGGING_FORMAT = "%(name)s -%(levelname)s - %(message)s"
+COMET_KWARGS = {
+    "api_key": os.environ.get("COMET_API_KEY"),
+    "project_name": "master-thesis",
+    "workspace": "dahiyaaneesh",
+    "save_dir": SAVED_META_INFO_PATH,
+}

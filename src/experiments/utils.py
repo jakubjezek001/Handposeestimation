@@ -1,24 +1,27 @@
 import argparse
 import os
-from logging import Logger
-from pprint import pformat
 from typing import List, Tuple
 
 import torch
 from comet_ml import Experiment
 from easydict import EasyDict as edict
+from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from src.constants import (
     DATA_PATH,
     MASTER_THESIS_DIR,
+    SAVED_META_INFO_PATH,
+    SAVED_MODELS_BASE_PATH,
     SUPERVISED_CONFIG_PATH,
     TRAINING_CONFIG_PATH,
-    SAVED_MODELS_BASE_PATH,
-    SAVED_META_INFO_PATH,
 )
 from src.data_loader.data_set import Data_Set
-from src.models.utils import get_latest_checkpoint
-from src.utils import read_json
 from src.experiments.evaluation_utils import evaluate
+from src.models.baseline_model import BaselineModel
+from src.models.callbacks.upload_comet_logs import UploadCometLogs
+from src.models.denoised_baseline import DenoisedBaselineModel
+from src.models.heatmap_model import HeatmapPoseModel
+from src.models.utils import get_latest_checkpoint
+from src.utils import get_console_logger
 
 
 def get_general_args(
@@ -432,3 +435,35 @@ def get_checkpoints(experiment_key: str, number: int = 3) -> List[str]:
     return sorted(
         os.listdir(os.path.join(SAVED_MODELS_BASE_PATH, experiment_key, "checkpoints"))
     )[::-1][:number]
+
+
+def get_model(supervised_flag: bool, heatmap_flag: bool, denoiser_flag: bool):
+    if supervised_flag:
+        if heatmap_flag:
+            return HeatmapPoseModel
+        else:
+            if denoiser_flag:
+                return DenoisedBaselineModel
+            else:
+                return BaselineModel
+
+
+def get_callbacks(
+    logging_interval: str,
+    experiment_type: str,
+    save_top_k: int = 1,
+    period: int = 1,
+    monitor: str = "checkpoint_saving_loss",
+):
+    upload_comet_logs = UploadCometLogs(
+        logging_interval, get_console_logger("callback"), experiment_type
+    )
+    lr_monitor = LearningRateMonitor(logging_interval=logging_interval)
+    # saving the best model as per the validation loss.
+    checkpoint_callback = ModelCheckpoint(
+        save_top_k=save_top_k, period=period, monitor=monitor
+    )
+    return {
+        "callbacks": [lr_monitor, upload_comet_logs],
+        "checkpoint_callback": checkpoint_callback,
+    }
