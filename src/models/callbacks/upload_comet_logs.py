@@ -38,7 +38,8 @@ class UploadCometLogs(Callback):
     def on_train_batch_end(
         self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx
     ):
-        pl_module.plot_params = unormalize_images(pl_module.plot_params)
+        if batch_idx == 4:
+            pl_module.plot_params = unormalize_images(pl_module.plot_params)
         if self.valid_logger:
             if self.supervised and batch_idx == 4:
                 try:

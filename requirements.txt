@@ -8,6 +8,7 @@ jupyter_contrib_nbextensions==0.5.1 # BSD
 ipykernel==5.3.2                    # BSD
 black==19.10b0                      # MIT
 seaborn==0.10.1                     # BSD 3-clause
+yacs
 # Install pytorch as per your systems configguration
 
 easydict

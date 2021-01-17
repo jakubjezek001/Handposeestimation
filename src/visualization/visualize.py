@@ -190,7 +190,7 @@ def unormalize_images(plot_params: dict) -> dict:
     for k, v in plot_params.items():
         try:
             if "image" in k or "img" in k or "input" in k:
-                plot_params[k] = inv_normlaize(plot_params[k])
+                plot_params[k][0] = inv_normlaize(plot_params[k][0])
         except Exception as e:
             print(f"Can't revert the normalization! {e}")
 
