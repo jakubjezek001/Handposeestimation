@@ -78,7 +78,24 @@ def get_general_args(
         help="Number of batches to accumulate gradient.",
     )
     parser.add_argument(
+        "-optimizer",
+        type=str,
+        help="Select optimizer",
+        default="LARS",
+        choices=["LARS", "adam"],
+    )
+    parser.add_argument(
         "--denoiser", action="store_true", help="To enable denoising", default=False
+    )
+    parser.add_argument(
+        "--heatmap", action="store_true", help="To enable heatmap model", default=False
+    )
+    parser.add_argument(
+        "-sources",
+        action="append",
+        help="Data sources to use.",
+        default=["freihand"],
+        choices=["freihand", "interhand", "mpii", "youtube"],
     )
     parser.add_argument(
         "-log_interval",
