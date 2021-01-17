@@ -1,5 +1,5 @@
 from easydict import EasyDict as edict
-from src.models.denoised_baseline import DenoisedBaselineModel
+from src.models.supervised.denoised_baseline import DenoisedBaselineModel
 from src.models.utils import get_encoder_state_dict
 
 

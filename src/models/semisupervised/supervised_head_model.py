@@ -1,5 +1,5 @@
 from easydict import EasyDict as edict
-from src.models.baseline_model import BaselineModel
+from src.models.supervised.baseline_model import BaselineModel
 from src.models.utils import get_encoder_state_dict
 
 

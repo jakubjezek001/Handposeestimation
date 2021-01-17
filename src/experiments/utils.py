@@ -16,12 +16,11 @@ from src.constants import (
 )
 from src.data_loader.data_set import Data_Set
 from src.experiments.evaluation_utils import evaluate
-from src.models import heatmap_model
-from src.models.baseline_model import BaselineModel
-from src.models.denoised_heatmap_model import DenoisedHeatmapmodel
+from src.models.supervised.baseline_model import BaselineModel
+from src.models.supervised.denoised_heatmap_model import DenoisedHeatmapmodel
 from src.models.callbacks.upload_comet_logs import UploadCometLogs
-from src.models.denoised_baseline import DenoisedBaselineModel
-from src.models.heatmap_model import HeatmapPoseModel
+from src.models.supervised.denoised_baseline import DenoisedBaselineModel
+from src.models.supervised.heatmap_model import HeatmapPoseModel
 from src.models.utils import get_latest_checkpoint
 from src.utils import get_console_logger
 

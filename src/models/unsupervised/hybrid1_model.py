@@ -6,7 +6,7 @@ from pl_bolts.optimizers.lars_scheduling import LARSWrapper
 from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
 from pytorch_lightning.core.lightning import LightningModule
 from torch import nn
-from torch.nn import L1Loss, CrossEntropyLoss
+from torch.nn import L1Loss
 from src.models.utils import vanila_contrastive_loss
 
 

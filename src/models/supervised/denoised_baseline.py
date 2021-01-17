@@ -3,7 +3,7 @@ from typing import Dict
 import torch
 from easydict import EasyDict as edict
 from src.data_loader.utils import PARENT_JOINT, get_root_depth
-from src.models.baseline_model import BaselineModel
+from src.models.supervised.baseline_model import BaselineModel
 from src.models.utils import cal_l1_loss, get_denoiser
 from src.utils import get_console_logger
 from torch import nn, Tensor

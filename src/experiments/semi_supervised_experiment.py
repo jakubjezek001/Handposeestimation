@@ -22,8 +22,10 @@ from src.experiments.utils import (
 from src.models.callbacks.upload_comet_logs import UploadCometLogs
 from src.utils import get_console_logger, read_json
 from torchvision import transforms
-from src.models.supervised_head_model import SupervisedHead
-from src.models.denoised_supervised_head_model import DenoisedSupervisedHead
+from src.models.semisupervised.supervised_head_model import SupervisedHead
+from src.models.semisupervised.denoised_supervised_head_model import (
+    DenoisedSupervisedHead,
+)
 
 
 def main():

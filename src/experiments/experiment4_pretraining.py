@@ -18,7 +18,7 @@ from src.experiments.utils import (
     process_experiment_args,
 )
 from src.models.callbacks.upload_comet_logs import UploadCometLogs
-from src.models.simclr_model import SimCLR
+from src.models.unsupervised.simclr_model import SimCLR
 from src.utils import get_console_logger, read_json
 from torchvision import transforms
 

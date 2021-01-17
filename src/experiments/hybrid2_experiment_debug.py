@@ -20,7 +20,7 @@ from src.experiments.utils import (
     save_experiment_key,
 )
 from src.models.callbacks.upload_comet_logs import UploadCometLogs
-from src.models.hybrid2_model import Hybrid2Model
+from src.models.unsupervised.hybrid2_model import Hybrid2Model
 from src.utils import get_console_logger, read_json
 from torchvision import transforms
 

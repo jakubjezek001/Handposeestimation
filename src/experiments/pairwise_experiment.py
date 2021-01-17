@@ -14,7 +14,7 @@ from src.constants import (
 from src.data_loader.data_set import Data_Set
 from src.data_loader.utils import get_train_val_split
 from src.models.callbacks.upload_comet_logs import UploadCometLogs
-from src.models.pairwise_model import PairwiseModel
+from src.models.unsupervised.pairwise_model import PairwiseModel
 from src.utils import get_console_logger, read_json
 from src.experiments.utils import prepare_name
 from torchvision import transforms
