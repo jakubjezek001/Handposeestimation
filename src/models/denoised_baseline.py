@@ -4,7 +4,7 @@ import torch
 from easydict import EasyDict as edict
 from src.data_loader.utils import PARENT_JOINT, get_root_depth
 from src.models.baseline_model import BaselineModel
-from src.models.utils import cal_l1_loss
+from src.models.utils import cal_l1_loss, get_denoiser
 from src.utils import get_console_logger
 from torch import nn, Tensor
 from torch.nn.modules.loss import L1Loss
@@ -19,15 +19,7 @@ class DenoisedBaselineModel(BaselineModel):
     def __init__(self, config: edict):
         super().__init__(config)
         self.console_logger = get_console_logger("denoised_baseline_model")
-        self.denoiser = nn.Sequential(
-            nn.Linear(21 * 3 + 3 * 3 + 1, 64),
-            nn.BatchNorm1d(64),
-            nn.ReLU(),
-            nn.Linear(64, 32),
-            nn.BatchNorm1d(32),
-            nn.ReLU(),
-            nn.Linear(32, 1),
-        )
+        self.denoiser = get_denoiser()
 
     def training_step(
         self, batch: Dict[str, Tensor], batch_idx: int

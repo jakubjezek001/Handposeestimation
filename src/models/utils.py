@@ -330,3 +330,15 @@ def normalize_heatmap(heatmap: Tensor, beta: Tensor = None):
     heatmap = torch.exp(heatmap) * beta
     channel_sum = torch.sum(heatmap, dim=[2, 3])
     return heatmap / channel_sum.view([n, c, 1, 1])
+
+
+def get_denoiser():
+    return nn.Sequential(
+        nn.Linear(21 * 3 + 3 * 3 + 1, 64),
+        nn.BatchNorm1d(64),
+        nn.ReLU(),
+        nn.Linear(64, 32),
+        nn.BatchNorm1d(32),
+        nn.ReLU(),
+        nn.Linear(32, 1),
+    )

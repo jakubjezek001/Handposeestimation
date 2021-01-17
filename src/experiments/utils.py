@@ -16,7 +16,9 @@ from src.constants import (
 )
 from src.data_loader.data_set import Data_Set
 from src.experiments.evaluation_utils import evaluate
+from src.models import heatmap_model
 from src.models.baseline_model import BaselineModel
+from src.models.denoised_heatmap_model import DenoisedHeatmapmodel
 from src.models.callbacks.upload_comet_logs import UploadCometLogs
 from src.models.denoised_baseline import DenoisedBaselineModel
 from src.models.heatmap_model import HeatmapPoseModel
@@ -439,13 +441,14 @@ def get_checkpoints(experiment_key: str, number: int = 3) -> List[str]:
 
 def get_model(supervised_flag: bool, heatmap_flag: bool, denoiser_flag: bool):
     if supervised_flag:
-        if heatmap_flag:
+        if heatmap_flag and not denoiser_flag:
             return HeatmapPoseModel
+        elif heatmap_flag and denoiser_flag:
+            return DenoisedHeatmapmodel
+        elif denoiser_flag:
+            return DenoisedBaselineModel
         else:
-            if denoiser_flag:
-                return DenoisedBaselineModel
-            else:
-                return BaselineModel
+            return BaselineModel
 
 
 def get_callbacks(
