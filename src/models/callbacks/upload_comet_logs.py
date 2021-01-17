@@ -1,7 +1,6 @@
 import logging
 
 from comet_ml import Experiment
-from comet_ml import experiment
 from pytorch_lightning.callbacks import Callback
 from src.models.utils import (
     log_image,
@@ -10,6 +9,7 @@ from src.models.utils import (
     log_pairwise_images,
     log_hybrid2_images,
 )
+from src.visualization.visualize import unormalize_images
 
 
 class UploadCometLogs(Callback):
@@ -38,6 +38,7 @@ class UploadCometLogs(Callback):
     def on_train_batch_end(
         self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx
     ):
+        pl_module.plot_params = unormalize_images(pl_module.plot_params)
         if self.valid_logger:
             if self.supervised and batch_idx == 4:
                 try:

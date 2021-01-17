@@ -182,3 +182,16 @@ def plot_hybrid2_images(img1, img2, params, comet_logger):
         comet_logger.log_figure(figure=plt)
 
     plt.close()
+
+
+def unormalize_images(plot_params: dict) -> dict:
+    mean, std = torch.tensor((0.485, 0.456, 0.406)), torch.tensor((0.229, 0.224, 0.225))
+    inv_normlaize = transforms.Normalize(mean=-mean / std, std=1 / std)
+    for k, v in plot_params.items():
+        try:
+            if "image" in k or "img" in k or "input" in k:
+                plot_params[k] = inv_normlaize(plot_params[k])
+        except Exception as e:
+            print(f"Can't revert the normalization! {e}")
+
+    return plot_params
