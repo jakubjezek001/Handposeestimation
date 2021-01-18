@@ -167,34 +167,31 @@ fi
 
 # $1: additional args
 launch_simclr() {
-    bsub -J "sim_abl" -W "$TIME:00" \-o "/cluster/scratch//adahiya/sim_abl_logs.out" \
-        -n $2 -R "rusage[mem=$MEMORY, ngpus_excl_p=1]" \
+    bsub -J "simclr" -W "$TIME:00" \-o "/cluster/scratch//adahiya/sim_abl_logs.out" \
+        -n $CORES -R "rusage[mem=$MEMORY, ngpus_excl_p=1]" \
         -R "select[gpu_model0==$GPU_MODEL]" \
         -G ls_infk \
-        python src/experiments/simclr_experiment.py \
-        $1
+        python src/experiments/simclr_experiment.py $1
     # python src/experiments/simclr_experiment.py $1
 }
 
 # $1: additional args
 launch_semisupervised() {
-    bsub -J "sim_abl" -W "$TIME:00" \-o "/cluster/scratch//adahiya/sim_abl_logs.out" \
-        -n $2 -R "rusage[mem=$MEMORY, ngpus_excl_p=1]" \
+    bsub -J "ssl" -W "$TIME:00" \-o "/cluster/scratch//adahiya/sim_abl_logs.out" \
+        -n $CORES -R "rusage[mem=$MEMORY, ngpus_excl_p=1]" \
         -R "select[gpu_model0==$GPU_MODEL]" \
         -G ls_infk \
         python src/experiments/semi_supervised_experiment.py $1
-    $1
     # python src/experiments/semi_supervised_experiment.py $1
 }
 
 # $1: additional args
 launch_hybrid2() {
-    bsub -J "sim_abl" -W "$TIME:00" \-o "/cluster/scratch//adahiya/sim_abl_logs.out" \
-        -n $2 -R "rusage[mem=$MEMORY, ngpus_excl_p=1]" \
+    bsub -J "hybrid2" -W "$TIME:00" \-o "/cluster/scratch//adahiya/sim_abl_logs.out" \
+        -n $CORES -R "rusage[mem=$MEMORY, ngpus_excl_p=1]" \
         -R "select[gpu_model0==$GPU_MODEL]" \
         -G ls_infk \
         python src/experiments/hybrid2_experiment.py $1
-    $1
     # python src/experiments/hybrid2_experiment.py $1
 
 }
