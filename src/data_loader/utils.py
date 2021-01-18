@@ -280,6 +280,7 @@ def get_train_val_split(
 
 def get_data(data_class, train_param, sources: list, experiment_type: str):
     datasets = []
+    sources = ["freihand"] if len(sources) == 0 else sources
     for source in sources:
         datasets.append(
             data_class(

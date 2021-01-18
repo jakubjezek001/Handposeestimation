@@ -65,8 +65,8 @@ def main():
     callbacks = get_callbacks(
         logging_interval=args.log_interval,
         experiment_type="hybrid1",
-        save_top_k=3,
-        period=1,
+        save_top_k=args.save_top_k,
+        period=args.save_period,
     )
 
     # trainer
@@ -85,11 +85,12 @@ def main():
             MASTER_THESIS_DIR, "src", "experiments", "hybrid1_experiment.py"
         ),
     )
-    save_experiment_key(
-        experiment_name,
-        trainer.logger.experiment.get_key(),
-        os.path.basename(__file__).replace(".py", ""),
-    )
+    if args.meta_file is not None:
+        save_experiment_key(
+            experiment_name=experiment_name,
+            experiment_key=trainer.logger.experiment.get_key(),
+            filename=args.meta_file,
+        )
     trainer.logger.experiment.log_parameters(train_param)
     trainer.logger.experiment.log_parameters(model_param)
     trainer.logger.experiment.add_tags(["pretraining", "HYBRID1"] + args.tag)

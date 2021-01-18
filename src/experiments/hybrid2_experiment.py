@@ -68,8 +68,8 @@ def main():
     callbacks = get_callbacks(
         logging_interval=args.log_interval,
         experiment_type="hybrid2",
-        save_top_k=3,
-        period=1,
+        save_top_k=args.save_top_k,
+        period=args.save_period,
     )
     # trainer
     trainer = Trainer(

@@ -12,11 +12,10 @@ from src.constants import (
     TRAINING_CONFIG_PATH,
 )
 from src.data_loader.data_set import Data_Set
-from src.data_loader.utils import get_train_val_split
+from src.data_loader.utils import get_train_val_split, get_data
 from src.experiments.utils import (
     downstream_evaluation,
     get_callbacks,
-    get_data,
     get_general_args,
     get_model,
     prepare_name,
@@ -71,8 +70,8 @@ def main():
     callbacks = get_callbacks(
         logging_interval=args.log_interval,
         experiment_type="supervised",
-        save_top_k=1,
-        period=1,
+        save_top_k=args.save_top_k,
+        period=args.save_period,
     )
     # Trainer setup
 

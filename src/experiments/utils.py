@@ -111,7 +111,7 @@ def get_general_args(
         "-sources",
         action="append",
         help="Data sources to use.",
-        default=["freihand"],
+        default=[],
         choices=["freihand", "interhand", "mpii", "youtube"],
     )
     parser.add_argument(
@@ -131,9 +131,23 @@ def get_general_args(
         "-checkpoint", type=str, help="checkpoint name to restore.", default=""
     )
     parser.add_argument(
+        "-meta_file",
+        type=str,
+        help="File to save the name of the experiment.",
+        default=None,
+    )
+    parser.add_argument(
         "-experiment_name", type=str, help="experiment name for logging", default=""
     )
-
+    parser.add_argument(
+        "-save_period",
+        type=int,
+        help="interval at which experiments should be saved",
+        default=1,
+    )
+    parser.add_argument(
+        "-save_top_k", type=int, help="Top snapshots to save", default=3
+    )
     args = parser.parse_args()
     return args
 
@@ -195,7 +209,7 @@ def get_hybrid1_args(
         "-sources",
         action="append",
         help="Data sources to use.",
-        default=["freihand"],
+        default=[],
         choices=["freihand", "interhand", "mpii", "youtube"],
     )
     parser.add_argument(
@@ -205,7 +219,21 @@ def get_hybrid1_args(
         default="epoch",
         choices=["step", "epoch"],
     )
-
+    parser.add_argument(
+        "-meta_file",
+        type=str,
+        help="File to save the name of the experiment.",
+        default=None,
+    )
+    parser.add_argument(
+        "-save_period",
+        type=int,
+        help="interval at which experiments should be saved",
+        default=1,
+    )
+    parser.add_argument(
+        "-save_top_k", type=int, help="Top snapshots to save", default=3
+    )
     args = parser.parse_args()
     return args
 

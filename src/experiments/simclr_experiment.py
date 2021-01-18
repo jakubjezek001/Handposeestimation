@@ -19,6 +19,7 @@ from src.experiments.utils import (
     get_general_args,
     prepare_name,
     update_train_params,
+    save_experiment_key,
 )
 from src.utils import get_console_logger, read_json
 
@@ -50,7 +51,6 @@ def main():
         f"{experiment_type}_", train_param, hybrid_naming=False
     )
     comet_logger = CometLogger(**COMET_KWARGS, experiment_name=experiment_name)
-
     # model.
     model_param.num_samples = len(data)
     model_param.batch_size = train_param.batch_size
@@ -64,8 +64,8 @@ def main():
     callbacks = get_callbacks(
         logging_interval=args.log_interval,
         experiment_type="simclr",
-        save_top_k=3,
-        period=1,
+        save_top_k=args.save_top_k,
+        period=args.save_period,
     )
     # trainer
 
@@ -84,6 +84,12 @@ def main():
             MASTER_THESIS_DIR, "src", "experiments", "simclr_experiment.py"
         ),
     )
+    if args.meta_file is not None:
+        save_experiment_key(
+            experiment_name=experiment_name,
+            experiment_key=trainer.logger.experiment.get_key(),
+            filename=args.meta_file,
+        )
     trainer.logger.experiment.log_parameters(train_param)
     trainer.logger.experiment.log_parameters(model_param)
     trainer.logger.experiment.add_tags(["pretraining", "simclr"] + args.tag)
