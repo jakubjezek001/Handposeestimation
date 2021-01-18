@@ -44,10 +44,7 @@ def main():
         Data_Set, train_param, sources=args.sources, experiment_type="supervised"
     )
     train_data_loader, val_data_loader = get_train_val_split(
-        data,
-        num_workers=train_param.num_workers,
-        batch_size=train_param.batch_size,
-        shuffle=True,
+        data, num_workers=train_param.num_workers, batch_size=train_param.batch_size
     )
 
     # logger

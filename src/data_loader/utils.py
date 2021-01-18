@@ -1,7 +1,9 @@
 import copy
 from math import cos, pi, sin
+from os import replace
 from os.path import join
 from src.models.utils import get_latest_checkpoint
+import itertools
 from typing import Tuple, Union
 import numpy as np
 import torch
@@ -10,6 +12,7 @@ from src.data_loader.joints import Joints
 from src.types import CAMERA_PARAM, JOINTS_3D, JOINTS_25D, SCALE
 from torch.utils.data import DataLoader, ConcatDataset, Dataset
 from torchvision import transforms
+from torch.utils.data import WeightedRandomSampler
 
 JOINTS = Joints()
 PARENT_JOINT = JOINTS.mapping.ait.wrist
@@ -238,20 +241,39 @@ def get_train_val_split(
 
     if isinstance(data, ConcatDataset):
         val_datasets = []
+        train_weights, val_weights = [], []
         for i in range(len(data.datasets)):
+            train_weights += [1.0 / len(data.datasets[i])] * len(data.datasets[i])
             val_datasets.append(copy.copy(data.datasets[i]))
             val_datasets[-1].is_training(False)
+            val_weights += [1.0 / len(val_datasets[-1])] * len(val_datasets[-1])
         val_data = ConcatDataset(val_datasets)
+        train_weights = np.array(train_weights) / sum(train_weights)
+        val_weights = np.array(val_weights) / sum(val_weights)
         return (
-            DataLoader(data, **kwargs),
-            DataLoader(val_data, **{**kwargs, "shuffle": False}),
+            DataLoader(
+                data,
+                sampler=WeightedRandomSampler(
+                    weights=train_weights,
+                    num_samples=len(train_weights),
+                    replacement=True,
+                ),
+                **kwargs
+            ),
+            DataLoader(
+                val_data,
+                sampler=WeightedRandomSampler(
+                    weights=val_weights, num_samples=len(val_weights), replacement=True
+                ),
+                **kwargs
+            ),
         )
     else:
         data.is_training(True)
         val_data = copy.copy(data)
         val_data.is_training(False)
         return (
-            DataLoader(data, **kwargs),
+            DataLoader(data, **{**kwargs, "shuffle": True}),
             DataLoader(val_data, **{**kwargs, "shuffle": False}),
         )
 

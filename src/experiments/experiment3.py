@@ -52,10 +52,7 @@ def main():
         experiment_type="supervised",
     )
     train_data_loader, val_data_loader = get_train_val_split(
-        data,
-        batch_size=train_param.batch_size,
-        num_workers=train_param.num_workers,
-        shuffle=True,
+        data, batch_size=train_param.batch_size, num_workers=train_param.num_workers
     )
     # Logger
 
