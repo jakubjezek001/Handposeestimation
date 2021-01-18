@@ -351,6 +351,16 @@ CROSS_DATA_PRETRAIN)
         -tag cross_data -save_top_k -1  -save_period 25"
     launch_hybrid2 "$args"
     ;;
+CROSS_DATA_DOWNSTREAM)
+    echo "Launching hybrid 2 cross dataset downstream"
+    args="--rotate --crop  --resize  -batch_size 128  -epochs 50 -optimizer adam \
+        -tag cross_data -save_top_k 1  -save_period 1"
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -sources freihand "
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -sources interhand "
+    done <$SAVED_META_INFO_PATH/simclr_ablative
+    launch_hybrid2 "$args"
+    ;;
 *)
     echo "Experiment not recognized!"
     echo "(Run $0 -h for help)"
