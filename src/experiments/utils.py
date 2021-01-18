@@ -1,5 +1,6 @@
 import argparse
 import os
+from src.models.unsupervised.pairwise_heatmap_model import PairwiseHeatmapModel
 from src.models.unsupervised.hybrid2_heatmap_model import Hybrid2HeatmapModel
 from src.models.unsupervised.pairwise_model import PairwiseModel
 from typing import List, Tuple
@@ -467,7 +468,10 @@ def get_model(experiment_type: str, heatmap_flag: bool, denoiser_flag: bool):
     elif experiment_type == "hybrid1":
         return Hybrid1Model
     elif experiment_type == "pairwise":
-        return PairwiseModel
+        if heatmap_flag:
+            return PairwiseHeatmapModel
+        else:
+            return PairwiseModel
 
 
 def get_callbacks(

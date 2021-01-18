@@ -1,94 +1,96 @@
-import copy
 import os
+from pprint import pformat
 
 from easydict import EasyDict as edict
 from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
 from src.constants import (
-    SAVED_META_INFO_PATH,
-    PAIRWISE_CONFIG,
-    TRAINING_CONFIG_PATH,
+    COMET_KWARGS,
     MASTER_THESIS_DIR,
+    PAIRWISE_CONFIG,
+    PAIRWISE_HEATMAP_CONFIG,
+    TRAINING_CONFIG_PATH,
 )
 from src.data_loader.data_set import Data_Set
-from src.data_loader.utils import get_train_val_split
-from src.models.callbacks.upload_comet_logs import UploadCometLogs
-from src.models.unsupervised.pairwise_model import PairwiseModel
+from src.data_loader.utils import get_data, get_train_val_split
+from src.experiments.utils import (
+    get_callbacks,
+    get_general_args,
+    get_model,
+    prepare_name,
+    update_train_params,
+)
 from src.utils import get_console_logger, read_json
-from src.experiments.utils import prepare_name
-from torchvision import transforms
 
 
 def main():
-
+    experiment_type = "pairwise"
+    console_logger = get_console_logger(__name__)
+    args = get_general_args("Pairwise model training script.")
     train_param = edict(read_json(TRAINING_CONFIG_PATH))
-    train_param.epochs = 1000
-    train_param.batch_size = 64
-    train_param.augmentation_flags = {
-        "color_drop": False,
-        "color_jitter": True,
-        "crop": True,
-        "cut_out": False,
-        "flip": False,
-        "gaussian_blur": False,
-        "random_crop": False,
-        "resize": True,
-        "rotate": True,
-    }
+    train_param = update_train_params(args, train_param)
+    model_param_path = PAIRWISE_HEATMAP_CONFIG if args.heatmap else PAIRWISE_CONFIG
+    model_param = edict(read_json(model_param_path))
     seed_everything(train_param.seed)
 
-    train_data = Data_Set(
-        config=train_param,
-        transform=transforms.ToTensor(),
-        train_set=True,
-        experiment_type="pairwise",
+    # data preperation
+    data = get_data(
+        Data_Set, train_param, sources=args.sources, experiment_type=experiment_type
     )
-    val_data = copy.copy(train_data)
-    val_data.is_training(False)
-
     train_data_loader, val_data_loader = get_train_val_split(
-        train_data,
+        data,
         batch_size=train_param.batch_size,
         num_workers=train_param.num_workers,
         shuffle=True,
     )
     # logger
-    comet_logger = CometLogger(
-        api_key=os.environ.get("COMET_API_KEY"),
-        project_name="master-thesis",
-        workspace="dahiyaaneesh",
-        save_dir=SAVED_META_INFO_PATH,
-        experiment_name=prepare_name("pair_exp3", train_param),
+    experiment_name = prepare_name(
+        f"{experiment_type}_", train_param, hybrid_naming=False
     )
+    comet_logger = CometLogger(**COMET_KWARGS, experiment_name=experiment_name)
     # model
 
-    model_param = edict(read_json(PAIRWISE_CONFIG))
     model_param.batch_size = train_param.batch_size
-    model_param.num_samples = len(train_data)
-    model = PairwiseModel(model_param)
+    model_param.num_samples = len(data)
+    model_param.num_of_mini_batch = train_param.accumulate_grad_batches
+    model_param.augmentation = [
+        k
+        for k, v in train_param.augmentation_flags.items()
+        if train_param.augmentation_flags[k]
+    ]
+    console_logger.info(f"Model parameters {pformat(model_param)}")
+    model = get_model(
+        experiment_type="pairwise",
+        heatmap_flag=args.heatmap,
+        denoiser_flag=args.denoiser,
+    )(config=model_param)
 
     # callbacks
-    upload_comet_logs = UploadCometLogs(
-        "epoch", get_console_logger("callback"), "pairwise"
+    callbacks = get_callbacks(
+        logging_interval=args.log_interval,
+        experiment_type=experiment_type,
+        save_top_k=3,
+        period=1,
     )
-    lr_monitor = LearningRateMonitor(logging_interval="epoch")
-    checkpoint_callback = ModelCheckpoint(save_top_k=-1, period=50)
     # trainer
     trainer = Trainer(
-        precision=16,
-        logger=comet_logger,
-        checkpoint_callback=checkpoint_callback,
-        callbacks=[upload_comet_logs, lr_monitor],
+        accumulate_grad_batches=train_param.accumulate_grad_batches,
         gpus="0",
+        logger=comet_logger,
         max_epochs=train_param.epochs,
+        precision=train_param.precision,
+        amp_backend="native",
+        **callbacks,
     )
     trainer.logger.experiment.set_code(
         overwrite=True,
-        filename=os.path.join(MASTER_THESIS_DIR, "src", "models", "pairwise_model.py"),
+        filename=os.path.join(
+            MASTER_THESIS_DIR, "src", "experiments", "pairwise_experiment.py"
+        ),
     )
-    trainer.logger.experiment.log_parameters({"train_param": train_param})
-    trainer.logger.experiment.log_parameters({"model_param": model_param})
+    trainer.logger.experiment.log_parameters(train_param)
+    trainer.logger.experiment.log_parameters(model_param)
+    trainer.logger.experiment.add_tags(["pretraining", "pairwise"] + args.tag)
     # training
     trainer.fit(model, train_data_loader, val_data_loader)
 
