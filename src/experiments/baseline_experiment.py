@@ -60,7 +60,9 @@ def main():
     model_param.batch_size = train_param.batch_size
     console_logger.info(f"Model parameters {pformat(model_param)}")
     model = get_model(
-        supervised_flag=True, heatmap_flag=args.heatmap, denoiser_flag=args.denoiser
+        experiment_type="supervised",
+        heatmap_flag=args.heatmap,
+        denoiser_flag=args.denoiser,
     )(config=model_param)
 
     # callbacks
