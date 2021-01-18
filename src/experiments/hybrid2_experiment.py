@@ -3,28 +3,25 @@ from pprint import pformat
 
 from easydict import EasyDict as edict
 from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
 from src.constants import (
-    SAVED_META_INFO_PATH,
+    COMET_KWARGS,
     HYBRID2_CONFIG,
+    HYBRID2_HEATMAP_CONFIG,
     MASTER_THESIS_DIR,
     TRAINING_CONFIG_PATH,
-    COMET_KWARGS,
 )
 from src.data_loader.data_set import Data_Set
-from src.data_loader.utils import get_train_val_split, get_data
+from src.data_loader.utils import get_data, get_train_val_split
 from src.experiments.utils import (
     get_callbacks,
     get_general_args,
+    get_model,
     prepare_name,
-    update_train_params,
     save_experiment_key,
+    update_train_params,
 )
-from src.models.callbacks.upload_comet_logs import UploadCometLogs
-from src.models.unsupervised.hybrid2_model import Hybrid2Model
 from src.utils import get_console_logger, read_json
-from torchvision import transforms
 
 
 def main():
@@ -35,7 +32,8 @@ def main():
 
     train_param = edict(read_json(TRAINING_CONFIG_PATH))
     train_param = update_train_params(args, train_param)
-    model_param = edict(read_json(HYBRID2_CONFIG))
+    model_param_path = HYBRID2_HEATMAP_CONFIG if args.heatmap else HYBRID2_CONFIG
+    model_param = edict(read_json(model_param_path))
     console_logger.info(f"Train parameters {pformat(train_param)}")
     seed_everything(train_param.seed)
 
@@ -63,7 +61,11 @@ def main():
         key for key, value in train_param.augmentation_flags.items() if value is True
     ]
     console_logger.info(f"Model parameters {pformat(model_param)}")
-    model = Hybrid2Model(model_param)
+    model = get_model(
+        experiment_type="hybrid2",
+        heatmap_flag=args.heatmap,
+        denoiser_flag=args.denoiser,
+    )(config=model_param)
 
     # callbacks
     callbacks = get_callbacks(
