@@ -1,31 +1,29 @@
 import os
 from pprint import pformat
+
 from easydict import EasyDict as edict
 from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
 from src.constants import (
-    SAVED_META_INFO_PATH,
+    COMET_KWARGS,
     MASTER_THESIS_DIR,
-    TRAINING_CONFIG_PATH,
+    SAVED_META_INFO_PATH,
     SSL_CONFIG,
+    TRAINING_CONFIG_PATH,
 )
 from src.data_loader.data_set import Data_Set
 from src.data_loader.utils import get_train_val_split
 from src.experiments.utils import (
-    get_general_args,
-    prepare_name,
-    update_train_params,
     downstream_evaluation,
+    get_callbacks,
+    get_data,
+    get_general_args,
+    get_model,
+    prepare_name,
     restore_model,
+    update_train_params,
 )
-from src.models.callbacks.upload_comet_logs import UploadCometLogs
 from src.utils import get_console_logger, read_json
-from torchvision import transforms
-from src.models.semisupervised.supervised_head_model import SupervisedHead
-from src.models.semisupervised.denoised_supervised_head_model import (
-    DenoisedSupervisedHead,
-)
 
 
 def main():
@@ -38,17 +36,11 @@ def main():
     console_logger.info(f"Train parameters {pformat(train_param)}")
 
     # data preperation
-    data = Data_Set(
-        config=train_param,
-        transform=transforms.Compose([transforms.ToTensor()]),
-        train_set=True,
-        experiment_type="supervised",
+    data = get_data(
+        Data_Set, train_param, sources=args.sources, experiment_type="supervised"
     )
     train_data_loader, val_data_loader = get_train_val_split(
-        data,
-        batch_size=train_param.batch_size,
-        num_workers=train_param.num_workers,
-        shuffle=True,
+        data, batch_size=train_param.batch_size, num_workers=train_param.num_workers
     )
     # Logger
     experiment_name = prepare_name(f"ssl_{args.experiment_name}", train_param)
@@ -61,7 +53,6 @@ def main():
     )
 
     # model.
-
     model_param = edict(read_json(SSL_CONFIG))
     model_param.num_samples = len(data)
     model_param.batch_size = train_param.batch_size
@@ -70,21 +61,18 @@ def main():
         model_param.checkpoint = args.checkpoint
     model_param.num_of_minibatch = train_param.accumulate_grad_batches
     console_logger.info(f"Model parameters {pformat(model_param)}")
-    if args.denoiser:
-        model = DenoisedSupervisedHead(model_param)
-    else:
-        model = SupervisedHead(model_param)
+    model = get_model(
+        experiment_type="semisupervised",
+        heatmap_flag=args.heatmap,
+        denoiser_flag=args.denoiser,
+    )(config=model_param)
 
     # callbacks
-    logging_interval = args.log_interval
-    upload_comet_logs = UploadCometLogs(
-        logging_interval, get_console_logger("callback"), "supervised"
-    )
-    lr_monitor = LearningRateMonitor(logging_interval=logging_interval)
-    # saving the best model as per the validation loss.
-
-    checkpoint_callback = ModelCheckpoint(
-        save_top_k=1, period=1, monitor="checkpoint_saving_loss"
+    callbacks = get_callbacks(
+        logging_interval=args.log_interval,
+        experiment_type="supervised",
+        save_top_k=1,
+        period=1,
     )
     # Trainer setup
 
@@ -95,8 +83,7 @@ def main():
         max_epochs=train_param.epochs,
         precision=train_param.precision,
         amp_backend="native",
-        callbacks=[lr_monitor, upload_comet_logs],
-        checkpoint_callback=checkpoint_callback,
+        **callbacks,
     )
     trainer.logger.experiment.set_code(
         overwrite=True,
@@ -104,8 +91,9 @@ def main():
             MASTER_THESIS_DIR, "src", "models", "semi_supervised_experiment.py"
         ),
     )
-
-    trainer.logger.experiment.add_tags(["HYBRID2", "SSL", "downstream"] + args.tag)
+    tags = ["SSL", "downstream"]
+    tags += ["heatmap"] if args.heatmap else []
+    trainer.logger.experiment.add_tags(tags + args.tag)
     trainer.logger.experiment.log_parameters(train_param)
     trainer.logger.experiment.log_parameters(model_param)
 

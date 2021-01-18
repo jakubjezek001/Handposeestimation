@@ -1,4 +1,5 @@
 import argparse
+from multiprocessing import Semaphore
 import os
 from src.models.unsupervised.hybrid1_heatmap_model import Hybrid1HeatmapModel
 from src.models.unsupervised.pairwise_heatmap_model import PairwiseHeatmapModel
@@ -28,6 +29,10 @@ from src.models.unsupervised.hybrid1_model import Hybrid1Model
 from src.models.unsupervised.hybrid2_model import Hybrid2Model
 from src.models.callbacks.upload_comet_logs import UploadCometLogs
 from src.models.supervised.denoised_baseline import DenoisedBaselineModel
+from src.models.semisupervised.supervised_head_model import SupervisedHead
+from src.models.semisupervised.denoised_supervised_head_model import (
+    DenoisedSupervisedHead,
+)
 from src.models.supervised.heatmap_model import HeatmapPoseModel
 from src.models.utils import get_latest_checkpoint
 from src.utils import get_console_logger
@@ -506,6 +511,11 @@ def get_model(experiment_type: str, heatmap_flag: bool, denoiser_flag: bool):
             return PairwiseHeatmapModel
         else:
             return PairwiseModel
+    elif experiment_type == "semisupervised":
+        if denoiser_flag:
+            return DenoisedSupervisedHead
+        else:
+            return SupervisedHead
 
 
 def get_callbacks(
