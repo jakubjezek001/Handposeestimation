@@ -1,19 +1,15 @@
-from typing import Dict
-
 import torch
-from pytorch_lightning.core.lightning import LightningModule
 from src.constants import HRNET_CONFIG
-from src.models.supervised.baseline_model import BaselineModel
 from src.models.external.HRnet.pose_hrnet import get_pose_net
 from src.models.external.spatial_2d_soft_argmax import spatial_soft_argmax2d
+from src.models.supervised.baseline_model import BaselineModel
 from src.utils import read_yaml
 from torch import Tensor
 
 
 class HeatmapPoseModel(BaselineModel):
     def __init__(self, config):
-        LightningModule.__init__(self)
-        self.config = config
+        super().__init__(config)
         self.epsilon = 1e-6
         hrnet_config = read_yaml(HRNET_CONFIG)
         self.encoder = get_pose_net(hrnet_config.MODEL36, True)
