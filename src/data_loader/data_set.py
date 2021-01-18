@@ -106,9 +106,11 @@ class Data_Set(Dataset):
 
         # Returning data as per the experiment.
         if self.experiment_type == "simclr":
-            sample = self.prepare_simclr_sample(sample, self.augmenter)
+            # sample = self.prepare_simclr_sample(sample, self.augmenter)
+            sample = self.prepare_experiment4_pretraining(sample, self.augmenter)
         elif self.experiment_type == "pairwise":
-            sample = self.prepare_pairwise_sample(sample, self.augmenter)
+            # sample = self.prepare_pairwise_sample(sample, self.augmenter)
+            sample = self.prepare_pairwise_ablative(sample, self.augmenter)
         elif self.experiment_type == "experiment4_pretraining":
             # for simclr ablative, for nips A1
             sample = self.prepare_experiment4_pretraining(sample, self.augmenter)
@@ -195,7 +197,7 @@ class Data_Set(Dataset):
         else:
             override_angle = None
             # override_angle = random.uniform(1, 360)
-            # uncomment line baove to add this rotation  to both channels
+            # uncomment line above to add this rotation  to both channels
 
         img1, _, _ = augmenter.transform_sample(
             sample["image"], joints25D.clone(), override_angle, override_jitter
