@@ -132,7 +132,7 @@ class PairwiseModel(BaseModel):
         )
         batch_size = len(batch_images) // 2
         encoding = self.get_encodings(batch_images)
-        # concatentating wmbeddings of augmented sample pairs
+        # concatentating embeddings of augmented sample pairs
         encoding = torch.cat((encoding[:batch_size], encoding[batch_size:]), 1)
         loss = 0
         log = {}

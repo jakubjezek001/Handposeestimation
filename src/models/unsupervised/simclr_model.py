@@ -1,9 +1,10 @@
-import torch
-from src.models.utils import vanila_contrastive_loss
-from torch import nn, Tensor
-from src.models.base_model import BaseModel
 from typing import Dict
+
+import torch
 from easydict import EasyDict as edict
+from src.models.base_model import BaseModel
+from src.models.utils import vanila_contrastive_loss
+from torch import Tensor, nn
 
 
 class SimCLR(BaseModel):
@@ -38,7 +39,7 @@ class SimCLR(BaseModel):
         concat_batch = torch.cat(
             (batch["transformed_image1"], batch["transformed_image2"]), dim=0
         )
-        concat_encoding = self.encoder(concat_batch)
+        concat_encoding = self.get_encodings(concat_batch)
         concat_projections = self.projection_head(concat_encoding)
         projection1, projection2 = (
             nn.functional.normalize(concat_projections[:batch_size]),
@@ -46,6 +47,9 @@ class SimCLR(BaseModel):
         )
         loss = vanila_contrastive_loss(projection1, projection2)
         return loss
+
+    def get_encodings(self, batch_images: Tensor) -> Tensor:
+        return self.encoder(batch_images)
 
     def forward(self, x: Tensor) -> Dict[str, Tensor]:
         embedding = self.encoder(x)
