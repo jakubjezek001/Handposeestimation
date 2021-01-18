@@ -1,5 +1,6 @@
 import argparse
 import os
+from src.models.unsupervised.hybrid1_heatmap_model import Hybrid1HeatmapModel
 from src.models.unsupervised.pairwise_heatmap_model import PairwiseHeatmapModel
 from src.models.unsupervised.hybrid2_heatmap_model import Hybrid2HeatmapModel
 from src.models.unsupervised.pairwise_model import PairwiseModel
@@ -148,12 +149,14 @@ def get_hybrid1_args(
         action="append",
         help="Add augmentations for contrastive sample.",
         choices=["rotate", "crop", "color_jitter"],
+        default=[],
     )
     parser.add_argument(
         "-pairwise",
         action="append",
         help="Add augmentations for pairwise sample.",
         choices=["rotate", "crop", "color_jitter"],
+        default=[],
     )
     parser.add_argument("-batch_size", type=int, help="Batch size")
     parser.add_argument("-tag", action="append", help="Tag for comet", default=[])
@@ -170,6 +173,34 @@ def get_hybrid1_args(
         type=int,
         help="Number of batches to accumulate gradient.",
     )
+    parser.add_argument(
+        "-optimizer",
+        type=str,
+        help="Select optimizer",
+        default="LARS",
+        choices=["LARS", "adam"],
+    )
+    parser.add_argument(
+        "--denoiser", action="store_true", help="To enable denoising", default=False
+    )
+    parser.add_argument(
+        "--heatmap", action="store_true", help="To enable heatmap model", default=False
+    )
+    parser.add_argument(
+        "-sources",
+        action="append",
+        help="Data sources to use.",
+        default=["freihand"],
+        choices=["freihand", "interhand", "mpii", "youtube"],
+    )
+    parser.add_argument(
+        "-log_interval",
+        type=str,
+        help="To enable denoising",
+        default="epoch",
+        choices=["step", "epoch"],
+    )
+
     args = parser.parse_args()
     return args
 
@@ -466,7 +497,10 @@ def get_model(experiment_type: str, heatmap_flag: bool, denoiser_flag: bool):
         else:
             return Hybrid2Model
     elif experiment_type == "hybrid1":
-        return Hybrid1Model
+        if heatmap_flag:
+            return Hybrid1HeatmapModel
+        else:
+            return Hybrid1Model
     elif experiment_type == "pairwise":
         if heatmap_flag:
             return PairwiseHeatmapModel
