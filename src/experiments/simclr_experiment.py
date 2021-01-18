@@ -1,43 +1,45 @@
 import os
+from pprint import pformat
 
 from easydict import EasyDict as edict
 from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
 from src.constants import (
-    SAVED_META_INFO_PATH,
+    COMET_KWARGS,
     MASTER_THESIS_DIR,
-    TRAINING_CONFIG_PATH,
     SIMCLR_CONFIG,
+    TRAINING_CONFIG_PATH,
+    SIMCLR_HEATMAP_CONFIG,
 )
 from src.data_loader.data_set import Data_Set
-from src.data_loader.utils import get_train_val_split
+from src.data_loader.utils import get_data, get_train_val_split
 from src.experiments.utils import (
-    get_experiement_args,
+    get_model,
+    get_callbacks,
+    get_general_args,
     prepare_name,
-    process_experiment_args,
+    update_train_params,
 )
-from src.models.callbacks.upload_comet_logs import UploadCometLogs
-from src.models.unsupervised.simclr_model import SimCLR
 from src.utils import get_console_logger, read_json
-from torchvision import transforms
 
 
 def main():
 
     # get configs
+    experiment_type = "simclr"
     console_logger = get_console_logger(__name__)
+    args = get_general_args("simclr training script.")
+
     train_param = edict(read_json(TRAINING_CONFIG_PATH))
-    args = get_experiement_args()
-    train_param, model_param = process_experiment_args(args, console_logger)
+    train_param = update_train_params(args, train_param)
+    model_param_path = SIMCLR_HEATMAP_CONFIG if args.heatmap else SIMCLR_CONFIG
+    model_param = edict(read_json(model_param_path))
+    console_logger.info(f"Train parameters {pformat(train_param)}")
     seed_everything(train_param.seed)
 
     # data preperation
-    data = Data_Set(
-        config=train_param,
-        transform=transforms.Compose([transforms.ToTensor()]),
-        train_set=True,
-        experiment_type="simclr",
+    data = get_data(
+        Data_Set, train_param, sources=args.sources, experiment_type=experiment_type
     )
     train_data_loader, val_data_loader = get_train_val_split(
         data,
@@ -45,48 +47,50 @@ def main():
         num_workers=train_param.num_workers,
         shuffle=True,
     )
-    # Logger
 
-    comet_logger = CometLogger(
-        api_key=os.environ.get("COMET_API_KEY"),
-        project_name="master-thesis",
-        workspace="dahiyaaneesh",
-        save_dir=SAVED_META_INFO_PATH,
-        experiment_name=prepare_name("simclr", train_param),
+    # Logger
+    experiment_name = prepare_name(
+        f"{experiment_type}_", train_param, hybrid_naming=False
     )
+    comet_logger = CometLogger(**COMET_KWARGS, experiment_name=experiment_name)
 
     # model.
-
-    model_param = edict(read_json(SIMCLR_CONFIG))
     model_param.num_samples = len(data)
-    model = SimCLR(config=model_param)
+    model_param.batch_size = train_param.batch_size
+    model_param.num_of_mini_batch = train_param.accumulate_grad_batches
+    console_logger.info(f"Model parameters {pformat(model_param)}")
+    model = get_model(
+        experiment_type="simclr", heatmap_flag=args.heatmap, denoiser_flag=args.denoiser
+    )(config=model_param)
 
     # callbacks
-    logging_interval = "epoch"
-    upload_comet_logs = UploadCometLogs(
-        logging_interval, get_console_logger("callback"), experiment_type="simclr"
+    callbacks = get_callbacks(
+        logging_interval=args.log_interval,
+        experiment_type="simclr",
+        save_top_k=3,
+        period=1,
     )
-    lr_monitor = LearningRateMonitor(logging_interval=logging_interval)
-    # saves model at every 25th epoch
-    checkpoint_callback = ModelCheckpoint(save_top_k=-1, period=25)
-    # Trainer setup
+    # trainer
 
     trainer = Trainer(
         accumulate_grad_batches=train_param.accumulate_grad_batches,
-        gpus="1" if args.gpu_slow else "0",
-        checkpoint_callback=checkpoint_callback,
+        gpus="0",
         logger=comet_logger,
         max_epochs=train_param.epochs,
         precision=train_param.precision,
         amp_backend="native",
-        callbacks=[lr_monitor, upload_comet_logs],
+        **callbacks,
     )
     trainer.logger.experiment.set_code(
         overwrite=True,
-        filename=os.path.join(MASTER_THESIS_DIR, "src", "models", "simclr_model.py"),
+        filename=os.path.join(
+            MASTER_THESIS_DIR, "src", "experiments", "simclr_experiment.py"
+        ),
     )
-    trainer.logger.experiment.log_parameters({"train_param": train_param})
-    trainer.logger.experiment.log_parameters({"model_param": model_param})
+    trainer.logger.experiment.log_parameters(train_param)
+    trainer.logger.experiment.log_parameters(model_param)
+    trainer.logger.experiment.add_tags(["pretraining", "simclr"] + args.tag)
+    # training
     trainer.fit(model, train_data_loader, val_data_loader)
 
 

@@ -41,8 +41,8 @@ class SimCLR(BaseModel):
         concat_encoding = self.encoder(concat_batch)
         concat_projections = self.projection_head(concat_encoding)
         projection1, projection2 = (
-            nn.Functional.normalize(concat_projections[:batch_size]),
-            nn.Functional.normalize(concat_projections[batch_size:]),
+            nn.functional.normalize(concat_projections[:batch_size]),
+            nn.functional.normalize(concat_projections[batch_size:]),
         )
         loss = vanila_contrastive_loss(projection1, projection2)
         return loss

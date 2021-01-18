@@ -1,5 +1,7 @@
 import argparse
 import os
+from src.models.unsupervised.hybrid2_heatmap_model import Hybrid2HeatmapModel
+from src.models.unsupervised.pairwise_model import PairwiseModel
 from typing import List, Tuple
 
 import torch
@@ -18,6 +20,10 @@ from src.data_loader.data_set import Data_Set
 from src.experiments.evaluation_utils import evaluate
 from src.models.supervised.baseline_model import BaselineModel
 from src.models.supervised.denoised_heatmap_model import DenoisedHeatmapmodel
+from src.models.unsupervised.simclr_model import SimCLR
+from src.models.unsupervised.simclr_heatmap_model import SimCLRHeatmap
+from src.models.unsupervised.hybrid1_model import Hybrid1Model
+from src.models.unsupervised.hybrid2_model import Hybrid2Model
 from src.models.callbacks.upload_comet_logs import UploadCometLogs
 from src.models.supervised.denoised_baseline import DenoisedBaselineModel
 from src.models.supervised.heatmap_model import HeatmapPoseModel
@@ -438,8 +444,8 @@ def get_checkpoints(experiment_key: str, number: int = 3) -> List[str]:
     )[::-1][:number]
 
 
-def get_model(supervised_flag: bool, heatmap_flag: bool, denoiser_flag: bool):
-    if supervised_flag:
+def get_model(experiment_type: str, heatmap_flag: bool, denoiser_flag: bool):
+    if experiment_type == "supervised":
         if heatmap_flag and not denoiser_flag:
             return HeatmapPoseModel
         elif heatmap_flag and denoiser_flag:
@@ -448,6 +454,20 @@ def get_model(supervised_flag: bool, heatmap_flag: bool, denoiser_flag: bool):
             return DenoisedBaselineModel
         else:
             return BaselineModel
+    elif experiment_type == "simclr":
+        if heatmap_flag:
+            return SimCLRHeatmap
+        else:
+            return SimCLR
+    elif experiment_type == "hybrid2":
+        if heatmap_flag:
+            return Hybrid2HeatmapModel
+        else:
+            return Hybrid2Model
+    elif experiment_type == "hybrid1":
+        return Hybrid1Model
+    elif experiment_type == "pairwise":
+        return PairwiseModel
 
 
 def get_callbacks(
