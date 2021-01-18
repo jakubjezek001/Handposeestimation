@@ -87,11 +87,10 @@ def main():
             MASTER_THESIS_DIR, "src", "experiments", "hybrid2_experiment.py"
         ),
     )
-    save_experiment_key(
-        experiment_name,
-        trainer.logger.experiment.get_key(),
-        os.path.basename(__file__).replace(".py", ""),
-    )
+    if args.meta_file is not None:
+        save_experiment_key(
+            experiment_name, trainer.logger.experiment.get_key(), args.meta_file
+        )
     trainer.logger.experiment.log_parameters(train_param)
     trainer.logger.experiment.log_parameters(model_param)
     trainer.logger.experiment.add_tags(["pretraining", "HYBRID2"] + args.tag)

@@ -165,6 +165,39 @@ else
     done
 fi
 
+# $1: additional args
+launch_simclr() {
+    bsub -J "sim_abl" -W "$TIME:00" \-o "/cluster/scratch//adahiya/sim_abl_logs.out" \
+        -n $2 -R "rusage[mem=$MEMORY, ngpus_excl_p=1]" \
+        -R "select[gpu_model0==$GPU_MODEL]" \
+        -G ls_infk \
+        python src/experiments/simclr_experiment.py \
+        $1
+    # python src/experiments/simclr_experiment.py $1
+}
+
+# $1: additional args
+launch_semisupervised() {
+    bsub -J "sim_abl" -W "$TIME:00" \-o "/cluster/scratch//adahiya/sim_abl_logs.out" \
+        -n $2 -R "rusage[mem=$MEMORY, ngpus_excl_p=1]" \
+        -R "select[gpu_model0==$GPU_MODEL]" \
+        -G ls_infk \
+        python src/experiments/semi_supervised_experiment.py $1
+    $1
+    # python src/experiments/semi_supervised_experiment.py $1
+}
+
+# $1: additional args
+launch_hybrid2() {
+    bsub -J "sim_abl" -W "$TIME:00" \-o "/cluster/scratch//adahiya/sim_abl_logs.out" \
+        -n $2 -R "rusage[mem=$MEMORY, ngpus_excl_p=1]" \
+        -R "select[gpu_model0==$GPU_MODEL]" \
+        -G ls_infk \
+        python src/experiments/hybrid2_experiment.py $1
+    $1
+    # python src/experiments/hybrid2_experiment.py $1
+
+}
 # Main process
 case $EXPERIMENT in
 A1)
@@ -281,6 +314,42 @@ BSUB)
      -n $CORES -R 'rusage[mem=$MEMORY, ngpus_excl_p=1]' -R 'select[gpu_model0==$GPU_MODEL]' \
      -G ls_infk \
       python src/experiments/<SCRIPT>"
+    ;;
+SIM_ABL)
+    meta_file="simclr_ablative"
+    echo "Launching Simclr ablative studies"
+    mv "$SAVED_META_INFO_PATH/$meta_file" "$SAVED_META_INFO_PATH/$meta_file.bkp.$DATE"
+    declare -a augmentations=("color_drop"
+        "color_jitter"
+        "crop"
+        "cut_out"
+        "gaussian_blur"
+        "random_crop"
+        "rotate"
+        "gaussian_noise"
+        "sobel_filter")
+    args="--resize  -batch_size 512 -epochs 100 -accumulate_grad_batches 4 \
+         -sources freihand -meta_file $meta_file -tags sim_abl "
+    for j in "${augmentations[@]}"; do
+        echo "$j"
+        launch_simclr " --$j --resize $args "
+    done
+    ;;
+SIM_ABL_DOWN)
+    echo "Launching downstream simclr ablative studies"
+    args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
+         -sources freihand"
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name"
+    done <$SAVED_META_INFO_PATH/simclr_ablative
+    ;;
+CROSS_DATA_PRETRAIN)
+    echo "Launching hybrid 2 cross dataset"
+    args="--rotate --crop --color_jitter --resize   -batch_size 512  -epochs 500 -optimizer LARS \
+         -accumulate_grad_batches 4 -sources freihand -sources interhand\
+         -meta_file hybrid2_cross_data \
+        -tag cross_data -save_top_k -1  -save_period 25"
+    launch_hybrid2 "$args"
     ;;
 *)
     echo "Experiment not recognized!"
