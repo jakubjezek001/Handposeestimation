@@ -88,12 +88,12 @@ class MPII_DB(Dataset):
             torch.tensor(self.labels[self.img_names[idx].replace(".jpg", "")]).float()
         )
         camera_param = torch.eye(3).float()
-        joints_valid = torch.ones_like(joints3D[..., -1])
+        joints_valid = torch.ones_like(joints3D[..., -1:])
         sample = {
             "image": img,
             "K": camera_param,
             "joints3D": joints3D,
-            "joints_valid": torch.tensor(joints_valid),
+            "joints_valid": joints_valid,
         }
 
         return sample
