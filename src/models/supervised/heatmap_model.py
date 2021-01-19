@@ -30,17 +30,18 @@ class HeatmapPoseModel(BaselineModel):
             .view(1, 1, 2)
             .to(h_star_2d.device)
         )
-        h_2d = self.normalize_heatmap(h_star_2d)
-        joints2d = spatial_soft_argmax2d(h_2d, normalized_coordinates=False)
+        joints2d, h_2d = spatial_soft_argmax2d(
+            h_star_2d, normalized_coordinates=False, output_probability=True
+        )
         joints2d = joints2d * scale
         z_r = torch.sum(h_2d * h_star_z, dim=[2, 3]).view(-1, 21, 1)
 
         return torch.cat([joints2d, z_r], dim=2)
 
-    def normalize_heatmap(self, heatmap: Tensor) -> Tensor:
-        batch, channels, height, width = heatmap.size()
-        heatmap = heatmap.view(batch, channels, -1)
-        heatmap = torch.exp(heatmap - torch.max(heatmap, dim=-1, keepdim=True)[0])
-        heatmap = heatmap / (heatmap.sum(dim=-1, keepdim=True) + self.epsilon)
+    # def normalize_heatmap(self, heatmap: Tensor) -> Tensor:
+    #     batch, channels, height, width = heatmap.size()
+    #     heatmap = heatmap.view(batch, channels, -1)
+    #     heatmap = torch.exp(heatmap - torch.max(heatmap, dim=-1, keepdim=True)[0])
+    #     heatmap = heatmap / (heatmap.sum(dim=-1, keepdim=True) + self.epsilon)
 
-        return heatmap.view(batch, channels, height, width)
+    #     return heatmap.view(batch, channels, height, width)
