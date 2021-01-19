@@ -21,7 +21,7 @@ class Data_Set(Dataset):
         self,
         config: edict,
         transform: torchvision.transforms,
-        train_set: bool = True,
+        split: str = "train",
         experiment_type: str = "supervised",
         source: str = "freihand",
     ):
@@ -45,11 +45,11 @@ class Data_Set(Dataset):
         self.source = source
         self.db = None
         self.train_indices, self.val_indices = [], []
+        self._split = split
         self.initialize_data_loaders()
 
         self.transform = transform
         self.experiment_type = experiment_type
-        self._train_set = train_set
 
         if self.experiment_type == "hybrid1":
             # Two augmenters are used when hybrid experiment data params are passed.
@@ -67,43 +67,29 @@ class Data_Set(Dataset):
     def initialize_data_loaders(self):
         if self.source == "freihand":
             self.db = F_DB(
-                root_dir=os.path.join(FREIHAND_DATA, "training", "rgb"),
-                labels_path=os.path.join(FREIHAND_DATA, "training_xyz.json"),
-                camera_param_path=os.path.join(FREIHAND_DATA, "training_K.json"),
-                config=self.config,
+                root_dir=FREIHAND_DATA,
+                split=self._split,
+                train_ratio=self.config.train_ratio,
             )
-            # The real amount of input images (excluding the augmented background.)
-            self._size_f_db = len(self.db) // 4
-            self.train_indices, self.val_indices = self.get_f_db_indices()
-
         elif self.source == "interhand":
-            self.db = IH_DB(root_dir=INTERHAND_DATA, split="train")
-            self.train_indices, self.val_indices = train_test_split(
-                np.arange(0, len(self.db)),
-                train_size=self.config.train_ratio,
-                random_state=self.config.seed,
+            self.db = IH_DB(
+                root_dir=INTERHAND_DATA,
+                split=self._split,
+                train_ratio=self.config.train_ratio,
             )
         elif self.source == "youtube":
-            self.db = YTB_DB(root_dir=YOUTUBE_DATA, split="train")
-            self.train_indices, self.val_indices = train_test_split(
-                np.arange(0, len(self.db)),
-                train_size=self.config.train_ratio,
-                random_state=self.config.seed,
-            )
+            # TODO: this data set has already existing validation set, hence no need for train ratio
+            self.db = YTB_DB(root_dir=YOUTUBE_DATA, split=self._split)
         elif self.source == "mpii":
-            self.db = MPII_DB(root_dir=MPII_DATA)
-            self.train_indices, self.val_indices = train_test_split(
-                np.arange(0, len(self.db)),
-                train_size=self.config.train_ratio,
-                random_state=self.config.seed,
+            self.db = MPII_DB(
+                root_dir=MPII_DATA,
+                split=self._split,
+                train_ratio=self.config.train_ratio,
             )
 
     def __getitem__(self, idx: int):
-        if self._train_set:
-            sample = self.db[self.train_indices[idx]]
-        else:
-            sample = self.db[self.val_indices[idx]]
 
+        sample = self.db[idx]
         # Returning data as per the experiment.
         if self.experiment_type == "simclr":
             # sample = self.prepare_simclr_sample(sample, self.augmenter)
@@ -128,10 +114,7 @@ class Data_Set(Dataset):
         return sample
 
     def __len__(self):
-        if self._train_set:
-            return len(self.train_indices)
-        else:
-            return len(self.val_indices)
+        return len(self.db)
 
     def get_sample_augmenter(
         self, augmentation_params: edict, augmentation_flags: edict
@@ -421,42 +404,47 @@ class Data_Set(Dataset):
             value (bool): If value is True then training samples are returned else
         validation samples are returned.
         """
-        self._train_set = value
+        if value and self._split != "train":
+            self._split = "train"
+            self.initialize_data_loaders()
+        elif not value and self._split != "val":
+            self._split = "val"
+            self.initialize_data_loaders()
 
-    def get_f_db_indices(self) -> Tuple[np.array, np.array]:
-        """Randomly samples the training and validation indices for Freihand dataset.
-        Since Freihand data is augmented 4 times by chnaging background the validation set is created only
-        from the same real image images and there augmentations.
+    # def get_f_db_indices(self) -> Tuple[np.array, np.array]:
+    #     """Randomly samples the training and validation indices for Freihand dataset.
+    #     Since Freihand data is augmented 4 times by chnaging background the validation set is created only
+    #     from the same real image images and there augmentations.
 
-        Returns:
-            Tuple[np.array, np.array]: Tuple of  train and validation indices respectively.
-        """
-        train_indices, val_indices = train_test_split(
-            np.arange(0, self._size_f_db),
-            train_size=self.config.train_ratio,
-            random_state=self.config.seed,
-        )
-        train_indices = np.sort(train_indices)
-        val_indices = np.sort(val_indices)
-        train_indices = np.concatenate(
-            (
-                train_indices,
-                train_indices + self._size_f_db,
-                train_indices + self._size_f_db * 2,
-                train_indices + self._size_f_db * 3,
-            ),
-            axis=0,
-        )
-        val_indices = np.concatenate(
-            (
-                val_indices,
-                val_indices + self._size_f_db,
-                val_indices + self._size_f_db * 2,
-                val_indices + self._size_f_db * 3,
-            ),
-            axis=0,
-        )
-        return train_indices, val_indices
+    #     Returns:
+    #         Tuple[np.array, np.array]: Tuple of  train and validation indices respectively.
+    #     """
+    #     train_indices, val_indices = train_test_split(
+    #         np.arange(0, self._size_f_db),
+    #         train_size=self.config.train_ratio,
+    #         random_state=self.config.seed,
+    #     )
+    #     train_indices = np.sort(train_indices)
+    #     val_indices = np.sort(val_indices)
+    #     train_indices = np.concatenate(
+    #         (
+    #             train_indices,
+    #             train_indices + self._size_f_db,
+    #             train_indices + self._size_f_db * 2,
+    #             train_indices + self._size_f_db * 3,
+    #         ),
+    #         axis=0,
+    #     )
+    #     val_indices = np.concatenate(
+    #         (
+    #             val_indices,
+    #             val_indices + self._size_f_db,
+    #             val_indices + self._size_f_db * 2,
+    #             val_indices + self._size_f_db * 3,
+    #         ),
+    #         axis=0,
+    #     )
+    #     return train_indices, val_indices
 
     def get_random_augment_param(self, augmenter: SampleAugmenter) -> dict:
         """Reads the random parameters from the augmenter for calulation of relative
