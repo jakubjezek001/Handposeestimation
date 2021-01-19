@@ -19,7 +19,7 @@ class IH_DB(Dataset):
     Refer to joint_mapping.json in src/data_loader/utils.
     """
 
-    def __init__(self, root_dir: str, split: str, annotor: str = "human_annot"):
+    def __init__(self, root_dir: str, split: str, annotor: str = "all"):
         """Initializes the Interhand dataset class, relevant paths, meta_info jsons,
         dataframes and the Joints class for remappinng interhand formatted joints to
         that of AIT.
