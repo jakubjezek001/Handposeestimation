@@ -19,7 +19,7 @@ class IH_DB(Dataset):
     Refer to joint_mapping.json in src/data_loader/utils.
     """
 
-    def __init__(self, root_dir: str, split: str, annotor: str = "machine_annot"):
+    def __init__(self, root_dir: str, split: str, annotor: str = "human_annot"):
         """Initializes the Interhand dataset class, relevant paths, meta_info jsons,
         dataframes and the Joints class for remappinng interhand formatted joints to
         that of AIT.
@@ -95,12 +95,18 @@ class IH_DB(Dataset):
 
     def get_joints(
         self, capture_id: Union[int, str], frame_idx: Union[int, str]
-    ) -> np.array:
+    ) -> Tuple[np.array, np.array]:
         joint_item = self.joints_dict[str(capture_id)][str(frame_idx)]
         if joint_item["hand_type"] == "left":
-            return np.array(joint_item["world_coord"][-21:])
+            return (
+                np.array(joint_item["world_coord"][-21:]),
+                np.array(joint_item["joint_valid"][-21:]),
+            )
         elif joint_item["hand_type"] == "right":
-            return np.array(joint_item["world_coord"][:21])
+            return (
+                np.array(joint_item["world_coord"][:21]),
+                np.array(joint_item["joint_valid"][:21]),
+            )
         else:
             raise NotImplementedError
 
@@ -132,8 +138,10 @@ class IH_DB(Dataset):
                 image_item.file_name,
             )
         )
-        joints = self.joints.interhand_to_ait(
-            self.get_joints(image_item.capture, image_item.frame_idx)
+        joints, joints_valid = self.get_joints(image_item.capture, image_item.frame_idx)
+        joints, joints_valid = (
+            self.joints.interhand_to_ait(joints),
+            self.joints.interhand_to_ait(joints_valid),
         )
         intrinsic_camera_matrix, camera_rot, camera_t = self.get_camera_params(
             image_item.camera, image_item.capture
@@ -145,6 +153,7 @@ class IH_DB(Dataset):
             "image": image,
             "K": torch.tensor(intrinsic_camera_matrix).float(),
             "joints3D": torch.tensor(joints_camera_frame).float() / 1000.0,
-            "joints3DWorld": torch.tensor(joints).float() / 1000.0,
+            "joints_valid": torch.tensor(joints_valid),
+            # "joints3DWorld": torch.tensor(joints).float() / 1000.0,
         }
         return sample

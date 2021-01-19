@@ -356,6 +356,7 @@ class Data_Set(Dataset):
             "K": sample["K"],
             "scale": scale,
             "joints3D_recreated": joints3D_recreated,
+            "joints_valid": sample["joints_valid"],
         }
 
     def prepare_hybrid1_sample(

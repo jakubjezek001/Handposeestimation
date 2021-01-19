@@ -106,5 +106,11 @@ class YTB_DB(Dataset):
         joints3D = torch.tensor(self.bbox[idx]["joints"]).float()
         joints3D[..., -1] = 1.0
         camera_param = torch.eye(3).float()
-        sample = {"image": img, "K": camera_param, "joints3D": joints3D}
+        joints_valid = torch.zeros_like(joints3D[..., -1])
+        sample = {
+            "image": img,
+            "K": camera_param,
+            "joints3D": joints3D,
+            "joints_valid": torch.tensor(joints_valid),
+        }
         return sample

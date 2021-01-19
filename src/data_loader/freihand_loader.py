@@ -90,6 +90,11 @@ class F_DB(Dataset):
             torch.tensor(self.labels[idx % 32560]).float()
         )
         camera_param = torch.tensor(self.camera_param[idx % 32560]).float()
-
-        sample = {"image": img, "K": camera_param, "joints3D": joints3D}
+        joints_valid = torch.ones_like(joints3D[..., -1])
+        sample = {
+            "image": img,
+            "K": camera_param,
+            "joints3D": joints3D,
+            "joints_valid": torch.tensor(joints_valid),
+        }
         return sample
