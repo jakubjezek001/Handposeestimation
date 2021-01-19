@@ -9,6 +9,7 @@ import torch
 from src.data_loader.joints import Joints
 from src.utils import read_json
 from torch.utils.data import Dataset
+from sklearn.model_selection import train_test_split
 
 
 class IH_DB(Dataset):
@@ -19,7 +20,14 @@ class IH_DB(Dataset):
     Refer to joint_mapping.json in src/data_loader/utils.
     """
 
-    def __init__(self, root_dir: str, split: str, annotor: str = "all"):
+    def __init__(
+        self,
+        root_dir: str,
+        split: str,
+        annotor: str = "all",
+        seed: int = 5,
+        train_ratio: float = 0.9,
+    ):
         """Initializes the Interhand dataset class, relevant paths, meta_info jsons,
         dataframes and the Joints class for remappinng interhand formatted joints to
         that of AIT.
@@ -32,16 +40,20 @@ class IH_DB(Dataset):
         self.root_dir = root_dir
         # To convert from freihand to AIT format.
         self.joints = Joints()
+        self.seed = seed
+        self.train_ratio = train_ratio
         self.annotor = annotor  # "human_annot" and "machine_annot" possible.
         self.annotation_sampling_folder = "InterHand2.6M.annotations.5.fps"
         self.image_sampling_folder = "InterHand2.6M_5fps_batch0/images"
-        self.split = split
+        self._split = split
+        self.split = "train" if split in ["train", "val"] else split
         (
             self.image_info,
             self.annotations_info,
             self.camera_info,
             self.joints_dict,
         ) = self.get_meta_info()
+        self.indices = self.create_train_val_split()
 
     def get_meta_info(self) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, dict]:
         data = read_json(
@@ -110,8 +122,28 @@ class IH_DB(Dataset):
         else:
             raise NotImplementedError
 
+    def create_train_val_split(self) -> np.array:
+        """Creates split for train and val data in mpii
+        Raises:
+            NotImplementedError: In case the split doesn't match test, train or val.
+        Returns:
+            np.array: array of indices
+        """
+        num_images = len(self.annotations_info)
+        train_indices, val_indices = train_test_split(
+            np.arange(num_images), train_size=self.train_ratio, random_state=self.seed
+        )
+        if self._split == "train":
+            return np.sort(train_indices)
+        elif self._split == "val":
+            return np.sort(val_indices)
+        elif self._split == "test":
+            return np.arange(len(self.annotations_info))
+        else:
+            raise NotImplementedError
+
     def __len__(self):
-        return len(self.annotations_info)
+        return len(self.indices)
 
     def __getitem__(self, idx: int) -> dict:
         """Returns a sample corresponding to the index.
@@ -128,7 +160,8 @@ class IH_DB(Dataset):
 
         if torch.is_tensor(idx):
             idx = idx.tolist()
-        image_id = self.annotations_info.loc[idx]["image_id"]
+        idx_ = self.indices[idx]
+        image_id = self.annotations_info.loc[idx_]["image_id"]
         image_item = self.image_info.loc[image_id]
         image = cv2.imread(
             os.path.join(
@@ -154,6 +187,5 @@ class IH_DB(Dataset):
             "K": torch.tensor(intrinsic_camera_matrix).float(),
             "joints3D": torch.tensor(joints_camera_frame).float() / 1000.0,
             "joints_valid": torch.tensor(joints_valid),
-            # "joints3DWorld": torch.tensor(joints).float() / 1000.0,
         }
         return sample
