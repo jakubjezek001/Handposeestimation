@@ -20,7 +20,7 @@ class SimCLRHeatmap(SimCLR):
 
     def get_projection_head(self) -> nn.Sequential:
         projection_head = nn.Sequential(
-            nn.Conv2d(42, 1, kernel_size=(1, 1), stride=1),
+            nn.Conv2d(42, 32, kernel_size=(8, 8), stride=8),
             nn.Flatten(),
             nn.Linear(
                 self.config.projection_head_input_dim,

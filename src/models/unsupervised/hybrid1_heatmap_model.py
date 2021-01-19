@@ -12,7 +12,7 @@ class Hybrid1HeatmapModel(Hybrid1Model):
         hrnet_config = read_yaml(HRNET_CONFIG)
         self.encoder = get_pose_net(hrnet_config.MODEL36, True)
         self.layer_flattener = nn.Sequential(
-            nn.Conv2d(42, 1, kernel_size=(1, 1), stride=1), nn.Flatten()
+            nn.Conv2d(42, 32, kernel_size=(8, 8), stride=8), nn.Flatten()
         )
 
     def get_encodings(self, batch_images: Tensor) -> Tensor:
