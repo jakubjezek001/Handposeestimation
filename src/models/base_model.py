@@ -64,9 +64,6 @@ class BaseModel(LightningModule):
             lr=self.config.lr
             * math.sqrt(self.config.batch_size * self.config.num_of_mini_batch),
         )
-        if self.config.optimizer == "LARS":
-            optimizer = LARSWrapper(optimizer)
-
         warmup_epochs = (
             self.config.warmup_epochs
             * self.train_iters_per_epoch
@@ -78,7 +75,8 @@ class BaseModel(LightningModule):
             // self.config.num_of_mini_batch
         )
         if self.config.optimizer == "LARS":
-            linear_warmup_cosine_decay = LinearWarmupCosineAnnealingLR(
+            optimizer = LARSWrapper(optimizer)
+            scheduler = LinearWarmupCosineAnnealingLR(
                 optimizer,
                 warmup_epochs=warmup_epochs,
                 max_epochs=max_epochs,
@@ -86,13 +84,9 @@ class BaseModel(LightningModule):
                 eta_min=0,
             )
         else:
-            linear_warmup_cosine_decay = CosineAnnealingLR(optimizer, T_max=max_epochs)
+            scheduler = CosineAnnealingLR(optimizer, T_max=max_epochs)
 
-        scheduler = {
-            "scheduler": linear_warmup_cosine_decay,
-            "interval": "step",
-            "frequency": 1,
-        }
+        scheduler = {"scheduler": scheduler, "interval": "step", "frequency": 1}
 
         return [optimizer], [scheduler]
 
