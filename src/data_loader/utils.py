@@ -1,18 +1,14 @@
 import copy
 from math import cos, pi, sin
-from os import replace
-from os.path import join
-from src.models.utils import get_latest_checkpoint
-import itertools
 from typing import Tuple, Union
+
 import numpy as np
 import torch
 from PIL import Image
 from src.data_loader.joints import Joints
 from src.types import CAMERA_PARAM, JOINTS_3D, JOINTS_25D, SCALE
-from torch.utils.data import DataLoader, ConcatDataset, Dataset
+from torch.utils.data import ConcatDataset, DataLoader, Dataset, WeightedRandomSampler
 from torchvision import transforms
-from torch.utils.data import WeightedRandomSampler
 
 JOINTS = Joints()
 PARENT_JOINT = JOINTS.mapping.ait.wrist

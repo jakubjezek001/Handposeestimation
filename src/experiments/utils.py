@@ -1,41 +1,35 @@
 import argparse
-from multiprocessing import Semaphore
 import os
-from src.models.unsupervised.hybrid1_heatmap_model import Hybrid1HeatmapModel
-from src.models.unsupervised.pairwise_heatmap_model import PairwiseHeatmapModel
-from src.models.unsupervised.hybrid2_heatmap_model import Hybrid2HeatmapModel
-from src.models.unsupervised.pairwise_model import PairwiseModel
 from typing import List, Tuple
 
 import torch
 from comet_ml import Experiment
 from easydict import EasyDict as edict
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
-from src.constants import (
-    DATA_PATH,
-    MASTER_THESIS_DIR,
-    SAVED_META_INFO_PATH,
-    SAVED_MODELS_BASE_PATH,
-    SUPERVISED_CONFIG_PATH,
-    TRAINING_CONFIG_PATH,
-)
+from src.constants import SAVED_META_INFO_PATH, SAVED_MODELS_BASE_PATH
 from src.data_loader.data_set import Data_Set
 from src.experiments.evaluation_utils import evaluate
-from src.models.supervised.baseline_model import BaselineModel
-from src.models.supervised.denoised_heatmap_model import DenoisedHeatmapmodel
-from src.models.unsupervised.simclr_model import SimCLR
-from src.models.unsupervised.simclr_heatmap_model import SimCLRHeatmap
-from src.models.unsupervised.hybrid1_model import Hybrid1Model
-from src.models.unsupervised.hybrid2_model import Hybrid2Model
 from src.models.callbacks.upload_comet_logs import UploadCometLogs
-from src.models.supervised.denoised_baseline import DenoisedBaselineModel
-from src.models.semisupervised.supervised_head_model import SupervisedHead
 from src.models.semisupervised.denoised_supervised_head_model import (
     DenoisedSupervisedHead,
 )
+from src.models.semisupervised.supervised_head_model import SupervisedHead
+from src.models.supervised.baseline_model import BaselineModel
+from src.models.supervised.denoised_baseline import DenoisedBaselineModel
+from src.models.supervised.denoised_heatmap_model import DenoisedHeatmapmodel
 from src.models.supervised.heatmap_model import HeatmapPoseModel
+from src.models.unsupervised.hybrid1_heatmap_model import Hybrid1HeatmapModel
+from src.models.unsupervised.hybrid1_model import Hybrid1Model
+from src.models.unsupervised.hybrid2_heatmap_model import Hybrid2HeatmapModel
+from src.models.unsupervised.hybrid2_model import Hybrid2Model
+from src.models.unsupervised.pairwise_heatmap_model import PairwiseHeatmapModel
+from src.models.unsupervised.pairwise_model import PairwiseModel
+from src.models.unsupervised.simclr_heatmap_model import SimCLRHeatmap
+from src.models.unsupervised.simclr_model import SimCLR
 from src.models.utils import get_latest_checkpoint
 from src.utils import get_console_logger
+from torch.utils.data import WeightedRandomSampler
+from torch.utils.data.dataset import ConcatDataset
 
 
 def get_general_args(
@@ -465,10 +459,28 @@ def downstream_evaluation(
     """
 
     model.eval()
-    data.is_training(False)
-    validate_results = evaluate(
-        model, data, num_workers=num_workers, batch_size=batch_size
-    )
+    if isinstance(data, ConcatDataset):
+        val_weights = []
+        val_datasets = []
+        for i in range(len(data.datasets)):
+            val_datasets.append((data.datasets[i]))
+            val_datasets[-1].is_training(False)
+            val_weights += [1.0 / len(val_datasets[-1])] * len(val_datasets[-1])
+        data = ConcatDataset(val_datasets)
+        validate_results = evaluate(
+            model,
+            data,
+            num_workers=num_workers,
+            batch_size=batch_size,
+            sampler=WeightedRandomSampler(
+                weights=val_weights, num_samples=len(val_weights), replacement=True
+            ),
+        )
+    else:
+        data.is_training(False)
+        validate_results = evaluate(
+            model, data, num_workers=num_workers, batch_size=batch_size
+        )
     with logger.experiment.validate():
         logger.experiment.log_metrics(validate_results)
 
