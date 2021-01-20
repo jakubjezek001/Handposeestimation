@@ -176,8 +176,8 @@ launch_simclr() {
 }
 
 # $1: additional args
-launch_pairwise(){
-     bsub -J "pair" -W "$TIME:00" \-o "/cluster/scratch//adahiya/pair_logs.out" \
+launch_pairwise() {
+    bsub -J "pair" -W "$TIME:00" \-o "/cluster/scratch//adahiya/pair_logs.out" \
         -n $CORES -R "rusage[mem=$MEMORY, ngpus_excl_p=1]" \
         -R "select[gpu_model0==$GPU_MODEL]" \
         -G ls_infk \
@@ -411,7 +411,7 @@ HYB1_ABL)
          -sources freihand  -tag hyb1_abl -save_top_k 1  -save_period 1 "
     declare -a seeds=($seed1
         $seed2
-        )
+    )
     declare -a contrastive_augment=("-contrastive color_jitter "
         " ")
     declare -a pairwise_augment=("-pairwise rotate "
@@ -428,22 +428,46 @@ HYB1_ABL)
 HYB1_ABL_DOWN)
     echo "Launching hybrid1 ablative downstream study"
     meta_file='hybrid1_ablative_down'
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
     args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
          -sources freihand -tag hyb1_abl"
     while IFS=',' read -r experiment_name experiment_key; do
-        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1"
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
     done <$SAVED_META_INFO_PATH/hybrid1_ablative$seed1
     while IFS=',' read -r experiment_name experiment_key; do
-        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2"
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2  -meta_file $meta_file$seed2"
     done <$SAVED_META_INFO_PATH/hybrid1_ablative$seed2
     ;;
-CROSS_DATA_PRETRAIN)
-    echo "Launching hybrid 2 cross dataset"
-    args="--rotate --crop --color_jitter --resize   -batch_size 512  -epochs 100 -optimizer LARS \
-         -accumulate_grad_batches 4 -sources freihand -sources interhand\
-         -meta_file hybrid2_cross_data \
-        -tag cross_data -save_top_k -1  -save_period 25"
-    launch_hybrid2 "$args"
+CROSS_DATA_HYB1)
+    echo "Launching hybrid 1 cross dataset"
+    meta_file="hybrid1_crossdataset"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    args="-sources freihand -sources interhand -contrastive color_jitter -pairwise crop -pairwise rotate -epochs 100 -batch_size 512 \
+     -accumulate_grad_batches 4 -save_top_k 1  -save_period 1 -tag hyb1_cross"
+    launch_hybrid1 "$args -meta_file $meta_file$seed1 -seed $seed1"
+    launch hybrid1 "$args -meta_file $meta_file$seed2 -seed $seed2"
+    ;;
+CROSS_DATA_HYB1_DOWN)
+    echo "Launching hybrid 1 cross dataset doenstream"
+    meta_file='hybrid1_ablative_down'
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
+         -tag hyb1_cross"
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -sources freihand -experiment_key $experiment_key \
+         -experiment_name $experiment_name -seed $seed1  -meta_file $meta_file$seed1"
+        launch_semisupervised "$args -sources interhand -experiment_key $experiment_key \
+         -experiment_name $experiment_name -seed $seed1  -meta_file $meta_file$seed1"
+    done <$SAVED_META_INFO_PATH/hybrid1_crossdataset$seed1
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -sources freihand -experiment_key $experiment_key \
+         -experiment_name $experiment_name -seed $seed2  -meta_file $meta_file$seed2"
+        launch_semisupervised "$args -sources interhand -experiment_key $experiment_key \
+         -experiment_name $experiment_name -seed $seed2  -meta_file $meta_file$seed2"
+    done <$SAVED_META_INFO_PATH/hybrid1_crossdataset$seed2
     ;;
 CROSS_DATA_DOWNSTREAM)
     echo "Launching hybrid 2 cross dataset downstream"
