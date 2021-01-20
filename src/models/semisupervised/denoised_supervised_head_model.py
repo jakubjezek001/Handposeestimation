@@ -14,6 +14,7 @@ class DenoisedSupervisedHead(DenoisedBaselineModel):
             saved_model_path=config.saved_model_name, checkpoint=config.checkpoint
         )
         self.encoder.load_state_dict(encoder_state_dict)
-        for param in self.encoder.parameters():
-            param.requires_grad = False
-        self.encoder.eval()
+        if not self.config.encoder_trainable:
+            for param in self.encoder.parameters():
+                param.requires_grad = False
+            self.encoder.eval()

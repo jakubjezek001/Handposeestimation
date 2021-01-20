@@ -7,12 +7,11 @@ from pytorch_lightning.loggers import CometLogger
 from src.constants import (
     COMET_KWARGS,
     MASTER_THESIS_DIR,
-    SAVED_META_INFO_PATH,
     SSL_CONFIG,
     TRAINING_CONFIG_PATH,
 )
 from src.data_loader.data_set import Data_Set
-from src.data_loader.utils import get_train_val_split, get_data
+from src.data_loader.utils import get_data, get_train_val_split
 from src.experiments.utils import (
     downstream_evaluation,
     get_callbacks,
@@ -20,6 +19,7 @@ from src.experiments.utils import (
     get_model,
     prepare_name,
     restore_model,
+    save_experiment_key,
     update_train_params,
 )
 from src.utils import get_console_logger, read_json
@@ -43,18 +43,13 @@ def main():
     )
     # Logger
     experiment_name = prepare_name(f"ssl_{args.experiment_name}", train_param)
-    comet_logger = CometLogger(
-        api_key=os.environ.get("COMET_API_KEY"),
-        project_name="master-thesis",
-        workspace="dahiyaaneesh",
-        save_dir=SAVED_META_INFO_PATH,
-        experiment_name=experiment_name,
-    )
+    comet_logger = CometLogger(**COMET_KWARGS, experiment_name=experiment_name)
 
     # model.
     model_param = edict(read_json(SSL_CONFIG))
     model_param.num_samples = len(data)
     model_param.batch_size = train_param.batch_size
+    model_param.encoder_trainable = args.encoder_trainable
     if args.experiment_key is not None:
         model_param.saved_model_name = args.experiment_key
         model_param.checkpoint = args.checkpoint
@@ -90,6 +85,12 @@ def main():
             MASTER_THESIS_DIR, "src", "models", "semi_supervised_experiment.py"
         ),
     )
+    if args.meta_file is not None:
+        save_experiment_key(
+            experiment_name=experiment_name,
+            experiment_key=trainer.logger.experiment.get_key(),
+            filename=args.meta_file,
+        )
     tags = ["SSL", "downstream"]
     tags += ["heatmap"] if args.heatmap else []
     trainer.logger.experiment.add_tags(tags + args.tag)

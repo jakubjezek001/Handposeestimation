@@ -142,6 +142,12 @@ def get_general_args(
     parser.add_argument(
         "-save_top_k", type=int, help="Top snapshots to save", default=3
     )
+    parser.add_argument(
+        "--encoder_trainable",
+        action="store_true",
+        help="To enable encoder training in SSL",
+        default=False,
+    )
     args = parser.parse_args()
     return args
 
