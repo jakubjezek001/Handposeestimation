@@ -1,18 +1,13 @@
-import os
-from typing import Tuple
-
-import numpy as np
 import torch
 import torchvision
 from easydict import EasyDict as edict
-from sklearn.model_selection import train_test_split
-from src.constants import FREIHAND_DATA, INTERHAND_DATA, YOUTUBE_DATA, MPII_DATA
+from src.constants import FREIHAND_DATA, INTERHAND_DATA, MPII_DATA, YOUTUBE_DATA
 from src.data_loader.freihand_loader import F_DB
 from src.data_loader.interhand_loader import IH_DB
-from src.data_loader.youtube_loader import YTB_DB
 from src.data_loader.mpii_loader import MPII_DB
 from src.data_loader.sample_augmenter import SampleAugmenter
 from src.data_loader.utils import convert_2_5D_to_3D, convert_to_2_5D
+from src.data_loader.youtube_loader import YTB_DB
 from torch.utils.data import Dataset
 
 
@@ -32,7 +27,7 @@ class Data_Set(Dataset):
         To create simulatenous instances of validation and training, make a shallow copy and change the
         mode with ``is_training()``
 
-        See 03-Data_handler.ipynb for visualization.
+        See 01-Data_handler.ipynb for visualization.
         Args:
             config (e): Configuraction dict must have  "seed" and "train_ratio".
             transforms ([type]): torch transforms or composition of them.
@@ -44,7 +39,6 @@ class Data_Set(Dataset):
         self.config = config
         self.source = source
         self.db = None
-        self.train_indices, self.val_indices = [], []
         self._split = split
         self.initialize_data_loaders()
 
@@ -410,41 +404,6 @@ class Data_Set(Dataset):
         elif not value and self._split != "val":
             self._split = "val"
             self.initialize_data_loaders()
-
-    # def get_f_db_indices(self) -> Tuple[np.array, np.array]:
-    #     """Randomly samples the training and validation indices for Freihand dataset.
-    #     Since Freihand data is augmented 4 times by chnaging background the validation set is created only
-    #     from the same real image images and there augmentations.
-
-    #     Returns:
-    #         Tuple[np.array, np.array]: Tuple of  train and validation indices respectively.
-    #     """
-    #     train_indices, val_indices = train_test_split(
-    #         np.arange(0, self._size_f_db),
-    #         train_size=self.config.train_ratio,
-    #         random_state=self.config.seed,
-    #     )
-    #     train_indices = np.sort(train_indices)
-    #     val_indices = np.sort(val_indices)
-    #     train_indices = np.concatenate(
-    #         (
-    #             train_indices,
-    #             train_indices + self._size_f_db,
-    #             train_indices + self._size_f_db * 2,
-    #             train_indices + self._size_f_db * 3,
-    #         ),
-    #         axis=0,
-    #     )
-    #     val_indices = np.concatenate(
-    #         (
-    #             val_indices,
-    #             val_indices + self._size_f_db,
-    #             val_indices + self._size_f_db * 2,
-    #             val_indices + self._size_f_db * 3,
-    #         ),
-    #         axis=0,
-    #     )
-    #     return train_indices, val_indices
 
     def get_random_augment_param(self, augmenter: SampleAugmenter) -> dict:
         """Reads the random parameters from the augmenter for calulation of relative
