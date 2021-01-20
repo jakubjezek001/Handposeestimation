@@ -447,7 +447,7 @@ CROSS_DATA_HYB1)
     args="-sources freihand -sources interhand -contrastive color_jitter -pairwise crop -pairwise rotate -epochs 100 -batch_size 512 \
      -accumulate_grad_batches 4 -save_top_k 1  -save_period 1 -tag hyb1_cross"
     launch_hybrid1 "$args -meta_file $meta_file$seed1 -seed $seed1"
-    launch hybrid1 "$args -meta_file $meta_file$seed2 -seed $seed2"
+    launch_hybrid1 "$args -meta_file $meta_file$seed2 -seed $seed2"
     ;;
 CROSS_DATA_HYB1_DOWN)
     echo "Launching hybrid 1 cross dataset doenstream"
