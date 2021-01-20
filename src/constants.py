@@ -6,7 +6,7 @@ DATA_PATH = os.environ.get("DATA_PATH")
 FREIHAND_DATA = os.path.join(DATA_PATH, "freihand_dataset")
 INTERHAND_DATA = os.path.join(DATA_PATH, "InterHand")
 YOUTUBE_DATA = os.path.join(DATA_PATH, "youtube_3d_hands", "data")
-MPII_DATA = os.path.join(DATA_PATH, "CMU", "hand_labels")
+MPII_DATA = os.path.join(DATA_PATH, "mpii_dataset", "hand_labels")
 
 # config paths
 CONFIG_PATH = os.path.join(MASTER_THESIS_DIR, "src", "experiments", "config")
