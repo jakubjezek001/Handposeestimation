@@ -55,13 +55,17 @@ class DenoisedBaselineModel(BaselineModel):
             "loss_z_unscaled": loss_z_unscaled.detach(),
             "loss_z_denoise": loss_z_denoise.detach(),
         }
-        self.plot_params = {"prediction": prediction, "ground_truth": y, "input": x}
+        self.plot_params = {
+            "prediction": prediction.detach(),
+            "ground_truth": y,
+            "input": x,
+        }
         return {
             "loss": loss,
-            "loss_z": loss_z,
-            "loss_2d": loss_2d,
-            "loss_z_unscaled": loss_z_unscaled,
-            "loss_z_denoise": loss_z_denoise,
+            "loss_z": loss_z.detach(),
+            "loss_2d": loss_2d.detach(),
+            "loss_z_unscaled": loss_z_unscaled.detach(),
+            "loss_z_denoise": loss_z_denoise.detach(),
         }
 
     def get_denoised_z_root_calc(self, joints25D: Tensor, k: Tensor) -> Tensor:
