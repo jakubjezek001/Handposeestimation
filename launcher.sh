@@ -196,6 +196,17 @@ launch_semisupervised() {
 }
 
 # $1: additional args
+launch_hybrid1() {
+    # bsub -J "hybrid1" -W "$TIME:00" \-o "/cluster/scratch//adahiya/hybrid1_logs.out" \
+    #     -n $CORES -R "rusage[mem=$MEMORY, ngpus_excl_p=1]" \
+    #     -R "select[gpu_model0==$GPU_MODEL]" \
+    #     -G ls_infk \
+    #     python src/experiments/hybrid1_experiment.py $1
+    python src/experiments/hybrid1_experiment.py $1
+
+}
+
+# $1: additional args
 launch_hybrid2() {
     # bsub -J "hybrid2" -W "$TIME:00" \-o "/cluster/scratch//adahiya/hybrid2_logs.out" \
     #     -n $CORES -R "rusage[mem=$MEMORY, ngpus_excl_p=1]" \
@@ -205,6 +216,7 @@ launch_hybrid2() {
     python src/experiments/hybrid2_experiment.py $1
 
 }
+
 seed1=5
 seed2=15
 # Main process
@@ -390,7 +402,41 @@ PAIR_ABL_DOWN)
         launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2"
     done <$SAVED_META_INFO_PATH/pair_ablative$seed2
     ;;
-
+HYB1_ABL)
+    echo "Launching hybrid1 ablative studies"
+    meta_file="hybrid1_ablative"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    args="  -batch_size 512 -epochs 100 -accumulate_grad_batches 4  \
+         -sources freihand  -tag hyb1_abl -save_top_k 1  -save_period 1 "
+    declare -a seeds=($seed1
+        $seed2
+        )
+    declare -a contrastive_augment=("-contrastive color_jitter "
+        " ")
+    declare -a pairwise_augment=("-pairwise rotate "
+        "-pairwise crop "
+        "-pairwise crop -pairwise rotate ")
+    for seed in "${seeds[@]}"; do
+        for i in "${contrastive_augment[@]}"; do
+            for j in "${pairwise_augment[@]}"; do
+                launch_hybrid1 " $args -meta_file $meta_file$seed  $i $j -seed $seed"
+            done
+        done
+    done
+    ;;
+HYB1_ABL_DOWN)
+    echo "Launching hybrid1 ablative downstream study"
+    meta_file='hybrid1_ablative_down'
+    args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
+         -sources freihand -tag hyb1_abl"
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1"
+    done <$SAVED_META_INFO_PATH/hybrid1_ablative$seed1
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2"
+    done <$SAVED_META_INFO_PATH/hybrid1_ablative$seed2
+    ;;
 CROSS_DATA_PRETRAIN)
     echo "Launching hybrid 2 cross dataset"
     args="--rotate --crop --color_jitter --resize   -batch_size 512  -epochs 100 -optimizer LARS \
