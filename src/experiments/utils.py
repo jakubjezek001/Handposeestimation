@@ -72,7 +72,7 @@ def get_general_args(
     parser.add_argument(
         "--gaussian_noise", action="store_true", help="To add gaussian noise."
     )
-    parser.add_argument("-tag", action="append", help="Tag for comet", default=[])
+    parser.add_argument("-tags", action="append", help="Tag for comet", default=[])
     # Training  and data loader params.
     parser.add_argument("-batch_size", type=int, help="Batch size")
     parser.add_argument("-epochs", type=int, help="Number of epochs")
@@ -178,7 +178,7 @@ def get_hybrid1_args(
         default=[],
     )
     parser.add_argument("-batch_size", type=int, help="Batch size")
-    parser.add_argument("-tag", action="append", help="Tag for comet", default=[])
+    parser.add_argument("-tags", action="append", help="Tag for comet", default=[])
     parser.add_argument("-epochs", type=int, help="Number of epochs")
     parser.add_argument("-seed", type=int, help="To add seed")
     parser.add_argument(
