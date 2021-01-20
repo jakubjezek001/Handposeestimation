@@ -339,7 +339,7 @@ SIM_ABL)
         "gaussian_noise"
         "sobel_filter")
     args="--resize  -batch_size 512 -epochs 100 -accumulate_grad_batches 4 \
-         -sources freihand  -tags sim_abl -save_top_k 1  -save_period 1 "
+         -sources freihand  -tag sim_abl -save_top_k 1  -save_period 1 "
     for j in "${augmentations[@]}"; do
         echo "$j $seed1"
         launch_simclr " --$j  $args  -meta_file ${meta_file}$seed1 -seed  $seed1"
@@ -358,7 +358,7 @@ PAIR_ABL)
         "crop"
         "rotate")
     args="--resize  -batch_size 512 -epochs 100 -accumulate_grad_batches 4 \
-         -sources freihand  -tags pair_abl -save_top_k 1  -save_period 1 "
+         -sources freihand  -tag pair_abl -save_top_k 1  -save_period 1 "
     for j in "${augmentations[@]}"; do
         echo "$j $seed1"
         launch_pairwise " --$j  $args  -meta_file ${meta_file}$seed1 -seed $seed1"
@@ -371,7 +371,7 @@ PAIR_ABL)
 SIM_ABL_DOWN)
     echo "Launching downstream simclr ablative studies"
     args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
-         -sources freihand -tags sim_abl"
+         -sources freihand -tag sim_abl"
     while IFS=',' read -r experiment_name experiment_key; do
         launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1"
     done <$SAVED_META_INFO_PATH/simclr_ablative$seed1
@@ -382,7 +382,7 @@ SIM_ABL_DOWN)
 PAIR_ABL_DOWN)
     echo "Launching Pairwise ablative studies"
     args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
-         -sources freihand -tags pair_abl"
+         -sources freihand -tag pair_abl"
     while IFS=',' read -r experiment_name experiment_key; do
         launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1"
     done <$SAVED_META_INFO_PATH/pair_ablative$seed1
