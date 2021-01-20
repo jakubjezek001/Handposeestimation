@@ -15,7 +15,10 @@ from torch import Tensor, nn
 
 
 def cal_l1_loss(
-    pred_joints: Tensor, true_joints: Tensor, scale: Tensor = None
+    pred_joints: Tensor,
+    true_joints: Tensor,
+    scale: Tensor = 1.0,
+    joints_valid: Tensor = None,
 ) -> Tuple[Tensor, Tensor, Tensor]:
     """Calculates L1 loss between the predicted and true joints.  The relative unscaled
     depth (Z) is penalized seperately.
@@ -30,18 +33,21 @@ def cal_l1_loss(
         Tuple[Tensor, Tensor, Tensor]: 2d loss, scaled z relative
             loss and unscaled z relative loss.
     """
-    if scale is None:
-        scale = 1.0
+    if joints_valid is None:
+        joints_valid = torch.ones_like(true_joints[..., -1:])
     pred_uv = pred_joints[..., :-1]
     pred_z = pred_joints[..., -1:]
     true_uv = true_joints[..., :-1]
     true_z = true_joints[..., -1:]
-    loss = nn.L1Loss()
-    return (
-        loss(pred_uv, true_uv),
-        loss(pred_z, true_z),
-        loss(pred_z * scale, true_z * scale),
-    )
+    loss = nn.L1Loss(reduction="none")
+    joints_weight = joints_valid / joints_valid.sum()
+    loss_2d = (
+        loss(pred_uv, true_uv) * joints_weight
+    ).sum() / 2  # because there are two values for 2d
+    loss_z = loss(pred_z, true_z) * joints_weight
+    loss_z_unscaled = (loss_z * scale).sum()
+    loss_z = loss_z.sum()
+    return (loss_2d, loss_z, loss_z_unscaled)
 
 
 def calculate_metrics(

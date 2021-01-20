@@ -40,7 +40,7 @@ class BaselineModel(BaseModel):
         )
         prediction = self(x)
         loss_2d, loss_z, loss_z_unscaled = cal_l1_loss(
-            prediction * joints_valid, y * joints_valid, scale
+            prediction, y, scale, joints_valid
         )
         loss = loss_2d + self.config.alpha * loss_z
         self.train_metrics = {
@@ -49,7 +49,11 @@ class BaselineModel(BaseModel):
             "loss_2d": loss_2d.detach(),
             "loss_z_unscaled": loss_z_unscaled.detach(),
         }
-        self.plot_params = {"prediction": prediction, "ground_truth": y, "input": x}
+        self.plot_params = {
+            "prediction": prediction.detach(),
+            "ground_truth": y,
+            "input": x,
+        }
         return {
             "loss": loss,
             "loss_z": loss_z.detach(),
