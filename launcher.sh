@@ -342,7 +342,7 @@ SIM_ABL)
          -sources freihand  -tags sim_abl -save_top_k 1  -save_period 1 "
     for j in "${augmentations[@]}"; do
         echo "$j $seed1"
-        launch_simclr " --$j  $args  -meta_file ${meta_file}$seed1 -$seed1"
+        launch_simclr " --$j  $args  -meta_file ${meta_file}$seed1 -seed  $seed1"
     done
     for j in "${augmentations[@]}"; do
         echo "$j $seed2"
@@ -361,7 +361,7 @@ PAIR_ABL)
          -sources freihand  -tags pair_abl -save_top_k 1  -save_period 1 "
     for j in "${augmentations[@]}"; do
         echo "$j $seed1"
-        launch_pairwise " --$j  $args  -meta_file ${meta_file}$seed1 -$seed1"
+        launch_pairwise " --$j  $args  -meta_file ${meta_file}$seed1 -seed $seed1"
     done
     for j in "${augmentations[@]}"; do
         echo "$j $seed2"
