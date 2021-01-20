@@ -19,6 +19,7 @@ from src.experiments.utils import (
     get_model,
     prepare_name,
     update_train_params,
+    save_experiment_key,
 )
 from src.utils import get_console_logger, read_json
 
@@ -85,6 +86,12 @@ def main():
             MASTER_THESIS_DIR, "src", "experiments", "pairwise_experiment.py"
         ),
     )
+    if args.meta_file is not None:
+        save_experiment_key(
+            experiment_name=experiment_name,
+            experiment_key=trainer.logger.experiment.get_key(),
+            filename=args.meta_file,
+        )
     trainer.logger.experiment.log_parameters(train_param)
     trainer.logger.experiment.log_parameters(model_param)
     trainer.logger.experiment.add_tags(["pretraining", "pairwise"] + args.tag)
