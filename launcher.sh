@@ -167,7 +167,7 @@ fi
 
 # $1: additional args
 launch_simclr() {
-    bsub -J "simclr" -W "$TIME:00" \-o "/cluster/scratch//adahiya/sim_abl_logs.out" \
+    bsub -J "simclr" -W "$TIME:00" \-o "/cluster/scratch//adahiya/simclr_logs.out" \
         -n $CORES -R "rusage[mem=$MEMORY, ngpus_excl_p=1]" \
         -R "select[gpu_model0==$GPU_MODEL]" \
         -G ls_infk \
@@ -176,8 +176,18 @@ launch_simclr() {
 }
 
 # $1: additional args
+launch_pairwise(){
+     bsub -J "pair" -W "$TIME:00" \-o "/cluster/scratch//adahiya/pair_logs.out" \
+        -n $CORES -R "rusage[mem=$MEMORY, ngpus_excl_p=1]" \
+        -R "select[gpu_model0==$GPU_MODEL]" \
+        -G ls_infk \
+        python src/experiments/pairwise_experiment.py $1
+    # python src/experiments/pairwise_experiment.py $1
+}
+
+# $1: additional args
 launch_semisupervised() {
-    bsub -J "ssl" -W "$TIME:00" \-o "/cluster/scratch//adahiya/sim_abl_logs.out" \
+    bsub -J "ssl" -W "$TIME:00" \-o "/cluster/scratch//adahiya/ssl_logs.out" \
         -n $CORES -R "rusage[mem=$MEMORY, ngpus_excl_p=1]" \
         -R "select[gpu_model0==$GPU_MODEL]" \
         -G ls_infk \
@@ -187,14 +197,16 @@ launch_semisupervised() {
 
 # $1: additional args
 launch_hybrid2() {
-    bsub -J "hybrid2" -W "$TIME:00" \-o "/cluster/scratch//adahiya/sim_abl_logs.out" \
-        -n $CORES -R "rusage[mem=$MEMORY, ngpus_excl_p=1]" \
-        -R "select[gpu_model0==$GPU_MODEL]" \
-        -G ls_infk \
-        python src/experiments/hybrid2_experiment.py $1
-    # python src/experiments/hybrid2_experiment.py $1
+    # bsub -J "hybrid2" -W "$TIME:00" \-o "/cluster/scratch//adahiya/hybrid2_logs.out" \
+    #     -n $CORES -R "rusage[mem=$MEMORY, ngpus_excl_p=1]" \
+    #     -R "select[gpu_model0==$GPU_MODEL]" \
+    #     -G ls_infk \
+    #     python src/experiments/hybrid2_experiment.py $1
+    python src/experiments/hybrid2_experiment.py $1
 
 }
+seed1=5
+seed2=15
 # Main process
 case $EXPERIMENT in
 A1)
@@ -315,7 +327,8 @@ BSUB)
 SIM_ABL)
     meta_file="simclr_ablative"
     echo "Launching Simclr ablative studies"
-    mv "$SAVED_META_INFO_PATH/$meta_file" "$SAVED_META_INFO_PATH/$meta_file.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
     declare -a augmentations=("color_drop"
         "color_jitter"
         "crop"
@@ -326,23 +339,61 @@ SIM_ABL)
         "gaussian_noise"
         "sobel_filter")
     args="--resize  -batch_size 512 -epochs 100 -accumulate_grad_batches 4 \
-         -sources freihand -meta_file $meta_file -tags sim_abl "
+         -sources freihand  -tags sim_abl -save_top_k 1  -save_period 1 "
     for j in "${augmentations[@]}"; do
-        echo "$j"
-        launch_simclr " --$j --resize $args "
+        echo "$j $seed1"
+        launch_simclr " --$j  $args  -meta_file ${meta_file}$seed1 -$seed1"
+    done
+    for j in "${augmentations[@]}"; do
+        echo "$j $seed2"
+        launch_simclr " --$j  $args  -meta_file ${meta_file}$seed2 -seed $seed2"
+    done
+    ;;
+PAIR_ABL)
+    meta_file="pair_ablative"
+    echo "Launching Pair ablative studies"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    declare -a augmentations=("color_jitter"
+        "crop"
+        "rotate")
+    args="--resize  -batch_size 512 -epochs 100 -accumulate_grad_batches 4 \
+         -sources freihand  -tags pair_abl -save_top_k 1  -save_period 1 "
+    for j in "${augmentations[@]}"; do
+        echo "$j $seed1"
+        launch_pairwise " --$j  $args  -meta_file ${meta_file}$seed1 -$seed1"
+    done
+    for j in "${augmentations[@]}"; do
+        echo "$j $seed2"
+        launch_pairwise " --$j  $args  -meta_file ${meta_file}$seed2 -seed $seed2"
     done
     ;;
 SIM_ABL_DOWN)
     echo "Launching downstream simclr ablative studies"
     args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
-         -sources freihand"
+         -sources freihand -tags sim_abl"
     while IFS=',' read -r experiment_name experiment_key; do
-        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name"
-    done <$SAVED_META_INFO_PATH/simclr_ablative
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1"
+    done <$SAVED_META_INFO_PATH/simclr_ablative$seed1
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2"
+    done <$SAVED_META_INFO_PATH/simclr_ablative$seed2
     ;;
+PAIR_ABL_DOWN)
+    echo "Launching Pairwise ablative studies"
+    args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
+         -sources freihand -tags pair_abl"
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1"
+    done <$SAVED_META_INFO_PATH/pair_ablative$seed1
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2"
+    done <$SAVED_META_INFO_PATH/pair_ablative$seed2
+    ;;
+
 CROSS_DATA_PRETRAIN)
     echo "Launching hybrid 2 cross dataset"
-    args="--rotate --crop --color_jitter --resize   -batch_size 512  -epochs 500 -optimizer LARS \
+    args="--rotate --crop --color_jitter --resize   -batch_size 512  -epochs 100 -optimizer LARS \
          -accumulate_grad_batches 4 -sources freihand -sources interhand\
          -meta_file hybrid2_cross_data \
         -tag cross_data -save_top_k -1  -save_period 25"
