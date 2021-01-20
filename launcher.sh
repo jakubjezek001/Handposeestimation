@@ -449,6 +449,16 @@ CROSS_DATA_HYB1)
     launch_hybrid1 "$args -meta_file $meta_file$seed1 -seed $seed1"
     launch_hybrid1 "$args -meta_file $meta_file$seed2 -seed $seed2"
     ;;
+CROSS_DATA_HYB1_MPII)
+    echo "Launching hybrid 1 cross dataset"
+    meta_file="hybrid1_crossdataset_mpii"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    args="-sources freihand -sources mpii -contrastive color_jitter -pairwise crop -pairwise rotate -epochs 100 -batch_size 512 \
+     -accumulate_grad_batches 4 -save_top_k 1  -save_period 1 -tag hyb1_cross -tag mpii"
+    launch_hybrid1 "$args -meta_file $meta_file$seed1 -seed $seed1"
+    launch_hybrid1 "$args -meta_file $meta_file$seed2 -seed $seed2"
+    ;;
 CROSS_DATA_HYB1_DOWN)
     echo "Launching hybrid 1 cross dataset doenstream"
     meta_file='hybrid1_ablative_down'
