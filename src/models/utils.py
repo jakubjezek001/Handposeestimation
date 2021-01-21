@@ -340,11 +340,11 @@ def normalize_heatmap(heatmap: Tensor, beta: Tensor = None):
 
 def get_denoiser():
     return nn.Sequential(
-        nn.Linear(21 * 3 + 3 * 3 + 1, 64),
-        nn.BatchNorm1d(64),
+        nn.Linear(21 * 3 + 3 * 3 + 1, 128),
+        nn.BatchNorm1d(128),
         nn.ReLU(),
-        nn.Linear(64, 32),
-        nn.BatchNorm1d(32),
+        nn.Linear(128, 128),
+        nn.BatchNorm1d(128),
         nn.ReLU(),
-        nn.Linear(32, 1),
+        nn.Linear(128, 1),
     )
