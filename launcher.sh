@@ -382,24 +382,30 @@ PAIR_ABL)
     ;;
 SIM_ABL_DOWN)
     echo "Launching downstream simclr ablative studies"
+    meta_file="simclr_ablative_down"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
     args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
          -sources freihand -tag sim_abl"
     while IFS=',' read -r experiment_name experiment_key; do
-        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1"
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
     done <$SAVED_META_INFO_PATH/simclr_ablative$seed1
     while IFS=',' read -r experiment_name experiment_key; do
-        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2"
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2 -meta_file $meta_file$seed2"
     done <$SAVED_META_INFO_PATH/simclr_ablative$seed2
     ;;
 PAIR_ABL_DOWN)
     echo "Launching Pairwise ablative studies"
+    meta_file="pair_ablative_down"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
     args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
          -sources freihand -tag pair_abl"
     while IFS=',' read -r experiment_name experiment_key; do
-        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1"
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
     done <$SAVED_META_INFO_PATH/pair_ablative$seed1
     while IFS=',' read -r experiment_name experiment_key; do
-        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2"
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2 -meta_file $meta_file$seed2"
     done <$SAVED_META_INFO_PATH/pair_ablative$seed2
     ;;
 HYB1_ABL)
