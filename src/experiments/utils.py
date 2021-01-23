@@ -88,11 +88,12 @@ def get_general_args(
         type=int,
         help="Number of batches to accumulate gradient.",
     )
+    parser.add_argument("-lr", type=float, help="learning rate", default=None)
     parser.add_argument(
         "-optimizer",
         type=str,
         help="Select optimizer",
-        default="LARS",
+        default=None,
         choices=["LARS", "adam"],
     )
     parser.add_argument(
@@ -196,9 +197,10 @@ def get_hybrid1_args(
         "-optimizer",
         type=str,
         help="Select optimizer",
-        default="LARS",
+        default=None,
         choices=["LARS", "adam"],
     )
+    parser.add_argument("-lr", type=float, help="learning rate", default=None)
     parser.add_argument(
         "--denoiser", action="store_true", help="To enable denoising", default=False
     )
@@ -583,3 +585,11 @@ def get_callbacks(
         "callbacks": [lr_monitor, upload_comet_logs],
         "checkpoint_callback": checkpoint_callback,
     }
+
+
+def update_model_params(model_param: edict, args, data_length: int, train_param: edict):
+    model_param = update_param(args, model_param, ["optimizer", "lr"])
+    model_param.num_samples = data_length
+    model_param.batch_size = train_param.batch_size
+    model_param.num_of_mini_batch = train_param.accumulate_grad_batches
+    return model_param
