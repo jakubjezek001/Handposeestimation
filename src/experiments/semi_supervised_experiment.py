@@ -20,6 +20,7 @@ from src.experiments.utils import (
     prepare_name,
     restore_model,
     save_experiment_key,
+    update_model_params,
     update_train_params,
 )
 from src.utils import get_console_logger, read_json
@@ -47,8 +48,7 @@ def main():
 
     # model.
     model_param = edict(read_json(SSL_CONFIG))
-    model_param.num_samples = len(data)
-    model_param.batch_size = train_param.batch_size
+    model_param = update_model_params(model_param, args, len(data), train_param)
     model_param.encoder_trainable = args.encoder_trainable
     if args.experiment_key is not None:
         model_param.saved_model_name = args.experiment_key

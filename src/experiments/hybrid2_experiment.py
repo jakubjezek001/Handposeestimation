@@ -19,6 +19,7 @@ from src.experiments.utils import (
     get_model,
     prepare_name,
     save_experiment_key,
+    update_model_params,
     update_train_params,
 )
 from src.utils import get_console_logger, read_json
@@ -51,11 +52,9 @@ def main():
     comet_logger = CometLogger(**COMET_KWARGS, experiment_name=experiment_name)
 
     # model
-    model_param.num_samples = len(data)
-    model_param.batch_size = train_param.batch_size
-    model_param.num_of_mini_batch = train_param.accumulate_grad_batches
+    model_param = update_model_params(model_param, args, len(data), train_param)
     model_param.augmentation = [
-        key for key, value in train_param.augmentation_flags.items() if value is True
+        key for key, value in train_param.augmentation_flags.items() if value
     ]
     console_logger.info(f"Model parameters {pformat(model_param)}")
     model = get_model(

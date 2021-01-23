@@ -19,6 +19,7 @@ from src.experiments.utils import (
     get_general_args,
     prepare_name,
     update_train_params,
+    update_model_params,
     save_experiment_key,
 )
 from src.utils import get_console_logger, read_json
@@ -52,9 +53,7 @@ def main():
     )
     comet_logger = CometLogger(**COMET_KWARGS, experiment_name=experiment_name)
     # model.
-    model_param.num_samples = len(data)
-    model_param.batch_size = train_param.batch_size
-    model_param.num_of_mini_batch = train_param.accumulate_grad_batches
+    model_param = update_model_params(model_param, args, len(data), train_param)
     console_logger.info(f"Model parameters {pformat(model_param)}")
     model = get_model(
         experiment_type="simclr", heatmap_flag=args.heatmap, denoiser_flag=args.denoiser
