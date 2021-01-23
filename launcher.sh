@@ -264,9 +264,11 @@ A2_DOWN)
 
 IMAGENET_DOWN)
     echo "Launching downstream experiments for trained Imagenet."
-    launch_imagenet_downstream $TIME $CORES $GPU_MODEL
+    args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
+         -sources freihand -tag sim_abl -tag pair_abl -tag hyb1_abl"
+    launch_semisupervised "$args -experiment_key imagenet  -experiment_name imagenet -seed $seed1 -num_workers 16"
+    launch_semisupervised "$args -experiment_key imagenet  -experiment_name imagenet -seed $seed2 -num_workers 16"
     ;;
-
 SUPERVISED)
     epochs="50"
     num_workers="12"
@@ -415,6 +417,75 @@ HYB1_ABL)
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
     args="  -batch_size 512 -epochs 100 -accumulate_grad_batches 4  \
          -sources freihand  -tag hyb1_abl -save_top_k 1  -save_period 1 "
+    declare -a seeds=($seed1
+        $seed2
+    )
+    declare -a contrastive_augment=("-contrastive color_jitter "
+        " ")
+    declare -a pairwise_augment=("-pairwise rotate "
+        "-pairwise crop "
+        "-pairwise crop -pairwise rotate ")
+    for seed in "${seeds[@]}"; do
+        for i in "${contrastive_augment[@]}"; do
+            for j in "${pairwise_augment[@]}"; do
+                launch_hybrid1 " $args -meta_file $meta_file$seed  $i $j -seed $seed"
+            done
+        done
+    done
+    ;;
+HYB2_ABL)
+    echo "Launching hybri2 ablative studies"
+    meta_file="hybrid2_ablative"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    args="  --resize -batch_size 512 -epochs 100 -accumulate_grad_batches 4  \
+         -sources freihand  -tag hyb2_abl -save_top_k 1  -save_period 1 "
+    declare -a seeds=($seed1
+        $seed2
+    )
+    declare -a augment =("--rotate --color_jitter --crop  "
+        "--rotate --color_jitter"
+        "--rotate --crop  "
+        "--rotate"
+        "--color_jitter --crop  "
+        "--crop  "
+        "--color_jitter")
+    for seed in "${seeds[@]}"; do
+        for i in "${augment[@]}"; do
+            launch_hybrid2 " $args -meta_file $meta_file$seed  $i  -seed $seed"
+        done
+    done
+    ;;
+HYB2_ABL_ADAM)
+    echo "Launching hybri2 ablative studies"
+    meta_file="hybrid2_ablative_adam"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    args="  --resize -batch_size 512 -epochs 100 -accumulate_grad_batches 4  \
+         -sources freihand  -tag hyb2_abl -save_top_k 1  -save_period 1-optimizer adam -lr 2.2097e-5"
+    declare -a seeds=($seed1
+        $seed2
+    )
+    declare -a augment =("--rotate --color_jitter --crop  "
+        "--rotate --color_jitter"
+        "--rotate --crop  "
+        "--rotate"
+        "--color_jitter --crop  "
+        "--crop  "
+        "--color_jitter")
+    for seed in "${seeds[@]}"; do
+        for i in "${augment[@]}"; do
+            launch_hybrid2 " $args -meta_file $meta_file$seed  $i  -seed $seed"
+        done
+    done
+    ;;
+HYB1_ABL_ADAM)
+    echo "Launching hybrid1 ablative studies"
+    meta_file="hybrid1_ablative"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    args="  -batch_size 512 -epochs 100 -accumulate_grad_batches 4  \
+         -sources freihand  -tag hyb1_abl -save_top_k 1  -save_period 1 -optimizer adam  "
     declare -a seeds=($seed1
         $seed2
     )
