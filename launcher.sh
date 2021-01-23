@@ -443,13 +443,14 @@ HYB2_ABL)
     declare -a seeds=($seed1
         $seed2
     )
-    declare -a augment =("--rotate --color_jitter --crop  "
+    declare -a augment=("--rotate --color_jitter --crop  "
         "--rotate --color_jitter"
         "--rotate --crop  "
         "--rotate"
         "--color_jitter --crop  "
         "--crop  "
-        "--color_jitter")
+        "--color_jitter"
+    )
     for seed in "${seeds[@]}"; do
         for i in "${augment[@]}"; do
             launch_hybrid2 " $args -meta_file $meta_file$seed  $i  -seed $seed"
@@ -466,13 +467,14 @@ HYB2_ABL_ADAM)
     declare -a seeds=($seed1
         $seed2
     )
-    declare -a augment =("--rotate --color_jitter --crop  "
+    declare -a augment=("--rotate --color_jitter --crop  "
         "--rotate --color_jitter"
         "--rotate --crop  "
         "--rotate"
         "--color_jitter --crop  "
         "--crop  "
-        "--color_jitter")
+        "--color_jitter"
+    )
     for seed in "${seeds[@]}"; do
         for i in "${augment[@]}"; do
             launch_hybrid2 " $args -meta_file $meta_file$seed  $i  -seed $seed"
