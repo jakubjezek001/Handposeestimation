@@ -8,8 +8,8 @@ from typing import Dict
 
 class BaselineModel(BaseModel):
     """Class wrapper for the fully supervised model used as baseline.
-        It uses Resnet as the base model and appends more layers in the end to fit the
-        HPE Task.
+    It uses Resnet as the base model and appends more layers in the end to fit the
+    HPE Task.
     """
 
     def __init__(self, config: edict):
@@ -32,9 +32,16 @@ class BaselineModel(BaseModel):
     def training_step(
         self, batch: Dict[str, Tensor], batch_idx: int
     ) -> Dict[str, Tensor]:
-        x, y, scale = batch["image"], batch["joints"], batch["scale"]
+        x, y, scale, joints_valid = (
+            batch["image"],
+            batch["joints"],
+            batch["scale"],
+            batch["joints_valid"],
+        )
         prediction = self(x)
-        loss_2d, loss_z, loss_z_unscaled = cal_l1_loss(prediction, y, scale)
+        loss_2d, loss_z, loss_z_unscaled = cal_l1_loss(
+            prediction, y, scale, joints_valid
+        )
         loss = loss_2d + self.config.alpha * loss_z
         self.train_metrics = {
             "loss": loss.detach(),
@@ -42,7 +49,11 @@ class BaselineModel(BaseModel):
             "loss_2d": loss_2d.detach(),
             "loss_z_unscaled": loss_z_unscaled.detach(),
         }
-        self.plot_params = {"prediction": prediction, "ground_truth": y, "input": x}
+        self.plot_params = {
+            "prediction": prediction.detach(),
+            "ground_truth": y,
+            "input": x,
+        }
         return {
             "loss": loss,
             "loss_z": loss_z.detach(),
@@ -53,9 +64,16 @@ class BaselineModel(BaseModel):
     def validation_step(
         self, batch: Dict[str, Tensor], batch_idx: int
     ) -> Dict[str, Tensor]:
-        x, y, scale = batch["image"], batch["joints"], batch["scale"]
+        x, y, scale, joints_valid = (
+            batch["image"],
+            batch["joints"],
+            batch["scale"],
+            batch["joints_valid"],
+        )
         prediction = self(x)
-        loss_2d, loss_z, loss_z_unscaled = cal_l1_loss(prediction, y, scale)
+        loss_2d, loss_z, loss_z_unscaled = cal_l1_loss(
+            prediction * joints_valid, y * joints_valid, scale
+        )
         loss = loss_2d + self.config.alpha * loss_z
         metrics = {
             "loss": loss,

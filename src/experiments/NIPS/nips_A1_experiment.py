@@ -10,7 +10,7 @@ from src.data_loader.data_set import Data_Set
 from src.data_loader.utils import get_train_val_split
 from src.experiments.utils import prepare_name, save_experiment_key, get_nips_a1_args
 from src.models.callbacks.upload_comet_logs import UploadCometLogs
-from src.models.simclr_model import SimCLR
+from src.models.unsupervised.simclr_model import SimCLR
 from src.utils import get_console_logger, read_json
 from torchvision import transforms
 

@@ -1,10 +1,10 @@
 from easydict import EasyDict as edict
-from src.models.denoised_baseline import DenoisedBaselineModel
+from src.models.supervised.baseline_model import BaselineModel
 from src.models.utils import get_encoder_state_dict
 
 
-class DenoisedSupervisedHead(DenoisedBaselineModel):
-    """Downstream semisupervised model class with a denoiser. It uses the pretrained encoder from
+class SupervisedHead(BaselineModel):
+    """Downstream semisupervised model class. It uses the pretrained encoder from
     models like simclr, hybrid1 , pairwise or hybrid2.
     """
 
@@ -14,6 +14,7 @@ class DenoisedSupervisedHead(DenoisedBaselineModel):
             saved_model_path=config.saved_model_name, checkpoint=config.checkpoint
         )
         self.encoder.load_state_dict(encoder_state_dict)
-        for param in self.encoder.parameters():
-            param.requires_grad = False
-        self.encoder.eval()
+        if not self.config.encoder_trainable:
+            for param in self.encoder.parameters():
+                param.requires_grad = False
+            self.encoder.eval()

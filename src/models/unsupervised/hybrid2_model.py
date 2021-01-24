@@ -2,7 +2,7 @@ from typing import Dict, Tuple
 
 import torch
 from easydict import EasyDict as edict
-from src.models.simclr_model import SimCLR
+from src.models.unsupervised.simclr_model import SimCLR
 from src.models.utils import (
     rotate_encoding,
     translate_encodings,

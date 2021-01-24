@@ -1,12 +1,11 @@
 # code taken from
 # https://kornia.readthedocs.io/en/v0.1.2/_modules/torchgeometry/contrib/spatial_soft_argmax2d.html#SpatialSoftArgmax2d
-# ogic updated in the forward fucntion to return probabilities.
+# Logic updated in the forward fucntion to return probabilities.
 
 from typing import Optional, Tuple
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 
 def create_meshgrid(
@@ -48,10 +47,15 @@ class SpatialSoftArgmax2d(nn.Module):
         >>> x_coord, y_coord = torch.chunk(coords, dim=-1, chunks=2)
     """
 
-    def __init__(self, normalized_coordinates: Optional[bool] = True) -> None:
+    def __init__(
+        self,
+        normalized_coordinates: Optional[bool] = True,
+        output_probability: Optional[bool] = False,
+    ) -> None:
         super(SpatialSoftArgmax2d, self).__init__()
         self.normalized_coordinates: Optional[bool] = normalized_coordinates
         self.eps: float = 1e-6
+        self.output_probability = output_probability
 
     def forward(self, input: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         if not torch.is_tensor(input):
@@ -67,11 +71,10 @@ class SpatialSoftArgmax2d(nn.Module):
         x: torch.Tensor = input.view(batch_size, channels, -1)
 
         # compute softmax with max substraction trick
-        # TODO :uncomment.
-        # exp_x = torch.exp(x - torch.max(x, dim=-1, keepdim=True)[0])
-        # exp_x_sum = 1.0 / (exp_x.sum(dim=-1, keepdim=True) + self.eps)
-        # probability = exp_x * exp_x_sum
-        probability = x
+        exp_x = torch.exp(x - torch.max(x, dim=-1, keepdim=True)[0])
+        exp_x_sum = 1.0 / (exp_x.sum(dim=-1, keepdim=True) + self.eps)
+        probability = exp_x * exp_x_sum
+        # probability = x
         # create coordinates grid
         pos_y, pos_x = create_meshgrid(input, self.normalized_coordinates)
         pos_x = pos_x.reshape(-1)
@@ -81,16 +84,22 @@ class SpatialSoftArgmax2d(nn.Module):
         expected_y: torch.Tensor = torch.sum(pos_y * probability, dim=-1, keepdim=True)
         expected_x: torch.Tensor = torch.sum(pos_x * probability, dim=-1, keepdim=True)
         output: torch.Tensor = torch.cat([expected_y, expected_x], dim=-1)
-        return output.view(batch_size, channels, 2)  # , probability.view(
-        #     batch_size, channels, height, width
-        # )
+        if self.output_probability:
+            return (
+                output.view(batch_size, channels, 2),
+                probability.view(batch_size, channels, height, width),
+            )
+        else:
+            return output.view(batch_size, channels, 2)
 
 
 def spatial_soft_argmax2d(
-    input: torch.Tensor, normalized_coordinates: Optional[bool] = True
+    input: torch.Tensor,
+    normalized_coordinates: Optional[bool] = True,
+    output_probability: Optional[bool] = False,
 ) -> torch.Tensor:
     r"""Function that computes the Spatial Soft-Argmax 2D of a given heatmap.
 
     See :class:`torchgeometry.contrib.SpatialSoftArgmax2d` for details.
     """
-    return SpatialSoftArgmax2d(normalized_coordinates)(input)
+    return SpatialSoftArgmax2d(normalized_coordinates, output_probability)(input)

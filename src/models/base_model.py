@@ -2,11 +2,13 @@ import math
 from typing import Dict, Iterator, List, Tuple, Union
 
 import torch
+from torch import optim
 import torchvision
 from easydict import EasyDict as edict
 from pl_bolts.optimizers.lars_scheduling import LARSWrapper
 from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
 from pytorch_lightning.core.lightning import LightningModule
+from torch.optim.lr_scheduler import CosineAnnealingLR
 
 
 class BaseModel(LightningModule):
@@ -62,9 +64,6 @@ class BaseModel(LightningModule):
             lr=self.config.lr
             * math.sqrt(self.config.batch_size * self.config.num_of_mini_batch),
         )
-        if self.config.optimizer == "LARS":
-            optimizer = LARSWrapper(optimizer)
-
         warmup_epochs = (
             self.config.warmup_epochs
             * self.train_iters_per_epoch
@@ -75,20 +74,19 @@ class BaseModel(LightningModule):
             * self.train_iters_per_epoch
             // self.config.num_of_mini_batch
         )
+        if self.config.optimizer == "LARS":
+            optimizer = LARSWrapper(optimizer)
+            scheduler = LinearWarmupCosineAnnealingLR(
+                optimizer,
+                warmup_epochs=warmup_epochs,
+                max_epochs=max_epochs,
+                warmup_start_lr=0,
+                eta_min=0,
+            )
+        else:
+            scheduler = CosineAnnealingLR(optimizer, T_max=max_epochs)
 
-        linear_warmup_cosine_decay = LinearWarmupCosineAnnealingLR(
-            optimizer,
-            warmup_epochs=warmup_epochs,
-            max_epochs=max_epochs,
-            warmup_start_lr=0,
-            eta_min=0,
-        )
-
-        scheduler = {
-            "scheduler": linear_warmup_cosine_decay,
-            "interval": "step",
-            "frequency": 1,
-        }
+        scheduler = {"scheduler": scheduler, "interval": "step", "frequency": 1}
 
         return [optimizer], [scheduler]
 

@@ -1,6 +1,6 @@
 import os
 from typing import Dict, List, Union
-
+from sklearn.model_selection import train_test_split
 import cv2
 import numpy as np
 import torch
@@ -10,7 +10,13 @@ from torch.utils.data import Dataset
 
 
 class MPII_DB(Dataset):
-    def __init__(self, root_dir: str, split: str = "train"):
+    def __init__(
+        self,
+        root_dir: str,
+        split: str = "train",
+        seed: int = 5,
+        train_ratio: float = 0.9,
+    ):
         """Initializes the MPII dataset class, relevant paths and the Joints
         initializes the class for remapping of MPII formatted joints to that of AIT.
         joints mapping at
@@ -22,11 +28,14 @@ class MPII_DB(Dataset):
         """
         self.root_dir = root_dir
         self.split = split
-        self.image_dir_path = os.path.join(self.root_dir, f"manual_{self.split}")
-        self.label_dir_path = os.path.join(self.root_dir, f"manual_{self.split}")
+        self.seed = seed
+        self.train_ratio = train_ratio
+        split_set = "train" if self.split in ["train", "val"] else split
+        self.image_dir_path = os.path.join(self.root_dir, f"manual_{split_set}")
+        self.label_dir_path = os.path.join(self.root_dir, f"manual_{split_set}")
         self.img_names = self.get_image_names()
         self.labels = self.get_labels()
-
+        self.indices = self.create_train_val_split()
         # To convert from MPII to AIT format.
         self.joints = Joints()
 
@@ -45,8 +54,11 @@ class MPII_DB(Dataset):
         ]
         img_names.sort()
         # popping, images with annottaaions out of image bounds
-        img_names.remove("Ricki_unit_8.flv_000003_l.jpg")
-        img_names.remove("Ricki_unit_8.flv_000002_l.jpg")
+        try:
+            img_names.remove("Ricki_unit_8.flv_000003_l.jpg")
+            img_names.remove("Ricki_unit_8.flv_000002_l.jpg")
+        except Exception as e:
+            print(f"Out of frame images not found {e}")
         return img_names
 
     def get_labels(self) -> Dict[str, dict]:
@@ -63,8 +75,31 @@ class MPII_DB(Dataset):
         }
         return labels
 
+    def create_train_val_split(self) -> np.array:
+        """Creates split for train and val data in mpii
+        Raises:
+            NotImplementedError: In case the split doesn't match test, train or val.
+
+        Returns:
+            np.array: array of indices
+        """
+        num_unique_images = len(self.img_names)
+        train_indices, val_indices = train_test_split(
+            np.arange(num_unique_images),
+            train_size=self.train_ratio,
+            random_state=self.seed,
+        )
+        if self.split == "train":
+            return np.sort(train_indices)
+        elif self.split == "val":
+            return np.sort(val_indices)
+        elif self.split == "test":
+            return np.arange(len(self.img_names))
+        else:
+            raise NotImplementedError
+
     def __len__(self):
-        return len(self.img_names)
+        return len(self.indices)
 
     def __getitem__(self, idx: int) -> Dict[str, Union[np.array, torch.Tensor]]:
         """Returns a sample corresponding to the index.
@@ -81,14 +116,20 @@ class MPII_DB(Dataset):
 
         if torch.is_tensor(idx):
             idx = idx.tolist()
-        img_name = os.path.join(self.image_dir_path, self.img_names[idx])
+        idx_ = self.indices[idx]
+        img_name = os.path.join(self.image_dir_path, self.img_names[idx_])
         img = cv2.imread(img_name)
         # mpii follow the same strategy as the freihand for joint naming.
         joints3D = self.joints.freihand_to_ait(
-            torch.tensor(self.labels[self.img_names[idx].replace(".jpg", "")]).float()
+            torch.tensor(self.labels[self.img_names[idx_].replace(".jpg", "")]).float()
         )
         camera_param = torch.eye(3).float()
-
-        sample = {"image": img, "K": camera_param, "joints3D": joints3D}
+        joints_valid = torch.ones_like(joints3D[..., -1:])
+        sample = {
+            "image": img,
+            "K": camera_param,
+            "joints3D": joints3D,
+            "joints_valid": joints_valid,
+        }
 
         return sample

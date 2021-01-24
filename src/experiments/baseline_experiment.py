@@ -6,21 +6,22 @@ from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.loggers import CometLogger
 from src.constants import (
     COMET_KWARGS,
+    HEATMAP_CONFIG_PATH,
     MASTER_THESIS_DIR,
     SUPERVISED_CONFIG_PATH,
     TRAINING_CONFIG_PATH,
-    HEATMAP_CONFIG_PATH,
 )
 from src.data_loader.data_set import Data_Set
 from src.data_loader.utils import get_data, get_train_val_split
 from src.experiments.utils import (
     downstream_evaluation,
+    get_callbacks,
     get_general_args,
+    get_model,
     prepare_name,
     restore_model,
+    update_model_params,
     update_train_params,
-    get_model,
-    get_callbacks,
 )
 from src.utils import get_console_logger, read_json
 from torchvision import transforms
@@ -44,10 +45,7 @@ def main():
         Data_Set, train_param, sources=args.sources, experiment_type="supervised"
     )
     train_data_loader, val_data_loader = get_train_val_split(
-        data,
-        num_workers=train_param.num_workers,
-        batch_size=train_param.batch_size,
-        shuffle=True,
+        data, num_workers=train_param.num_workers, batch_size=train_param.batch_size
     )
 
     # logger
@@ -56,19 +54,20 @@ def main():
     )
 
     # Model
-    model_param.num_samples = len(data)
-    model_param.batch_size = train_param.batch_size
+    model_param = update_model_params(model_param, args, len(data), train_param)
     console_logger.info(f"Model parameters {pformat(model_param)}")
     model = get_model(
-        supervised_flag=True, heatmap_flag=args.heatmap, denoiser_flag=args.denoiser
+        experiment_type="supervised",
+        heatmap_flag=args.heatmap,
+        denoiser_flag=args.denoiser,
     )(config=model_param)
 
     # callbacks
     callbacks = get_callbacks(
         logging_interval=args.log_interval,
         experiment_type="supervised",
-        save_top_k=1,
-        period=1,
+        save_top_k=args.save_top_k,
+        period=args.save_period,
     )
 
     # Trainer setup

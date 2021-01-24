@@ -1,13 +1,14 @@
 {
     "batch_size": 128,
-    "lr": 0.0001,
-    "opt_weight_decay": 0.0001,
-    "warmup_epochs": 10,
-    "saved_model_name": "9f302cea72a2459eb14dfad33b1a9783",
+    "lr": 1e-4,
+    "opt_weight_decay": 0.0,
+    "warmup_epochs": 0,
+    "saved_model_name": "",
     "alpha": 5,
     "gpu": true,
     "checkpoint": "",
-    "optimizer": "LARS",
+    "optimizer": "adam",
     "num_of_mini_batch": 1,
-    "resnet_trainable": true
+    "resnet_trainable": true,
+    "encoder_trainable": false
 }

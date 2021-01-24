@@ -16,7 +16,7 @@ from src.experiments.utils import prepare_name
 from src.models.callbacks.upload_comet_logs import UploadCometLogs
 from src.utils import get_console_logger, read_json
 from torchvision import transforms
-from src.models.supervised_head_model import SupervisedHead
+from src.models.semisupervised.supervised_head_model import SupervisedHead
 import argparse
 from src.experiments.evaluation_utils import calculate_epe_statistics, evaluate
 
@@ -52,10 +52,7 @@ def main():
         experiment_type="supervised",
     )
     train_data_loader, val_data_loader = get_train_val_split(
-        data,
-        batch_size=train_param.batch_size,
-        num_workers=train_param.num_workers,
-        shuffle=True,
+        data, batch_size=train_param.batch_size, num_workers=train_param.num_workers
     )
     # Logger
 

@@ -6,22 +6,30 @@ import torch
 from comet_ml import Experiment
 from easydict import EasyDict as edict
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
-from src.constants import (
-    DATA_PATH,
-    MASTER_THESIS_DIR,
-    SAVED_META_INFO_PATH,
-    SAVED_MODELS_BASE_PATH,
-    SUPERVISED_CONFIG_PATH,
-    TRAINING_CONFIG_PATH,
-)
+from src.constants import SAVED_META_INFO_PATH, SAVED_MODELS_BASE_PATH
 from src.data_loader.data_set import Data_Set
 from src.experiments.evaluation_utils import evaluate
-from src.models.baseline_model import BaselineModel
 from src.models.callbacks.upload_comet_logs import UploadCometLogs
-from src.models.denoised_baseline import DenoisedBaselineModel
-from src.models.heatmap_model import HeatmapPoseModel
+from src.models.semisupervised.denoised_supervised_head_model import (
+    DenoisedSupervisedHead,
+)
+from src.models.semisupervised.supervised_head_model import SupervisedHead
+from src.models.supervised.baseline_model import BaselineModel
+from src.models.supervised.denoised_baseline import DenoisedBaselineModel
+from src.models.supervised.denoised_heatmap_model import DenoisedHeatmapmodel
+from src.models.supervised.heatmap_model import HeatmapPoseModel
+from src.models.unsupervised.hybrid1_heatmap_model import Hybrid1HeatmapModel
+from src.models.unsupervised.hybrid1_model import Hybrid1Model
+from src.models.unsupervised.hybrid2_heatmap_model import Hybrid2HeatmapModel
+from src.models.unsupervised.hybrid2_model import Hybrid2Model
+from src.models.unsupervised.pairwise_heatmap_model import PairwiseHeatmapModel
+from src.models.unsupervised.pairwise_model import PairwiseModel
+from src.models.unsupervised.simclr_heatmap_model import SimCLRHeatmap
+from src.models.unsupervised.simclr_model import SimCLR
 from src.models.utils import get_latest_checkpoint
 from src.utils import get_console_logger
+from torch.utils.data import WeightedRandomSampler
+from torch.utils.data.dataset import ConcatDataset
 
 
 def get_general_args(
@@ -80,11 +88,12 @@ def get_general_args(
         type=int,
         help="Number of batches to accumulate gradient.",
     )
+    parser.add_argument("-lr", type=float, help="learning rate", default=None)
     parser.add_argument(
         "-optimizer",
         type=str,
         help="Select optimizer",
-        default="LARS",
+        default=None,
         choices=["LARS", "adam"],
     )
     parser.add_argument(
@@ -97,7 +106,7 @@ def get_general_args(
         "-sources",
         action="append",
         help="Data sources to use.",
-        default=["freihand"],
+        default=[],
         choices=["freihand", "interhand", "mpii", "youtube"],
     )
     parser.add_argument(
@@ -117,9 +126,29 @@ def get_general_args(
         "-checkpoint", type=str, help="checkpoint name to restore.", default=""
     )
     parser.add_argument(
+        "-meta_file",
+        type=str,
+        help="File to save the name of the experiment.",
+        default=None,
+    )
+    parser.add_argument(
         "-experiment_name", type=str, help="experiment name for logging", default=""
     )
-
+    parser.add_argument(
+        "-save_period",
+        type=int,
+        help="interval at which experiments should be saved",
+        default=1,
+    )
+    parser.add_argument(
+        "-save_top_k", type=int, help="Top snapshots to save", default=3
+    )
+    parser.add_argument(
+        "--encoder_trainable",
+        action="store_true",
+        help="To enable encoder training in SSL",
+        default=False,
+    )
     args = parser.parse_args()
     return args
 
@@ -140,12 +169,14 @@ def get_hybrid1_args(
         action="append",
         help="Add augmentations for contrastive sample.",
         choices=["rotate", "crop", "color_jitter"],
+        default=[],
     )
     parser.add_argument(
         "-pairwise",
         action="append",
         help="Add augmentations for pairwise sample.",
         choices=["rotate", "crop", "color_jitter"],
+        default=[],
     )
     parser.add_argument("-batch_size", type=int, help="Batch size")
     parser.add_argument("-tag", action="append", help="Tag for comet", default=[])
@@ -161,6 +192,49 @@ def get_hybrid1_args(
         "-accumulate_grad_batches",
         type=int,
         help="Number of batches to accumulate gradient.",
+    )
+    parser.add_argument(
+        "-optimizer",
+        type=str,
+        help="Select optimizer",
+        default=None,
+        choices=["LARS", "adam"],
+    )
+    parser.add_argument("-lr", type=float, help="learning rate", default=None)
+    parser.add_argument(
+        "--denoiser", action="store_true", help="To enable denoising", default=False
+    )
+    parser.add_argument(
+        "--heatmap", action="store_true", help="To enable heatmap model", default=False
+    )
+    parser.add_argument(
+        "-sources",
+        action="append",
+        help="Data sources to use.",
+        default=[],
+        choices=["freihand", "interhand", "mpii", "youtube"],
+    )
+    parser.add_argument(
+        "-log_interval",
+        type=str,
+        help="To enable denoising",
+        default="epoch",
+        choices=["step", "epoch"],
+    )
+    parser.add_argument(
+        "-meta_file",
+        type=str,
+        help="File to save the name of the experiment.",
+        default=None,
+    )
+    parser.add_argument(
+        "-save_period",
+        type=int,
+        help="interval at which experiments should be saved",
+        default=1,
+    )
+    parser.add_argument(
+        "-save_top_k", type=int, help="Top snapshots to save", default=3
     )
     args = parser.parse_args()
     return args
@@ -393,10 +467,28 @@ def downstream_evaluation(
     """
 
     model.eval()
-    data.is_training(False)
-    validate_results = evaluate(
-        model, data, num_workers=num_workers, batch_size=batch_size
-    )
+    if isinstance(data, ConcatDataset):
+        val_weights = []
+        val_datasets = []
+        for i in range(len(data.datasets)):
+            val_datasets.append((data.datasets[i]))
+            val_datasets[-1].is_training(False)
+            val_weights += [1.0 / len(val_datasets[-1])] * len(val_datasets[-1])
+        data = ConcatDataset(val_datasets)
+        validate_results = evaluate(
+            model,
+            data,
+            num_workers=num_workers,
+            batch_size=batch_size,
+            sampler=WeightedRandomSampler(
+                weights=val_weights, num_samples=len(val_weights), replacement=True
+            ),
+        )
+    else:
+        data.is_training(False)
+        validate_results = evaluate(
+            model, data, num_workers=num_workers, batch_size=batch_size
+        )
     with logger.experiment.validate():
         logger.experiment.log_metrics(validate_results)
 
@@ -437,15 +529,41 @@ def get_checkpoints(experiment_key: str, number: int = 3) -> List[str]:
     )[::-1][:number]
 
 
-def get_model(supervised_flag: bool, heatmap_flag: bool, denoiser_flag: bool):
-    if supervised_flag:
-        if heatmap_flag:
+def get_model(experiment_type: str, heatmap_flag: bool, denoiser_flag: bool):
+    if experiment_type == "supervised":
+        if heatmap_flag and not denoiser_flag:
             return HeatmapPoseModel
+        elif heatmap_flag and denoiser_flag:
+            return DenoisedHeatmapmodel
+        elif denoiser_flag:
+            return DenoisedBaselineModel
         else:
-            if denoiser_flag:
-                return DenoisedBaselineModel
-            else:
-                return BaselineModel
+            return BaselineModel
+    elif experiment_type == "simclr":
+        if heatmap_flag:
+            return SimCLRHeatmap
+        else:
+            return SimCLR
+    elif experiment_type == "hybrid2":
+        if heatmap_flag:
+            return Hybrid2HeatmapModel
+        else:
+            return Hybrid2Model
+    elif experiment_type == "hybrid1":
+        if heatmap_flag:
+            return Hybrid1HeatmapModel
+        else:
+            return Hybrid1Model
+    elif experiment_type == "pairwise":
+        if heatmap_flag:
+            return PairwiseHeatmapModel
+        else:
+            return PairwiseModel
+    elif experiment_type == "semisupervised":
+        if denoiser_flag:
+            return DenoisedSupervisedHead
+        else:
+            return SupervisedHead
 
 
 def get_callbacks(
@@ -467,3 +585,11 @@ def get_callbacks(
         "callbacks": [lr_monitor, upload_comet_logs],
         "checkpoint_callback": checkpoint_callback,
     }
+
+
+def update_model_params(model_param: edict, args, data_length: int, train_param: edict):
+    model_param = update_param(args, model_param, ["optimizer", "lr"])
+    model_param.num_samples = data_length
+    model_param.batch_size = train_param.batch_size
+    model_param.num_of_mini_batch = train_param.accumulate_grad_batches
+    return model_param
