@@ -71,16 +71,21 @@ class DenoisedBaselineModel(BaselineModel):
     def get_denoised_z_root_calc(self, joints25D: Tensor, k: Tensor) -> Tensor:
 
         z_root_calc, k_inv = get_root_depth(joints25D, k, is_batch=True)
+        joints2d = torch.cat(
+            (joints25D[..., :-1], torch.ones_like(joints25D[..., -1:])), dim=-1
+        )
+        xy = torch.bmm(joints2d, torch.transpose(k_inv, 1, 2))
         z_root_calc = z_root_calc.view((-1, 1))
         batch_size = joints25D.size()[0]
         denoising_input = torch.cat(
             (
                 z_root_calc,
-                k_inv.reshape((batch_size, -1)),
-                joints25D.reshape(batch_size, -1),
+                xy[..., :-1].reshape((batch_size, -1)),
+                joints25D[..., -1].reshape(batch_size, -1),
             ),
             dim=1,
         )
+
         return self.denoiser(denoising_input.detach()) + z_root_calc.detach()
 
     def validation_step(
