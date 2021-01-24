@@ -483,11 +483,11 @@ HYB2_ABL_ADAM)
     ;;
 HYB1_ABL_ADAM)
     echo "Launching hybrid1 ablative studies"
-    meta_file="hybrid1_ablative"
+    meta_file="hybrid1_ablative_adam"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
     args="  -batch_size 512 -epochs 100 -accumulate_grad_batches 4  \
-         -sources freihand  -tag hyb1_abl -save_top_k 1  -save_period 1 -optimizer adam  "
+         -sources freihand  -tag hyb1_abl -save_top_k 1  -save_period 1 -optimizer adam  -lr 2.2097e-5"
     declare -a seeds=($seed1
         $seed2
     )
@@ -517,6 +517,48 @@ HYB1_ABL_DOWN)
     while IFS=',' read -r experiment_name experiment_key; do
         launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2  -meta_file $meta_file$seed2"
     done <$SAVED_META_INFO_PATH/hybrid1_ablative$seed2
+    ;;
+HYB2_ABL_DOWN)
+    echo "Launching hybrid2 ablative downstream study"
+    meta_file='hybrid2_ablative_down'
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
+         -sources freihand -tag hyb2_abl"
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
+    done <$SAVED_META_INFO_PATH/hybrid2_ablative$seed1
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2  -meta_file $meta_file$seed2"
+    done <$SAVED_META_INFO_PATH/hybrid2_ablative$seed2
+    ;;
+HYB1_ABL_ADAM_DOWN)
+    echo "Launching hybrid1 ablative downstream study"
+    meta_file='hybrid1_ablative_down_adam'
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam -tag adam \
+         -sources freihand -tag hyb1_abl"
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
+    done <$SAVED_META_INFO_PATH/hybrid1_ablative_adam$seed1
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2  -meta_file $meta_file$seed2"
+    done <$SAVED_META_INFO_PATH/hybrid1_ablative_adam$seed2
+    ;;
+HYB2_ABL_ADAM_DOWN)
+    echo "Launching hybrid2 ablative downstream study"
+    meta_file='hybrid1_ablative_down_adam'
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam -tag adam \
+         -sources freihand -tag hyb2_abl -tag adam"
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
+    done <$SAVED_META_INFO_PATH/hybrid2_ablative_adam$seed1
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2  -meta_file $meta_file$seed2"
+    done <$SAVED_META_INFO_PATH/hybrid2_ablative_adam$seed2
     ;;
 CROSS_DATA_HYB1)
     echo "Launching hybrid 1 cross dataset"
