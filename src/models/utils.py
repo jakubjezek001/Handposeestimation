@@ -15,10 +15,7 @@ from torch import Tensor, nn
 
 
 def cal_l1_loss(
-    pred_joints: Tensor,
-    true_joints: Tensor,
-    scale: Tensor = 1.0,
-    joints_valid: Tensor = None,
+    pred_joints: Tensor, true_joints: Tensor, scale: Tensor, joints_valid: Tensor
 ) -> Tuple[Tensor, Tensor, Tensor]:
     """Calculates L1 loss between the predicted and true joints.  The relative unscaled
     depth (Z) is penalized seperately.
@@ -45,7 +42,7 @@ def cal_l1_loss(
         loss(pred_uv, true_uv) * joints_weight
     ).sum() / 2  # because there are two values for 2d
     loss_z = loss(pred_z, true_z) * joints_weight
-    loss_z_unscaled = (loss_z * scale).sum()
+    loss_z_unscaled = (loss_z * scale.view(-1, 1, 1)).sum()
     loss_z = loss_z.sum()
     return (loss_2d, loss_z, loss_z_unscaled)
 
@@ -340,7 +337,7 @@ def normalize_heatmap(heatmap: Tensor, beta: Tensor = None):
 
 def get_denoiser():
     return nn.Sequential(
-        nn.Linear(21 * 3 + 3 * 3 + 1, 128),
+        nn.Linear(21 * 3 + 1, 128),
         nn.BatchNorm1d(128),
         nn.ReLU(),
         nn.Linear(128, 128),
