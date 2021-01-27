@@ -21,11 +21,17 @@ class Joints:
         self.interhand_ait_index_map = self.get_set1_to_set2_index_map(
             set1="ait", set2="interhand"
         )
+        self.mano_ait_index_map = self.get_set1_to_set2_index_map(
+            set1="ait", set2="mano"
+        )
         self.ait_freihand_index_map = self.get_set1_to_set2_index_map(
             set1="freihand", set2="ait"
         )
         self.ait_interhand_index_map = self.get_set1_to_set2_index_map(
             set1="interhand", set2="ait"
+        )
+        self.ait_mano_index_map = self.get_set1_to_set2_index_map(
+            set1="mano", set2="ait"
         )
 
     def get_set1_to_set2_index_map(
@@ -44,6 +50,9 @@ class Joints:
 
     def interhand_to_ait(self, joints_3D: JOINTS_3D) -> JOINTS_3D:
         return joints_3D[self.interhand_ait_index_map[:, 1]]
+
+    def mano_to_ait(self, joints_3D: JOINTS_3D) -> JOINTS_3D:
+        return joints_3D[self.mano_ait_index_map[:, 1]]
 
     # def ait_to_interhand(self, joints_3D:JOINTS_3D)-> JOINTS_3D:
     #     return joints_3D[self.ait_interhand_index_map[:,1]]

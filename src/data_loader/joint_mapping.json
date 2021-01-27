@@ -67,5 +67,28 @@
         "middle_tip": 8,
         "ring_tip": 12,
         "pinky_tip": 16
+    },
+    "mano": {
+        "wrist": 0,
+        "thumb_mcp": 13,
+        "index_mcp": 1,
+        "middle_mcp": 4,
+        "ring_mcp": 10,
+        "pinky_mcp": 7,
+        "thumb_pip": 14,
+        "index_pip": 2,
+        "middle_pip": 5,
+        "ring_pip": 11,
+        "pinky_pip": 8,
+        "thumb_dip": 15,
+        "index_dip": 3,
+        "middle_dip": 6,
+        "ring_dip": 12,
+        "pinky_dip": 9,
+        "thumb_tip": 16,
+        "index_tip": 17,
+        "middle_tip": 18,
+        "ring_tip": 19,
+        "pinky_tip": 20
     }
 }
