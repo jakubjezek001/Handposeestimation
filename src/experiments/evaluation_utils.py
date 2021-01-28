@@ -1,4 +1,4 @@
-from typing import Tuple, Union
+from typing import Tuple, Union, Dict
 
 import numpy as np
 import torch
@@ -320,10 +320,10 @@ def calc_procrustes_transform(
     """
     if torch.all(X == 0):
         print("X contains only NaNs. Not computing PMSE.")
-        return np.nan, Y
+        return Y, (torch.tensor([]),) * 3
     if torch.all(Y == 0):
         print("Y contains only NaNs. Not computing PMSE.")
-        return np.nan, Y
+        return Y, (torch.tensor([]),) * 3
     with torch.no_grad():
         muX = X.mean(dim=1, keepdim=True)
         muY = Y.mean(dim=1, keepdim=True)
@@ -351,36 +351,32 @@ def calc_procrustes_transform(
     return y_transform, rot_mat, scale, translation
 
 
-def get_procrustes_statistics(prediction_dict, denoiser: bool = False):
-
-    predictions3d_procrustes, _, _, _ = calc_procrustes_transform(
-        prediction_dict["joints_raw"].to(prediction_dict["predictions"].device),
-        prediction_dict["predictions"],
+def get_procrustes_statistics(pred: Dict[str, Tensor]) -> Dict[str, Tensor]:
+    device = pred["predictions"].device
+    pred_3d_t, _, _, _ = calc_procrustes_transform(
+        pred["joints_raw"].to(device), pred["predictions_3d"]
     )
-    epe_3D_procrustes = calculate_epe_statistics(
-        predictions3d_procrustes, prediction_dict["joints_raw"], dim=3
-    )
-    auc_procrustes = np.mean(cal_auc_joints(epe_3D_procrustes["eucledian_dist"]))
+    epe_3D_t = calculate_epe_statistics(pred_3d_t, pred["joints_raw"], dim=3)
+    auc_t = np.mean(cal_auc_joints(epe_3D_t["eucledian_dist"]))
     procrustes_results = {
-        "Mean_EPE_3D_procrustes": epe_3D_procrustes["mean"].cpu(),
-        "Median_EPE_3D_procrustes": epe_3D_procrustes["median"].cpu(),
-        "auc_procrustes": auc_procrustes,
+        "Mean_EPE_3D_procrustes": epe_3D_t["mean"].cpu(),
+        "Median_EPE_3D_procrustes": epe_3D_t["median"].cpu(),
+        "auc_procrustes": auc_t,
     }
-    # if denoiser:
-    #     predictions3d_denoised_procrustes, _, _, _ = calc_procrustes_transform(
-    #         prediction_dict["joints_raw"], prediction_dict["predictions_3d_denoised"]
-    #     )
-    #     epe_3D_denoised_procrustes = calculate_epe_statistics(
-    #         predictions3d_procrustes, prediction_dict["joints_raw"], dim=3
-    #     )
-    #     auc_denoised_procrustes = np.mean(
-    #         cal_auc_joints(epe_3D_denoised_procrustes["eucledian_dist"])
-    #     )
-    #     denoised_results = {
-    #         "Mean_EPE_3D_denoised_procrustes": epe_3D_denoised_procrustes["mean"].cpu(),
-    #         "Median_EPE_3D_denoised_procrustes": epe_3D_denoised_procrustes["median"].cpu(),
-    #         "auc_denoised_procrustes": auc_denoised_procrustes,
-    #     }
-    # else:
-    #     denoised_results = {}
+    if "predictions_3d_denoised" in pred.keys():
+        pred_3d_t_denoised, _, _, _ = calc_procrustes_transform(
+            pred["joints_raw"].to(device), pred["predictions_3d_denoised"]
+        )
+        epe_3D_denoised_t = calculate_epe_statistics(
+            pred_3d_t_denoised, pred["joints_raw"], dim=3
+        )
+        auc_denoised_t = np.mean(cal_auc_joints(epe_3D_denoised_t["eucledian_dist"]))
+        procrustes_results = {
+            **procrustes_results,
+            **{
+                "Mean_EPE_3D_denoised_procrustes": epe_3D_denoised_t["mean"].cpu(),
+                "Median_EPE_3D_denoised_procrustes": epe_3D_denoised_t["median"].cpu(),
+                "auc_denoised_procrustes": auc_denoised_t,
+            },
+        }
     return procrustes_results
