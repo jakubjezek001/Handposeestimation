@@ -1,5 +1,4 @@
 import unittest
-from os import pread
 
 import torch
 from src.models.utils import cal_l1_loss
