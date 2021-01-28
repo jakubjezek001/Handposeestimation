@@ -324,6 +324,12 @@ class Data_Set(Dataset):
         # transformation_matrix = torch.inverse(joints25D[1]) @ joints25D_raw[1]
         sample["K"] = torch.Tensor(transformation_matrix) @ sample["K"]
         joints3D_recreated = convert_2_5D_to_3D(joints25D, scale, sample["K"])
+        # This variable is for procrustes analysis, only relevant when youtube data is used
+        joints_raw = (
+            sample["joints_raw"]
+            if "joints_raw" in sample.keys()
+            else sample["joints3D"]
+        )
         if self.transform:
             image = self.transform(image)
         return {
@@ -334,6 +340,7 @@ class Data_Set(Dataset):
             "scale": scale,
             "joints3D_recreated": joints3D_recreated,
             "joints_valid": sample["joints_valid"],
+            "joints_raw": joints_raw,
         }
 
     def prepare_hybrid1_sample(

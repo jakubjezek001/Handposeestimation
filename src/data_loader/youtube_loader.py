@@ -21,12 +21,11 @@ class YTB_DB(Dataset):
     Camera matrix is unity to fit with the sample augmenter.
     """
 
-    def __init__(self, root_dir: str, split: str = "train", project_2d: bool = True):
+    def __init__(self, root_dir: str, split: str = "train"):
         self.root_dir = root_dir
         self.split = split
         self.joints_list, self.img_list = self.get_joints_labels_and_images()
         self.img_dict = {item["id"]: item for item in self.img_list}
-        self.project_2d = project_2d
         self.joints = Joints()
 
     def get_joints_labels_and_images(self) -> Tuple[dict, dict]:
@@ -114,9 +113,12 @@ class YTB_DB(Dataset):
         joints3D = self.joints.mano_to_ait(
             torch.tensor(self.joints_list[idx]["joints"]).float()
         )
+        joints_raw = joints3D.clone()
         # joints3D = torch.tensor(self.bbox[idx]["joints"]).float()
-        if self.project_2d:
-            joints3D[..., -1] = 1.0
+
+        # because image is cropped and rotated with the 2d projections of these coordinates.
+        # It needs to have depth as 1.0 to not cause problems. For procrustes use "joints_raw"
+        joints3D[..., -1] = 1.0
         camera_param = torch.eye(3).float()
         joints_valid = torch.zeros_like(joints3D[..., -1:])
         sample = {
@@ -124,5 +126,6 @@ class YTB_DB(Dataset):
             "K": camera_param,
             "joints3D": joints3D,
             "joints_valid": joints_valid,
+            "joints_raw": joints_raw,
         }
         return sample
