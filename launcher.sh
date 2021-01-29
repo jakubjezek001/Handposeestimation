@@ -617,7 +617,7 @@ HYB2_ABL_ADAM2_DOWN)
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
     args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam  \
          -sources freihand -tag hyb2_abl -tag adam128"
-   while IFS=',' read -r experiment_name experiment_key; do
+    while IFS=',' read -r experiment_name experiment_key; do
         launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
     done <$SAVED_META_INFO_PATH/hybrid2_ablative_adam128$seed1
     while IFS=',' read -r experiment_name experiment_key; do
@@ -695,7 +695,7 @@ CROSS_DATA_HYB2_YTB)
     declare -a augment=("--rotate --color_jitter --crop  "
         "--color_jitter --crop  "
     )
-     for i in "${augment[@]}"; do
+    for i in "${augment[@]}"; do
         launch_hybrid2 " $i $args -meta_file $meta_file$seed1 -seed $seed1"
         launch_hybrid2 "$i $args -meta_file $meta_file$seed2 -seed $seed2"
     done
@@ -707,10 +707,10 @@ CROSS_DATA_HYB2_YTB_ADAM2)
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
     args=" -sources freihand -sources youtube --resize  -epochs 100 -batch_size 128 -tag adam128 \
      -accumulate_grad_batches 1 -save_top_k 1  -save_period 1 -tag hyb2_cross -tag youtube"
-   declare -a augment=("--rotate --color_jitter --crop  "
+    declare -a augment=("--rotate --color_jitter --crop  "
         "--color_jitter --crop  "
     )
-     for i in "${augment[@]}"; do
+    for i in "${augment[@]}"; do
         launch_hybrid2 " $i $args -meta_file $meta_file$seed1 -seed $seed1"
         launch_hybrid2 "$i $args -meta_file $meta_file$seed2 -seed $seed2"
     done
@@ -745,6 +745,18 @@ CROSS_DATA_DOWNSTREAM)
     done <$SAVED_META_INFO_PATH/simclr_ablative
     launch_hybrid2 "$args"
     ;;
+SIMCLR)
+    # excat setup as simclr version1 results. 
+    meta_file="simclr"
+    echo "Launching Simclr ablative studies"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    args="--resize --random_crop  --color_jitter --gaussian_blur -batch_size 512 -epochs 100 -accumulate_grad_batches 4 \
+            -sources freihand  -tag simclr -save_top_k -1  -save_period 10 "
+    launch_simclr "  $args  -meta_file ${meta_file}$seed1 -seed  $seed1"
+    launch_simclr "  $args  -meta_file ${meta_file}$seed1 -seed  $seed1"
+    ;;
+
 *)
     echo "Experiment not recognized!"
     echo "(Run $0 -h for help)"
