@@ -684,6 +684,37 @@ CROSS_DATA_HYB1_MPII)
     launch_hybrid1 "$args -meta_file $meta_file$seed1 -seed $seed1"
     launch_hybrid1 "$args -meta_file $meta_file$seed2 -seed $seed2"
     ;;
+CROSS_DATA_HYB2_YTB)
+    # Launches hybrid 2 experiment with top two augmentation composition
+    echo "Launching hybrid 2 cross dataset with youtube"
+    meta_file="hybrid2_crossdataset_ytb"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    args=" -sources freihand -sources youtube --resize   -epochs 100 -batch_size 512 \
+     -accumulate_grad_batches 4 -save_top_k 1  -save_period 1 -tag hyb2_cross -tag youtube"
+    declare -a augment=("--rotate --color_jitter --crop  "
+        "--color_jitter --crop  "
+    )
+     for i in "${augment[@]}"; do
+        launch_hybrid2 " $i $args -meta_file $meta_file$seed1 -seed $seed1"
+        launch_hybrid2 "$i $args -meta_file $meta_file$seed2 -seed $seed2"
+    done
+    ;;
+CROSS_DATA_HYB2_YTB_ADAM2)
+    echo "Launching hybrid 2 cross dataset with youtube and adam128"
+    meta_file="hybrid2_crossdataset_ytb_adam"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    args=" -sources freihand -sources youtube --resize  -epochs 100 -batch_size 128 -tag adam128 \
+     -accumulate_grad_batches 1 -save_top_k 1  -save_period 1 -tag hyb2_cross -tag youtube"
+   declare -a augment=("--rotate --color_jitter --crop  "
+        "--color_jitter --crop  "
+    )
+     for i in "${augment[@]}"; do
+        launch_hybrid2 " $i $args -meta_file $meta_file$seed1 -seed $seed1"
+        launch_hybrid2 "$i $args -meta_file $meta_file$seed2 -seed $seed2"
+    done
+    ;;
 CROSS_DATA_HYB1_DOWN)
     echo "Launching hybrid 1 cross dataset doenstream"
     meta_file='hybrid1_ablative_down'
