@@ -784,7 +784,7 @@ SIMCLR)
     args="--resize --random_crop  --color_jitter --gaussian_blur -batch_size 512 -epochs 100 -accumulate_grad_batches 4 \
             -sources freihand  -tag simclr -tag simclr1 -save_top_k -1  -save_period 10 "
     launch_simclr "  $args  -meta_file ${meta_file}$seed1 -seed  $seed1"
-    launch_simclr "  $args  -meta_file ${meta_file}$seed1 -seed  $seed1"
+    launch_simclr "  $args  -meta_file ${meta_file}$seed2 -seed  $seed2"
     ;;
 SIMCLR_DOWNSTREAM)
     echo "simclr downstream"
