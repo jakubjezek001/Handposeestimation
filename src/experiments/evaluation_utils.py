@@ -183,7 +183,7 @@ def evaluate(
     )
 
     procrustes_results = (
-        get_procrustes_statistics(prediction_dict, False) if use_procrustes else {}
+        get_procrustes_statistics(prediction_dict) if use_procrustes else {}
     )
     # epe_3D_recreated = calculate_epe_statistics(
     #     prediction_dict["predictions_3d"],
