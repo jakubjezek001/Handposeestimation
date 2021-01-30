@@ -700,6 +700,21 @@ CROSS_DATA_HYB2_YTB)
         launch_hybrid2 "$i $args -meta_file $meta_file$seed2 -seed $seed2"
     done
     ;;
+CROSS_DATA_HYB2_YTB_DOWN)
+    # Launches hybrid 2 experiment with top two augmentation composition
+    echo "Launching hybrid 2 cross dataset with youtube downstream"
+    meta_file="hybrid2_crossdataset_ytb_down"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
+         -sources freihand  -tag hyb2_cross -tag youtube"
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
+    done <$SAVED_META_INFO_PATH/hybrid2_crossdataset_ytb$seed1
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2 -meta_file $meta_file$seed2"
+    done <$SAVED_META_INFO_PATH/hybrid2_crossdataset_ytb$seed2
+    ;;
 CROSS_DATA_HYB2_YTB_ADAM2)
     echo "Launching hybrid 2 cross dataset with youtube and adam128"
     meta_file="hybrid2_crossdataset_ytb_adam"
@@ -714,6 +729,21 @@ CROSS_DATA_HYB2_YTB_ADAM2)
         launch_hybrid2 " $i $args -meta_file $meta_file$seed1 -seed $seed1"
         launch_hybrid2 "$i $args -meta_file $meta_file$seed2 -seed $seed2"
     done
+    ;;
+CROSS_DATA_HYB2_YTB_ADAM2_DOWN)
+    # Launches hybrid 2 experiment with top two augmentation composition
+    echo "Launching hybrid 2 cross dataset with youtube and adam128 pretraining downstream"
+    meta_file="hybrid2_crossdataset_ytb_adam_down"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
+         -sources freihand  -tag hyb2_cross -tag youtube  -tag adam128"
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
+    done <$SAVED_META_INFO_PATH/hybrid2_crossdataset_ytb_adam$seed1
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2 -meta_file $meta_file$seed2"
+    done <$SAVED_META_INFO_PATH/hybrid2_crossdataset_ytb_adam$seed2
     ;;
 CROSS_DATA_HYB1_DOWN)
     echo "Launching hybrid 1 cross dataset doenstream"
@@ -756,7 +786,20 @@ SIMCLR)
     launch_simclr "  $args  -meta_file ${meta_file}$seed1 -seed  $seed1"
     launch_simclr "  $args  -meta_file ${meta_file}$seed1 -seed  $seed1"
     ;;
-
+SIMCLR_DOWNSTREAM)
+    echo "simclr downstream"
+    meta_file="simclr_down"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
+         -sources freihand  -tag simclr"
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
+    done <$SAVED_META_INFO_PATH/simclr$seed1
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2 -meta_file $meta_file$seed2"
+    done <$SAVED_META_INFO_PATH/simclr$seed2
+    ;;
 *)
     echo "Experiment not recognized!"
     echo "(Run $0 -h for help)"
