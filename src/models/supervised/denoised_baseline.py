@@ -100,17 +100,19 @@ class DenoisedBaselineModel(BaselineModel):
         )
         prediction = self(x)
         loss_2d, loss_z, loss_z_unscaled = cal_l1_loss(
-            prediction * joints_valid, y * joints_valid, scale
+            prediction, y, scale, joints_valid
         )
         loss = loss_2d + self.config.alpha * loss_z
 
         z_root_denoised = self.get_denoised_z_root_calc(y, k)
 
         z_root_gt = batch["joints3D"][:, PARENT_JOINT, -1] / scale
-        loss_z_denoise = L1Loss()(
-            z_root_gt * joints_valid[:, PARENT_JOINT, -1],
-            z_root_denoised.view(-1) * joints_valid[:, PARENT_JOINT, -1],
-        )
+        loss_z_denoise = (
+            L1Loss(reduction="none")(z_root_gt, z_root_denoised.view(-1))
+            * joints_valid[:, PARENT_JOINT, -1]
+            / (joints_valid[:, PARENT_JOINT, -1]).sum()
+        ).sum()
+        loss += loss_z_denoise
         loss += loss_z_denoise
         metrics = {
             "loss": loss,

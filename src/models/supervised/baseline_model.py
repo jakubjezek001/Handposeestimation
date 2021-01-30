@@ -72,7 +72,7 @@ class BaselineModel(BaseModel):
         )
         prediction = self(x)
         loss_2d, loss_z, loss_z_unscaled = cal_l1_loss(
-            prediction * joints_valid, y * joints_valid, scale
+            prediction, y, scale, joints_valid
         )
         loss = loss_2d + self.config.alpha * loss_z
         metrics = {
