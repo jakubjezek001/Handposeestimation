@@ -451,7 +451,15 @@ def get_downstream_args():
 
 
 def downstream_evaluation(
-    model, data: Data_Set, num_workers: int, batch_size: int, logger: Experiment
+    model,
+    data: Data_Set,
+    num_workers: int,
+    batch_size: int,
+    logger: Experiment,
+    max_crop_jitter: float = 0.0,
+    max_rotate_angle: float = 0.0,
+    min_rotate_angle: float = 0.0,
+    seed: int = 5,
 ) -> Tuple[dict, dict]:
     """Returns train and validate results respectively.
 
@@ -465,13 +473,24 @@ def downstream_evaluation(
     Returns:
         Tuple[dict, dict]: [description]
     """
-
+    torch.manual_seed(seed)
     model.eval()
-    if isinstance(data, ConcatDataset):
+    if isinstance(data, ConcatDataset) and len(data.datasets) > 1:
         val_weights = []
         val_datasets = []
         for i in range(len(data.datasets)):
-            val_datasets.append((data.datasets[i]))
+            val_dataset = data.datasets[i]
+            val_dataset.config.augmentation_params.max_angle = max_rotate_angle
+            val_dataset.config.augmentation_params.min_angle = min_rotate_angle
+            val_dataset.config.augmentation_params.crop_box_jitter = [
+                0.0,
+                max_crop_jitter,
+            ]
+            val_dataset.augmenter = val_dataset.get_sample_augmenter(
+                val_dataset.config.augmentation_params,
+                val_dataset.config.augmentation_flags,
+            )
+            val_datasets.append(val_dataset)
             val_datasets[-1].is_training(False)
             val_weights += [1.0 / len(val_datasets[-1])] * len(val_datasets[-1])
         data = ConcatDataset(val_datasets)
@@ -485,20 +504,19 @@ def downstream_evaluation(
             ),
         )
     else:
+        data = data.datasets[0] if isinstance(data, ConcatDataset) else data
         data.is_training(False)
+        data.config.augmentation_params.max_angle = max_rotate_angle
+        data.config.augmentation_params.min_angle = min_rotate_angle
+        data.config.augmentation_params.crop_box_jitter = [0.0, max_crop_jitter]
+        data.augmenter = data.get_sample_augmenter(
+            data.config.augmentation_params, data.config.augmentation_flags
+        )
         validate_results = evaluate(
             model, data, num_workers=num_workers, batch_size=batch_size
         )
     with logger.experiment.validate():
         logger.experiment.log_metrics(validate_results)
-
-    # data.is_training(True)
-    # train_results = evaluate(
-    #     model, data, num_workers=num_workers, batch_size=batch_size
-    # )
-
-    # with logger.experiment.train():
-    #     logger.experiment.log_metrics(train_results)
 
 
 def restore_model(model, experiment_key: str, checkpoint: str = ""):
