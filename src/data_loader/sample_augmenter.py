@@ -447,7 +447,10 @@ class SampleAugmenter:
             * crop_margin
         )
         if jitter is None:
-            jitter = random.sample(range(0, int(self.crop_box_jitter[1])), 2)
+            jitter = [
+                int(random.uniform(0, self.crop_box_jitter[1])),
+                int(random.uniform(0, self.crop_box_jitter[1])),
+            ]
             # print(f"jitter {jitter}")
         self.jitter = jitter
         origin_x = max(center_x - side + jitter[0], 0)
