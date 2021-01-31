@@ -217,6 +217,17 @@ launch_hybrid2() {
 
 }
 
+# $1 : args
+launch_supervised(){
+    bsub -J "supervised" -W "$TIME:00" \-o "/cluster/scratch//adahiya/hybrid2_logs.out" \
+        -n $CORES -R "rusage[mem=$MEMORY, ngpus_excl_p=1]" \
+        -R "select[gpu_model0==$GPU_MODEL]" \
+        -G ls_infk \
+        python src/experiments/baseline_experiment.py $1
+
+}
+
+
 seed1=5
 seed2=15
 # Main process
@@ -270,16 +281,21 @@ IMAGENET_DOWN)
     launch_semisupervised "$args -experiment_key imagenet  -experiment_name imagenet -seed $seed2 -num_workers 16"
     ;;
 SUPERVISED)
-    epochs="50"
-    num_workers="12"
-    batch_size="128"
-    echo "Launching baseline experiment for $epochs epochs "
-    bsub -J "imagenet_downstream" -W "$TIME:00" \-o "/cluster/scratch//adahiya/supervised_logs.out" \
-        -n $CORES -R "rusage[mem=$MEMORY, ngpus_excl_p=1]" \
-        -R "select[gpu_model0==$GPU_MODEL]" \
-        -G ls_infk \
-        python src/experiments/baseline_experiment.py --rotate --crop --resize \
-        -epochs $epochs -batch_size $batch_size -num_workers $num_workers
+    meta_file="supervised"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam -num_workers $CORES \
+         -sources freihand "
+    echo "Launching supervised baselines "
+    declare -a seeds=($seed1
+    $seed2
+    )
+    for i in "${seeds[@]}"; do
+        launch_supervised " $args -seed $i  -meta_file $meta_file$i" 
+        launch_supervised " $args -seed $i  -meta_file $meta_file$i -tag denoised --denoiser"  
+        launch_supervised " $args -seed $i  -meta_file $meta_file$i -tag heatmap --heatmap"
+        launch_supervised " $args -seed $i  -meta_file $meta_file$i -tag heatmap -tag denoised --heatmap --denoiser"
+    done
     ;;
 
 HYBRID1)
