@@ -816,6 +816,34 @@ SIMCLR_DOWNSTREAM)
         launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2 -meta_file $meta_file$seed2"
     done <$SAVED_META_INFO_PATH/simclr$seed2
     ;;
+E22)
+    # This expeirment 22 is for the downstream performance measure for effectivesness of hybrid2.
+    echo " Hybrid 2 model with simclr like setup and random cropping."
+    meta_file="e22"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    # mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    args="--resize --random_crop  --color_jitter --gaussian_blur  -batch_size 512 -epochs 100 -accumulate_grad_batches 4 \
+            -sources freihand  -tag e22  -save_top_k 1  -save_period 1  -num_workers $CORES "
+    launch_simclr "  $args  -meta_file ${meta_file}$seed1 -seed  $seed1"
+    launch_hybrid2 "  $args  -meta_file ${meta_file}$seed1 -seed  $seed1 --rotate --crop"
+    launch_hybrid2 "  $args  -meta_file ${meta_file}$seed1 -seed  $seed1  --crop"
+    # launch_simclr "  $args  -meta_file ${meta_file}$seed2 -seed  $seed2"
+    ;;
+E22D)
+    # This expeirment 22 is for the downstream performance measure for effectivesness of hybrid2.
+    echo " Hybrid 2 model with simclr like setup and random cropping."
+    meta_file="e22d"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    # mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
+         -sources freihand  -tag e22 "
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
+    done <$SAVED_META_INFO_PATH/e22$seed1
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2 -meta_file $meta_file$seed2"
+    done <$SAVED_META_INFO_PATH/e22$seed2
+    ;;
 *)
     echo "Experiment not recognized!"
     echo "(Run $0 -h for help)"
