@@ -104,3 +104,7 @@ src/experiments/hybrid2_experiment_debug.py
 notebooks/Untitled*.ipynb
 notebooks/*.csv
 *.png
+src/evaluation/fh_utils.py
+.gitignore
+src/evaluation/pred.py
+src/evaluation/freihand_eval1.py
