@@ -1,4 +1,7 @@
 import os
+
+from torch.tensor import Tensor
+from src.data_loader.utils import convert_2_5D_to_3D
 from typing import List, Tuple
 
 import cv2
@@ -8,6 +11,8 @@ from sklearn.model_selection import train_test_split
 from src.data_loader.joints import Joints
 from src.utils import read_json
 from torch.utils.data import Dataset
+
+BOUND_BOX_SCALE = 0.33
 
 
 class F_DB(Dataset):
@@ -31,6 +36,7 @@ class F_DB(Dataset):
         self.seed = seed
         self.train_ratio = train_ratio
         self.labels = self.get_labels()
+        self.scale = self.get_scale()
         self.camera_param = self.get_camera_param()
         self.img_names, self.img_path = self.get_image_names()
         self.indices = self.create_train_val_split()
@@ -108,6 +114,14 @@ class F_DB(Dataset):
         else:
             return None
 
+    def get_scale(self) -> list:
+        """Extacts the scale from freihand data."""
+        if self.split in ["train", "val"]:
+            labels_path = os.path.join(self.root_dir, "training_scale.json")
+        else:
+            labels_path = os.path.join(self.root_dir, "evaluation_scale.json")
+        return read_json(labels_path)
+
     def get_camera_param(self) -> list:
         """Extacts the camera parameters from the camera_param_json at camera_param_path.
         Returns:
@@ -121,6 +135,20 @@ class F_DB(Dataset):
 
     def __len__(self):
         return len(self.indices)
+
+    def create_sudo_bound_box(self, scale) -> Tensor:
+        max_bound = torch.tensor([224.0, 224.0])
+        min_bound = torch.tensor([0.0, 0.0])
+        c = (max_bound + min_bound) / 2.0
+        s = ((max_bound - min_bound) / 2.0) * scale
+        bound_box = torch.tensor(
+            [[0, 0, 0]]
+            + [[s[0], s[1], 1]] * 5
+            + [[-s[0], s[1], 1]] * 5
+            + [[s[0], -s[1], 1]] * 5
+            + [[-s[0], -s[1], 1]] * 5
+        ) + torch.tensor([c[0], c[1], 0])
+        return bound_box.float()
 
     def __getitem__(self, idx: int) -> dict:
         """Returns a sample corresponding to the index.
@@ -141,12 +169,16 @@ class F_DB(Dataset):
         img_name = os.path.join(self.img_path, self.img_names[idx_])
         img = cv2.imread(img_name)
         if self.labels is not None:
+            camera_param = torch.tensor(self.camera_param[idx_ % 32560]).float()
             joints3D = self.joints.freihand_to_ait(
                 torch.tensor(self.labels[idx_ % 32560]).float()
             )
         else:
-            joints3D = torch.zeros((21, 3), dtype=torch.float)
-        camera_param = torch.tensor(self.camera_param[idx_ % 32560]).float()
+            camera_param = torch.tensor(self.camera_param[idx_]).float()
+            joints2d_orthogonal = self.create_sudo_bound_box(scale=BOUND_BOX_SCALE)
+            joints3D = convert_2_5D_to_3D(
+                joints2d_orthogonal, scale=1.0, K=camera_param.clone()
+            )
         joints_valid = torch.ones_like(joints3D[..., -1:])
         sample = {
             "image": img,
