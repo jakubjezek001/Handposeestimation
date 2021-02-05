@@ -10,5 +10,6 @@
     "optimizer": "adam",
     "num_of_mini_batch": 1,
     "resnet_trainable": true,
-    "encoder_trainable": false
+    "encoder_trainable": false,
+    "resnet_size":"18"
 }
