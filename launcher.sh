@@ -938,6 +938,21 @@ FREIHAND_SUBMISSION)
     # launch_supervised "$args --heatmap"
     # launch_supervised "$args --heatmap_denoised"
     ;;
+E24)
+    # hybrid 2 Bigger hybrid2, resnet 152
+    # train with time 24 and memory 31744 , 31 GB
+    #gpu model TeslaV100_SXM2_32GB
+    meta_file="e24"
+    args=" -sources freihand --resize  --color_jitter --rotate --crop --random_crop  -epochs 100 -batch_size 512 \
+     -accumulate_grad_batches 4 -save_top_k -1  -save_period 5  -tag e24 -num_workers $CORES --resnet_size 152"
+    launch_hybrid2 " $args  -meta_file $meta_file$seed1 -seed $seed1"
+    ;;
+E25)
+    # hybrid 2 experiment, Effective ness of sobel filter. To be used for compariosn in experiment 22.
+    meta_file="e25"
+    args=" -sources freihand --resize  --sobel_filter --rotate --crop --random_crop  -epochs 100 -batch_size 512 \
+     -accumulate_grad_batches 4 -save_top_k -1  -save_period 5  -tag e24 -num_workers $CORES "
+    launch_hybrid2 " $args  -meta_file $meta_file$seed1 -seed $seed1"
 *)
     echo "Experiment not recognized!"
     echo "(Run $0 -h for help)"
@@ -946,3 +961,8 @@ FREIHAND_SUBMISSION)
 esac
 
 echo "All experiment successfully launched!"
+
+
+# Resnet 18, hybrid2 batch :512*4 memory 10400 mb
+# Resnet 50, hybrid2 batch:512*4 memory 17084 mb --gpu_model TeslaV100_SXM2_32GB
+# Resnet 152, hybrid batch:512*4 memory 31373 mb ; use --gpu_model TeslaV100_SXM2_32GB
