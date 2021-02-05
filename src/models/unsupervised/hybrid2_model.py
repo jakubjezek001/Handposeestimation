@@ -36,19 +36,18 @@ class Hybrid2Model(SimCLR):
         encodings = self.encoder(batch_transform)
         projections = self.projection_head(encodings).view((batch_size * 2, -1, 2))
 
-        # normalizing before rotation
-        # projection = self.projection_head(encodings)
-        # norm_projection1 = F.normalize(projection[:batch_size])
-        # norm_projection2 = F.normalize(projection[batch_size:])
-        # projections = torch.cat([norm_projection1, norm_projection2], dim=0).view(
-        #     (batch_size * 2, -1, 2)
-        # )
-
         projection1_stat = self.get_projection_stats(
             projections[:batch_size].detach(), "proj1"
         )
         projection2_stat = self.get_projection_stats(
             projections[batch_size:].detach(), "proj2"
+        )
+        # normalizing before rotation (Remove the normalization)
+        projections = projections.view((batch_size * 2, -1))
+        norm_projection1 = F.normalize(projections[:batch_size])
+        norm_projection2 = F.normalize(projections[batch_size:])
+        projections = torch.cat([norm_projection1, norm_projection2], dim=0).view(
+            (batch_size * 2, -1, 2)
         )
 
         self.train_metrics = {
