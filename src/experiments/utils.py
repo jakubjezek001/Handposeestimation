@@ -153,7 +153,7 @@ def get_general_args(
         "-resnet_size",
         type=str,
         help="Resnet size",
-        default=18,
+        default="18",
         choices=["18", "34", "50", "101", "152"],
     )
     args = parser.parse_args()
