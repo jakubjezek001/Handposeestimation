@@ -3,6 +3,7 @@ from typing import Dict, Tuple
 
 import numpy as np
 import torch
+import torchvision
 from comet_ml import Experiment
 from src.constants import SAVED_MODELS_BASE_PATH
 from src.visualization.visualize import (
@@ -345,3 +346,24 @@ def get_denoiser():
         nn.ReLU(),
         nn.Linear(128, 1),
     )
+
+
+def get_resnet(resnet_size: str, **kwargs):
+    if resnet_size == "18":
+        model = torchvision.models.resnet18(**kwargs)
+        model.fc = nn.Sequential()
+    elif resnet_size == "34":
+        model = torchvision.models.resnet34(**kwargs)
+        model.fc = nn.Sequential()
+    elif resnet_size == "50":
+        model = torchvision.models.resnet50(**kwargs)
+        model.fc = nn.Linear(2048, 512)
+    elif resnet_size == "101":
+        model = torchvision.models.resnet101(**kwargs)
+        model.fc = nn.Linear(2048, 512)
+    elif resnet_size == "152":
+        model = torchvision.models.resnet152(**kwargs)
+        model.fc = nn.Linear(2048, 512)
+    else:
+        raise NotImplementedError
+    return model
