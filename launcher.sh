@@ -723,13 +723,41 @@ CROSS_DATA_HYB2_YTB_DOWN)
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
     args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
-         -sources freihand  -tag hyb2_cross -tag youtube"
+         -sources freihand  -tag hyb2_cross -tag youtube --encoder_trainable"
     while IFS=',' read -r experiment_name experiment_key; do
         launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
     done <$SAVED_META_INFO_PATH/hybrid2_crossdataset_ytb$seed1
     while IFS=',' read -r experiment_name experiment_key; do
         launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2 -meta_file $meta_file$seed2"
     done <$SAVED_META_INFO_PATH/hybrid2_crossdataset_ytb$seed2
+    ;;
+SEMISUPERVISED)
+    args=" --rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
+         -sources freihand -num_workers $CORES  "
+    echo  "bsub -J 'ssl' -W '$TIME:00' \-o '/cluster/scratch//adahiya/ssl_logs.out' \
+        -n $CORES -R 'rusage[mem=$MEMORY, ngpus_excl_p=1]' \
+        -R 'select[gpu_model0==$GPU_MODEL]'  \
+        -G ls_infk \
+        python src/experiments/semi_supervised_experiment.py  $args  -experiment_key <EXPERIMENT KEY> \
+           -experiment_name <EXPERIMENT NAME> \
+           -seed <SEED> \
+           -tag <TAG> "
+    # echo  "bsub -J 'ssl' -W '$TIME:00' \-o '/cluster/scratch//adahiya/ssl_logs.out' \
+    #     -n $CORES -R 'rusage[mem=$MEMORY, ngpus_excl_p=1]' \
+    #     -R 'select[gpu_model0==$GPU_MODEL]'  \
+    #     -G ls_infk \
+    #     python src/experiments/semi_supervised_experiment.py  $args -experiment_key 4a9f7ef5de224af5af67ad5b24917bfc \
+    #        -experiment_name ssl_hybrid2_512C_CJ_Re128C_Re_Ro  \
+    #        -seed  5 \
+    #        -tag hyb2_cross -tag no_ytb"
+        # echo  "bsub -J 'ssl' -W '$TIME:00' \-o '/cluster/scratch//adahiya/ssl_logs.out' \
+        # -n $CORES -R 'rusage[mem=$MEMORY, ngpus_excl_p=1]' \
+        # -R 'select[gpu_model0==$GPU_MODEL]'  \
+        # -G ls_infk \
+        # python src/experiments/semi_supervised_experiment.py  $args -experiment_key 7dfc517b9c744264923469cc65bfb543 \
+        #    -experiment_name ssl_hybrid2_512C_CJ_Re_Ro128C_Re_Ro  \
+        #    -seed  5 \
+        #    -tag hyb2_cross -tag no_ytb"
     ;;
 CROSS_DATA_HYB2_YTB_ADAM2)
     echo "Launching hybrid 2 cross dataset with youtube and adam128"
@@ -823,11 +851,10 @@ E22)
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
     # mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
     args="--resize --random_crop  --color_jitter --gaussian_blur  -batch_size 512 -epochs 100 -accumulate_grad_batches 4 \
-            -sources freihand  -tag e22  -save_top_k 1  -save_period 1  -num_workers $CORES "
-    launch_simclr "  $args  -meta_file ${meta_file}$seed1 -seed  $seed1"
+            -sources freihand  -tag e22  -save_top_k 1  -save_period 1  -num_workers $CORES  -tag normalized"
+    launch_hybrid2 "  $args  -meta_file ${meta_file}$seed1 -seed  $seed1"
     launch_hybrid2 "  $args  -meta_file ${meta_file}$seed1 -seed  $seed1 --rotate --crop"
     launch_hybrid2 "  $args  -meta_file ${meta_file}$seed1 -seed  $seed1  --crop"
-    # launch_simclr "  $args  -meta_file ${meta_file}$seed2 -seed  $seed2"
     ;;
 E22D)
     # This expeirment 22 is for the downstream performance measure for effectivesness of hybrid2.
@@ -836,13 +863,80 @@ E22D)
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
     # mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
     args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
-         -sources freihand  -tag e22 "
+         -sources freihand  -tag e22 -num_workers $CORES  -tag normalized"
     while IFS=',' read -r experiment_name experiment_key; do
         launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
     done <$SAVED_META_INFO_PATH/e22$seed1
+    # while IFS=',' read -r experiment_name experiment_key; do
+    #     launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2 -meta_file $meta_file$seed2"
+    # done <$SAVED_META_INFO_PATH/e22$seed2
+    ;;
+E22b)
+    # This experiment is for simclr version 1 test with rotation and transalation.
+    echo "Simclr v1 with rotation and translation."
+    meta_file="e22b"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    # mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    args="--resize --random_crop  --color_jitter --gaussian_blur  -batch_size 512 -epochs 100 -accumulate_grad_batches 4 \
+            -sources freihand  -tag e22  -save_top_k 1  -save_period 1  -num_workers $CORES "
+    launch_simclr "  $args  -meta_file ${meta_file}$seed1 -seed  $seed1 --rotate --crop"
+    launch_simclr "  $args  -meta_file ${meta_file}$seed1 -seed  $seed1  --crop"
+    ;;
+E22bD)
+    # This is downstream version fro experiment 22b.
+    echo "Downstream finetuning of  Simclr v1 with rotation and translation E22b"
+    meta_file="e22bD"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    # mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
+         -sources freihand  -tag e22 -num_workers $CORES "
     while IFS=',' read -r experiment_name experiment_key; do
-        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2 -meta_file $meta_file$seed2"
-    done <$SAVED_META_INFO_PATH/e22$seed2
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
+    done <$SAVED_META_INFO_PATH/e22b$seed1
+    # while IFS=',' read -r experiment_name experiment_key; do
+    #     launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2 -meta_file $meta_file$seed2"
+    # done <$SAVED_META_INFO_PATH/e22$seed2
+    ;;
+E23)
+    # cross data set experiment with normalization of projections in hybrid 2 with youtube and freihand.
+    echo "Launching hybrid 2 cross dataset with youtube"
+    meta_file="hybrid2_crossdataset_ytb"
+    # mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    # mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    args=" -sources freihand -sources youtube --resize  --color_jitter  -epochs 100 -batch_size 512 \
+     -accumulate_grad_batches 4 -save_top_k 1  -save_period 1 -tag e23 -num_workers $CORES"
+    declare -a augment=("--rotate  --crop  "
+        # " --crop  "
+    )
+    for i in "${augment[@]}"; do
+        launch_hybrid2 " $i $args -meta_file $meta_file$seed1 -seed $seed1"
+        # launch_hybrid2 "$i $args -meta_file $meta_file$seed2 -seed $seed2"
+    done
+    ;;
+E23d)
+    # cross data set experiment with normalization of projections in hybrid 2 with youtube and freihand.
+    echo "Launching hybrid 2 cross dataset with youtube downstream"
+    meta_file="hybrid2_crossdataset_ytb_down"
+    # mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    # mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam --encoder_trainable\
+         -sources freihand  -tag e23 -num_workers $CORES "
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
+    done <$SAVED_META_INFO_PATH/hybrid2_crossdataset_ytb$seed1
+    # while IFS=',' read -r experiment_name experiment_key; do
+    #     launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2 -meta_file $meta_file$seed2"
+    # done <$SAVED_META_INFO_PATH/hybrid2_crossdataset_ytb$seed2
+    ;;
+FREIHAND_SUBMISSION)
+    # freihand submission
+    meta_file="freihand_submission"
+    args=" -sources freihand -epochs 100 -train_ratio 0.99999999999999 -meta_file $meta_file  \
+    -tag freihand_submission --rotate --resize --crop -save_top_k -1 -save_period 50 -num_workers $CORES -batch_size 128 "
+    launch_supervised " $args "
+    launch_supervised " $args --denoiser "
+    # launch_supervised "$args --heatmap"
+    # launch_supervised "$args --heatmap_denoised"
     ;;
 *)
     echo "Experiment not recognized!"
