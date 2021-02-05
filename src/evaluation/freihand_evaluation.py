@@ -27,9 +27,19 @@ def main():
     parser.add_argument(
         "-key", type=str, help="Add comet key of experiment to restore."
     )
+    parser.add_argument(
+        "-split",
+        type=str,
+        help="For debugging select val split",
+        default="eval",
+        choices=["test", "val"],
+    )
     args = parser.parse_args()
     model = load_model(args.key)
-
+    if args.split == "val":
+        print(
+            "DEBUG MODE ACTIVATED.\n Evaluation pipeline is executed on validation set"
+        )
     train_param = edict(read_json(TRAINING_CONFIG_PATH))
     train_param.augmentation_flags.resize = True
     train_param.augmentation_flags.crop = True
@@ -38,6 +48,7 @@ def main():
     augmenter = SampleAugmenter(
         train_param.augmentation_flags, train_param.augmentation_params
     )
+    # Normalization for BGR mode.
     transform = transforms.Compose(
         [
             transforms.ToTensor(),
@@ -46,38 +57,35 @@ def main():
             ),
         ]
     )
+    # transform = transforms.Compose(
+    #     [
+    #         transforms.ToTensor(),
+    #         transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+    #     ]
+    # )
 
-    data = F_DB(FREIHAND_DATA, split="test")  # use split as val for debug
+    data = F_DB(FREIHAND_DATA, split=args.split)
     xyz_pred = []
-    # debug_mean = []
+    debug_mean = []
     with torch.no_grad():
         for i in tqdm(range(len(data))):
-            ## DEBUG CODE
-            # joints3d = (
-            #     normalize_joints(
-            #         model_refined_inference(model, data[i], augmenter, transform)
-            #     )
-            #     * data.scale[data.indices[i]%32560]
-            # )
-            # xyz_pred.append(JOINTS.ait_to_freihand(joints3d).tolist())
-            # debug_mean.append(torch.mean(torch.abs(joints3d - data[i]["joints3D"])))
-
-            xyz_pred.append(
-                JOINTS.ait_to_freihand(
-                    (
-                        normalize_joints(
-                            model_refined_inference(
-                                model, data[i], augmenter, transform
-                            )
-                        )
-                        * data.scale[data.indices[i]]
-                    )
-                ).tolist()
+            joints3d_normalized = normalize_joints(
+                model_refined_inference(model, data[i], augmenter, transform)
             )
+            if args.split == "val":
+                # DEBUG CODE:
+                joints3d = joints3d_normalized * data.scale[data.indices[i] % 32560]
+                debug_mean.append(torch.mean(torch.abs(joints3d - data[i]["joints3D"])))
+            else:
+                joints3d = joints3d_normalized * data.scale[data.indices[i]]
 
-            # break
-    # print(np.mean(debug_mean), np.max(debug_mean))
-    # exit()
+            xyz_pred.append(JOINTS.ait_to_freihand(joints3d).tolist())
+
+    if args.split == "val":
+        # DEBUG CODE:
+        print(np.mean(debug_mean), np.max(debug_mean))
+        exit()
+
     verts = np.zeros((len(xyz_pred), 778, 3)).tolist()
     save_json([xyz_pred, verts], f"{args.key}_pred.json")
     subprocess.call(["zip", "-j", f"{args.key}_pred.zip", f"{args.key}_pred.json"])
