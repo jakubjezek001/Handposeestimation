@@ -7,6 +7,7 @@ import torch
 from PIL import Image
 from src.data_loader.joints import Joints
 from src.types import CAMERA_PARAM, JOINTS_3D, JOINTS_25D, SCALE
+from src.constants import MANO_MAT
 from torch.utils.data import ConcatDataset, DataLoader, Dataset, WeightedRandomSampler
 from torchvision import transforms
 
@@ -372,12 +373,24 @@ def sudo_joint_bound(vertices: np.array):
             center_ver.reshape((1, -1)),
         )
     )
-    # return np.concatenate(
-    #     (
-    #         np.array([[max_ver[0], max_ver[1], 1.0]] * 5),
-    #         np.array([[min_ver[0], min_ver[1], 1.0]] * 5),
-    #         np.array([[min_ver[0], max_ver[1], 1.0]] * 5),
-    #         np.array([[max_ver[0], min_ver[1], 1.0]] * 5),
-    #         center_ver.reshape((1, -1)),
-    #     )
-    # )
+
+
+def get_joints_from_mano_mesh(
+    mesh_vertices: torch.Tensor, mano_matrix: torch.Tensor
+) -> torch.Tensor:
+    """extracts joints from mano mesh. The matrix should be  from MANO_MAT path.
+    The joint ordering is in joints_mapping.json.
+
+    Args:
+        mesh_vertices (torch.Tensor): mesh of shape 778 *3
+        mano_matrix (torch.Tensor): Matrix of shape 16*778
+
+    Returns:
+        torch.Tensor: 21 hand joints in 3D.
+    """
+    joints = mano_matrix @ mesh_vertices
+    tips = mesh_vertices[
+        [744, 320, 443, 555, 672], :
+    ]  # thumb, index, middle, ring, pinky
+    joints = torch.cat([joints, tips], 0)
+    return joints

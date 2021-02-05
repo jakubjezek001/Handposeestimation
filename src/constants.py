@@ -42,3 +42,8 @@ COMET_KWARGS = {
     "workspace": "dahiyaaneesh",
     "save_dir": SAVED_META_INFO_PATH,
 }
+
+# MANO mesh to joint matrix
+MANO_MAT = os.path.join(
+    MASTER_THESIS_DIR, "src", "data_loader", "mano_mesh_to_joints_mat.pth"
+)

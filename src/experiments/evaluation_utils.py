@@ -1,10 +1,11 @@
-from typing import Tuple, Union
+from typing import Tuple, Union, Dict
 
 import numpy as np
 import torch
 from pytorch_lightning.core.lightning import LightningModule
 from src.data_loader.data_set import Data_Set
 from src.data_loader.utils import convert_2_5D_to_3D
+from torch import Tensor
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -26,8 +27,8 @@ def calculate_epe_statistics(
     """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if dim == 2:
-        predictions_ = predictions[:, :, :-1].clone()
-        ground_truth_ = ground_truth[:, :, :-1].clone()
+        predictions_ = predictions[:, :, :2].clone()
+        ground_truth_ = ground_truth[:, :, :2].clone()
     else:
         if dim != 3:
             print("Coordinates treated as 3D")
@@ -107,6 +108,7 @@ def get_predictions_and_ground_truth(
     ground_truth_3d = []
     ground_truth_recreated_3d = []
     scale = []
+    joints_raw = []
     camera_param = []
     z_root_calc_denoised = []
     with torch.no_grad():
@@ -114,6 +116,7 @@ def get_predictions_and_ground_truth(
             input_tensor = batch["image"].to(device)
             ground_truth.append(batch["joints"])
             ground_truth_3d.append(batch["joints3D"])
+            joints_raw.append(batch["joints_raw"])
             ground_truth_recreated_3d.append(batch["joints3D_recreated"])
             scale.append(batch["scale"].to(device))
             camera_param.append(batch["K"].to(device))
@@ -140,6 +143,7 @@ def get_predictions_and_ground_truth(
     ground_truth = torch.cat(ground_truth, axis=0)
     ground_truth_3d = torch.cat(ground_truth_3d, axis=0)
     ground_truth_recreated_3d = torch.cat(ground_truth_recreated_3d, axis=0)
+    joints_raw = torch.cat(joints_raw, axis=0)
     return {
         **{
             "predictions": predictions,
@@ -149,12 +153,18 @@ def get_predictions_and_ground_truth(
             "predictions_3d": predictions_3d,
             "camera_param": camera_param,
             "scale": scale,
+            "joints_raw": joints_raw,
         },
         **denoised_pred,
     }
 
 
-def evaluate(model: LightningModule, data: Data_Set, **dataloader_args) -> dict:
+def evaluate(
+    model: LightningModule,
+    data: Data_Set,
+    use_procrustes: bool = True,
+    **dataloader_args
+) -> dict:
     """Computes the predictions and various statistics.
 
     Args:
@@ -171,11 +181,16 @@ def evaluate(model: LightningModule, data: Data_Set, **dataloader_args) -> dict:
     epe_3D = calculate_epe_statistics(
         prediction_dict["predictions_3d"], prediction_dict["ground_truth_3d"], dim=3
     )
+
+    procrustes_results = (
+        get_procrustes_statistics(prediction_dict) if use_procrustes else {}
+    )
     # epe_3D_recreated = calculate_epe_statistics(
     #     prediction_dict["predictions_3d"],
     #     prediction_dict["ground_truth_recreated_3d"],
     #     dim=3,
     # )
+
     epe_3D_gt_vs_3D_recreated = calculate_epe_statistics(
         prediction_dict["ground_truth_3d"],
         prediction_dict["ground_truth_recreated_3d"],
@@ -208,6 +223,7 @@ def evaluate(model: LightningModule, data: Data_Set, **dataloader_args) -> dict:
             "AUC": auc,
         },
         **denoised_results,
+        **procrustes_results,
     }
 
 
@@ -283,3 +299,84 @@ def cal_auc_joints(
         return auc_per_joint
     else:
         return np.mean(auc_per_joint)
+
+
+def calc_procrustes_transform(
+    X: Tensor, Y: Tensor
+) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+    """Calculates procrustes transform of point clouds in batch format.
+    minimize ||scale x  rot_mat x Y +t -X||_F with scale, rot_mat and translation
+    code adapted from : http://stackoverflow.com/a/18927641/1884420
+    Args:
+        X (Tensor): batch x n x p
+        Y (Tensor): batch x n x k
+        Note: For joints n =21 and k=p=3
+
+    Returns:
+        y_transform (Tensor): transformed Y to best match X
+        rot_mat (Tensor): Rotation matrix
+        scale (Tensor): Scale
+        translation (Tensor): Translation
+    """
+    if torch.all(X == 0):
+        print("X contains only NaNs. Not computing PMSE.")
+        return Y, (torch.tensor([]),) * 3
+    if torch.all(Y == 0):
+        print("Y contains only NaNs. Not computing PMSE.")
+        return Y, (torch.tensor([]),) * 3
+    with torch.no_grad():
+        muX = X.mean(dim=1, keepdim=True)
+        muY = Y.mean(dim=1, keepdim=True)
+        # Centering and scale normalizing.
+        X0 = X - muX
+        Y0 = Y - muY
+        normX = torch.linalg.norm(X0, dim=[1, 2], ord="fro", keepdim=True)
+        normY = torch.linalg.norm(Y0, dim=[1, 2], ord="fro", keepdim=True)
+        # Scale to equal (unit) norm
+        X0 = X0 / normX
+        Y0 = Y0 / normY
+        # Compute optimum rotation matrix of Y
+        A = torch.bmm(X0.transpose(2, 1), Y0)
+        U, s, V = torch.svd(A)
+        rot_mat = torch.bmm(V, U.transpose(2, 1))
+        # Make sure we have a rotation
+        det_rot_mat = torch.det(rot_mat)
+        V[:, :, -1] *= torch.sign(det_rot_mat).view(-1, 1)
+        s[:, -1] *= torch.sign(det_rot_mat)
+        rot_mat = torch.matmul(V, U.transpose(2, 1))
+        scale_ratio = s.sum(dim=1).view(-1, 1, 1)
+        scale = scale_ratio * normX / normY
+        translation = muX - scale * torch.matmul(muY, rot_mat)
+        y_transform = normX * scale_ratio * torch.matmul(Y0, rot_mat) + muX
+    return y_transform, rot_mat, scale, translation
+
+
+def get_procrustes_statistics(pred: Dict[str, Tensor]) -> Dict[str, Tensor]:
+    device = pred["predictions"].device
+    pred_3d_t, _, _, _ = calc_procrustes_transform(
+        pred["joints_raw"].to(device), pred["predictions_3d"]
+    )
+    epe_3D_t = calculate_epe_statistics(pred_3d_t, pred["joints_raw"], dim=3)
+    auc_t = np.mean(cal_auc_joints(epe_3D_t["eucledian_dist"]))
+    procrustes_results = {
+        "Mean_EPE_3D_procrustes": epe_3D_t["mean"].cpu(),
+        "Median_EPE_3D_procrustes": epe_3D_t["median"].cpu(),
+        "auc_procrustes": auc_t,
+    }
+    if "predictions_3d_denoised" in pred.keys():
+        pred_3d_t_denoised, _, _, _ = calc_procrustes_transform(
+            pred["joints_raw"].to(device), pred["predictions_3d_denoised"]
+        )
+        epe_3D_denoised_t = calculate_epe_statistics(
+            pred_3d_t_denoised, pred["joints_raw"], dim=3
+        )
+        auc_denoised_t = np.mean(cal_auc_joints(epe_3D_denoised_t["eucledian_dist"]))
+        procrustes_results = {
+            **procrustes_results,
+            **{
+                "Mean_EPE_3D_denoised_procrustes": epe_3D_denoised_t["mean"].cpu(),
+                "Median_EPE_3D_denoised_procrustes": epe_3D_denoised_t["median"].cpu(),
+                "auc_denoised_procrustes": auc_denoised_t,
+            },
+        }
+    return procrustes_results
