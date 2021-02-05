@@ -951,8 +951,9 @@ E25)
     # hybrid 2 experiment, Effective ness of sobel filter. To be used for compariosn in experiment 22.
     meta_file="e25"
     args=" -sources freihand --resize  --sobel_filter --rotate --crop --random_crop  -epochs 100 -batch_size 512 \
-     -accumulate_grad_batches 4 -save_top_k -1  -save_period 5  -tag e24 -num_workers $CORES "
+     -accumulate_grad_batches 4 -save_top_k -1  -save_period 5  -tag e25 -num_workers $CORES "
     launch_hybrid2 " $args  -meta_file $meta_file$seed1 -seed $seed1"
+    ;;
 *)
     echo "Experiment not recognized!"
     echo "(Run $0 -h for help)"
