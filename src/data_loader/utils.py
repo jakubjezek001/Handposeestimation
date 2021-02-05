@@ -284,11 +284,13 @@ def get_data(
         datasets.append(
             data_class(
                 config=train_param,
+                # images are read via open cv, which is BGR format,
+                # normalizing mean and std need to reordered, hence [::-1]
                 transform=transforms.Compose(
                     [
                         transforms.ToTensor(),
                         transforms.Normalize(
-                            (0.485, 0.456, 0.406), (0.229, 0.224, 0.225)
+                            (0.485, 0.456, 0.406)[::-1], (0.229, 0.224, 0.225)[::-1]
                         ),
                     ]
                 ),
