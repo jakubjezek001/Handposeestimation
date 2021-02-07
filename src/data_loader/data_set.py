@@ -435,6 +435,7 @@ class Data_Set(Dataset):
         a = augmenter.a
         b = augmenter.b
         blur_flag = augmenter._gaussian_blur
+        crop_margin_scale = augmenter._crop_margin_scale
         return {
             "angle": angle,
             "jitter_x": jitter_x,
@@ -444,6 +445,7 @@ class Data_Set(Dataset):
             "a": a,
             "b": b,
             "blur_flag": blur_flag,
+            "crop_margin_scale": crop_margin_scale,
         }
 
     def get_relative_param(self, augmenter, param1: dict, param2: dict) -> dict:
