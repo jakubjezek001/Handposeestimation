@@ -160,5 +160,17 @@ def model_refined_inference(
         {"image": img_orig.copy(), "K": K.clone()}, bbox, augmenter, transform, step=2
     )
     predictions25d = model(sample["image"].to(model.device)).view(21, 3)
-    predictions3d = convert_2_5D_to_3D(predictions25d.cpu(), 1.0, sample["K"].cpu())
+    if hasattr(model, "denoiser"):
+        z_root_calc_denoised = model.get_denoised_z_root_calc(
+            predictions25d.view(1, 21, 3), sample["K"].view(1, 3, 3).to(model.device)
+        )
+        predictions3d = convert_2_5D_to_3D(
+            predictions25d.cpu(),
+            1.0,
+            sample["K"].cpu(),
+            Z_root_calc=z_root_calc_denoised.cpu().view(-1),
+        )
+    else:
+        predictions3d = convert_2_5D_to_3D(predictions25d.cpu(), 1.0, sample["K"].cpu())
+
     return predictions3d
