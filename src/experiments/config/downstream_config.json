@@ -70,7 +70,8 @@
         "gpu": true,
         "checkpoint": "",
         "optimizer": "LARS",
-        "resnet_trainable":true,
-        "num_of_mini_batch":1
+        "resnet_trainable": true,
+        "num_of_mini_batch": 1,
+        "resnet_size": "18"
     }
 }

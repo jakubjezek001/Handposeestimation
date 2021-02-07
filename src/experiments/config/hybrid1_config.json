@@ -15,5 +15,6 @@
     "pairwise": {
         "augmentation": []
     },
-    "optimizer": "LARS"
+    "optimizer": "LARS",
+    "resnet_size":"18"
 }
