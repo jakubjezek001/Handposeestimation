@@ -33,6 +33,7 @@ class SampleAugmenter:
         self.s = None
         self.a = None
         self.b = None
+        self._crop_margin_scale = 1.5
         # flags
         self._cut_out = False
         self._gaussian_blur = False
@@ -432,7 +433,7 @@ class SampleAugmenter:
             crop_margin = self.get_random_crop_margin()
         else:
             crop_margin = self.crop_margin
-
+        self._crop_margin_scale = crop_margin
         center_y, center_x = (
             int(torch.mean(joints[:, 1])),
             int(torch.mean(joints[:, 0])),
