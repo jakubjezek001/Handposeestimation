@@ -324,6 +324,24 @@ def translate_encodings(
     return encoding
 
 
+def translate_encodings2(
+    encoding: Tensor, translate_x: Tensor, translate_y: Tensor
+) -> Tensor:
+    """New strategy, exact translation.
+
+    Args:
+        encoding (Tensor): image encodings/projections from the network
+        translate_x (Tensor): normlaized jitter along x axis of the input image
+        translate_y (Tensor): normalized jitter along y axis of the input image.
+
+    Returns:
+        Tensor: Translated encodings based on scaled normalized jitter.
+    """
+    encoding[..., 0] += translate_x.view((-1, 1))
+    encoding[..., 1] += translate_y.view((-1, 1))
+    return encoding
+
+
 def normalize_heatmap(heatmap: Tensor, beta: Tensor = None):
     n, c, _, _ = heatmap.size()
     beta = (
