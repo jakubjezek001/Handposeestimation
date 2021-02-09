@@ -28,14 +28,21 @@ def main():
         "-key", type=str, help="Add comet key of experiment to restore."
     )
     parser.add_argument(
+        "-resnet_size",
+        type=str,
+        help="Resnet sizes",
+        choices=["18", "34", "50", "101", "152"],
+        default=34,
+    )
+    parser.add_argument(
         "-split",
         type=str,
         help="For debugging select val split",
-        default="eval",
+        default="test",
         choices=["test", "val"],
     )
     args = parser.parse_args()
-    model = load_model(args.key)
+    model = load_model(args.key, args.resnet_size)
     if args.split == "val":
         print(
             "DEBUG MODE ACTIVATED.\n Evaluation pipeline is executed on validation set"
@@ -43,7 +50,7 @@ def main():
     train_param = edict(read_json(TRAINING_CONFIG_PATH))
     train_param.augmentation_flags.resize = True
     train_param.augmentation_flags.crop = True
-    train_param.augmentation_params.crop_margin = 1.5
+    # train_param.augmentation_params.crop_margin = 1.5
     train_param.augmentation_params.crop_box_jitter = [0.0, 0.0]
     augmenter = SampleAugmenter(
         train_param.augmentation_flags, train_param.augmentation_params
@@ -83,7 +90,7 @@ def main():
 
     if args.split == "val":
         # DEBUG CODE:
-        print(np.mean(debug_mean), np.max(debug_mean))
+        print(np.mean(debug_mean), np.max(debug_mean), np.median(debug_mean))
         exit()
 
     verts = np.zeros((len(xyz_pred), 778, 3)).tolist()

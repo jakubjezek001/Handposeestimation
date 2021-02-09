@@ -108,3 +108,5 @@ src/evaluation/fh_utils.py
 .gitignore
 src/evaluation/pred.py
 src/evaluation/freihand_eval1.py
+*.zip
+*.txt

@@ -1,23 +1,28 @@
 import os
 from pprint import pformat
 
+
 from easydict import EasyDict as edict
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
 from src.constants import (
-    # SAVED_META_INFO_PATH,
+    COMET_KWARGS,
     HYBRID2_CONFIG,
-    # MASTER_THESIS_DIR,
+    HYBRID2_HEATMAP_CONFIG,
+    MASTER_THESIS_DIR,
     TRAINING_CONFIG_PATH,
 )
 from src.data_loader.data_set import Data_Set
-from src.data_loader.utils import get_train_val_split
+from src.data_loader.utils import get_train_val_split, get_data
 from src.experiments.utils import (
+    get_callbacks,
     get_general_args,
+    get_model,
     prepare_name,
-    update_train_params,
     save_experiment_key,
+    update_model_params,
+    update_train_params,
 )
 from src.models.callbacks.upload_comet_logs import UploadCometLogs
 from src.models.unsupervised.hybrid2_model import Hybrid2Model
@@ -35,18 +40,12 @@ def main():
     model_param = edict(read_json(HYBRID2_CONFIG))
     console_logger.info(f"Train parameters {pformat(train_param)}")
     seed_everything(train_param.seed)
-
-    data = Data_Set(
-        config=train_param,
-        transform=transforms.Compose([transforms.ToTensor()]),
-        train_set=True,
-        experiment_type="hybrid2",
+    experiment_type = "hybrid2"
+    data = get_data(
+        Data_Set, train_param, sources=args.sources, experiment_type=experiment_type
     )
     train_data_loader, val_data_loader = get_train_val_split(
-        data,
-        batch_size=train_param.batch_size,
-        num_workers=train_param.num_workers,
-        shuffle=True,
+        data, batch_size=train_param.batch_size, num_workers=train_param.num_workers
     )
 
     # Logger
@@ -60,14 +59,16 @@ def main():
     # )
 
     # model
-    model_param.num_samples = len(data)
-    model_param.batch_size = train_param.batch_size
-    model_param.num_of_mini_batch = train_param.accumulate_grad_batches
+    model_param = update_model_params(model_param, args, len(data), train_param)
     model_param.augmentation = [
-        key for key, value in train_param.augmentation_flags.items() if value is True
+        key for key, value in train_param.augmentation_flags.items() if value
     ]
     console_logger.info(f"Model parameters {pformat(model_param)}")
-    model = Hybrid2Model(model_param)
+    model = get_model(
+        experiment_type="hybrid2",
+        heatmap_flag=args.heatmap,
+        denoiser_flag=args.denoiser,
+    )(config=model_param)
 
     # callbacks
     # logging_interval = "epoch"

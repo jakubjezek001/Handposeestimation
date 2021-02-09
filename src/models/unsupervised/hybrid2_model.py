@@ -6,6 +6,7 @@ from src.models.unsupervised.simclr_model import SimCLR
 from src.models.utils import (
     rotate_encoding,
     translate_encodings,
+    translate_encodings2,
     vanila_contrastive_loss,
 )
 from torch import Tensor
@@ -36,20 +37,24 @@ class Hybrid2Model(SimCLR):
         encodings = self.encoder(batch_transform)
         projections = self.projection_head(encodings).view((batch_size * 2, -1, 2))
 
+        # crop_margin_scale = torch.cat(
+        #     (batch["crop_margin_scale_1"], batch["crop_margin_scale_2"]), dim=0
+        # )
+        # projections = projections / crop_margin_scale.view(batch_size * 2, 1, 1)
+
         projection1_stat = self.get_projection_stats(
             projections[:batch_size].detach(), "proj1"
         )
         projection2_stat = self.get_projection_stats(
             projections[batch_size:].detach(), "proj2"
         )
-        # normalizing before rotation (Remove the normalization)
+        # normalizing before rotation
         projections = projections.view((batch_size * 2, -1))
         norm_projection1 = F.normalize(projections[:batch_size])
         norm_projection2 = F.normalize(projections[batch_size:])
         projections = torch.cat([norm_projection1, norm_projection2], dim=0).view(
             (batch_size * 2, -1, 2)
         )
-
         self.train_metrics = {
             **self.train_metrics,
             **projection1_stat,
@@ -63,6 +68,13 @@ class Hybrid2Model(SimCLR):
             projections = rotate_encoding(projections, -angles)
         if "crop" in self.config.augmentation:
             # normalizing jitter with respect to image size.
+            # Test it -------
+            # New scaling strategy
+            # jitter_x = torch.cat((batch["jitter_x_1"], batch["jitter_x_2"]), dim=0)
+            # jitter_y = torch.cat((batch["jitter_y_1"], batch["jitter_y_2"]), dim=0)
+            # # moving the encodings by same amount.
+            # projections = translate_encodings2(projections, -jitter_x, -jitter_y)
+            # Test it ---finish
             jitter_x = torch.cat(
                 (
                     batch["jitter_x_1"] / float(image1_shape[0]),
