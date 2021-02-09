@@ -973,11 +973,10 @@ E24Bd)
     # hybrid bigger hybrid models downstream performance
     # check the nmaes and sixe before launching the experiment
     meta_file="e24bd"
-    args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
+    args="--rotate --crop --resize  -batch_size 128 -epochs 100  -optimizer adam \
          -sources freihand  -tag e24b -num_workers $CORES "
     experiment_name="hybrid2_128C_CJ_RC_Re_Ro"
     declare -a resnet_trainable_arg=("--encoder_trainable"
-    ""
     )
     for i in "${resnet_trainable_arg[@]}";do
         launch_semisupervised "$args $i -experiment_key d10c0b1d8f0b4b809e57a14ec37f29a1   -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1   -resnet_size 152  "
@@ -990,8 +989,8 @@ E24Bd)
 E24Bs)
     # Fully supervised model based architectures.
     meta_file="e24bs"
-    args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
-         -sources freihand  -tag e24b -num_workers $CORES "
+    args="--rotate --crop --resize  -batch_size 128 -epochs 100 -optimizer adam \
+         -sources freihand  -tag e24b  -num_workers $CORES "
     launch_supervised "$args  -seed $seed1 -meta_file $meta_file$seed1  -resnet_size 152  "
     launch_supervised "$args  -seed $seed1 -meta_file $meta_file$seed1  -resnet_size 101 "
     launch_supervised "$args  -seed $seed1 -meta_file $meta_file$seed1  -resnet_size 50 "
@@ -1027,7 +1026,7 @@ E26A)
     # Downstream experiments with reduced training data, unforzen resnet
     meta_file="e26A"
     args=" -sources freihand --resize  --rotate --crop  -epochs 100  -batch_size 128 \
-     -save_top_k 1  -save_period 1  -tag e26  -num_workers $CORES --encoder_trainable -resnet_size 34" 
+     -save_top_k 1  -save_period 1  -tag e26   --denoiser -tag denoised -num_workers $CORES --encoder_trainable -resnet_size 34" 
     declare -a train_ratio_list=("0.01"
     "0.10"
     "0.25"
@@ -1046,7 +1045,7 @@ E26B)
     # Supervised experiment wih reduced data, similar to experiment 26A
     meta_file="e26B"
     args=" -sources freihand --resize  --rotate --crop  -epochs 100  -batch_size 128 \
-     -save_top_k 1  -save_period 1  -tag e26  -num_workers $CORES -resnet_size 34 " 
+     -save_top_k 1  -save_period 1  -tag e26  --denoiser -tag denoised  -num_workers $CORES -resnet_size 34 " 
      declare -a train_ratio_list=("0.01"
     "0.10"
     "0.25"
@@ -1064,7 +1063,7 @@ E26C)
     #MAKE crop jitter param 0, 0
     meta_file="e26C"
     args=" -sources freihand --resize -crop -epochs 100  -batch_size 128 \
-     -save_top_k 1  -save_period 1  -tag e26 -tag limited_aug  -num_workers $CORES --encoder_trainable -resnet_size 34" 
+     -save_top_k 1  -save_period 1  -tag e26 -tag limited_aug  -num_workers --denoiser -tag denoised $CORES --encoder_trainable -resnet_size 34" 
     declare -a train_ratio_list=("0.01"
     "0.10"
     "0.25"
@@ -1078,7 +1077,46 @@ E26C)
         done
      done <$SAVED_META_INFO_PATH/e26$seed1
     ;;
-
+E27)
+    #Random cropping new strategy.
+    echo "Launching hybri2 ablative studie, new random cropping"
+    meta_file="e27"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    args="  --resize -batch_size 512 -epochs 100 -accumulate_grad_batches 4  \
+         -sources freihand  -tag e27 -save_top_k 1  -save_period 1 "
+    declare -a seeds=($seed1
+    )
+    declare -a augment=("--rotate --color_jitter --crop"
+        "--rotate --color_jitter --crop --random_crop "
+        "--rotate --color_jitter"
+        "--rotate --crop  "
+        "--rotate"
+        "--color_jitter --crop  "
+        "--crop  "
+        "--color_jitter"
+        "--random_crop"
+    )
+    for seed in "${seeds[@]}"; do
+        for i in "${augment[@]}"; do
+            launch_hybrid2 " $args -meta_file $meta_file$seed  $i  -seed $seed"
+        done
+    done
+    ;;
+E27D)
+    echo "Launching hybrid2 ablative downstream study with new randomcropping scalestrategy"
+    meta_file='e27d'
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
+         -sources freihand -tag e27 -num_workers $CORES"
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
+    done <$SAVED_META_INFO_PATH/e27$seed1
+    # while IFS=',' read -r experiment_name experiment_key; do
+    #     launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2  -meta_file $meta_file$seed2"
+    # done <$SAVED_META_INFO_PATH/hybrid2_ablative$seed2
+    ;;
 *)
     echo "Experiment not recognized!"
     echo "(Run $0 -h for help)"

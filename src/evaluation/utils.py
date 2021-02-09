@@ -17,7 +17,9 @@ CROP_SIZE = 128
 JOINTS = Joints()
 
 
-def load_model(key: str) -> Union[BaselineModel, DenoisedBaselineModel]:
+def load_model(
+    key: str, resnet_size: str
+) -> Union[BaselineModel, DenoisedBaselineModel]:
     """Loads saved model given a key, so far only resnet style models are supported.
 
     Args:
@@ -28,6 +30,7 @@ def load_model(key: str) -> Union[BaselineModel, DenoisedBaselineModel]:
     """
     dev = torch.device("cuda")
     model_config = edict(read_json(SUPERVISED_CONFIG_PATH))
+    model_config.resnet_size = resnet_size
     print(f"Loading latest checkpoint of {key}")
     try:
         print("Trying DEnoised model!")
