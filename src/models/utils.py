@@ -13,6 +13,7 @@ from src.visualization.visualize import (
     plot_truth_vs_prediction,
 )
 from torch import Tensor, nn
+from src.data_loader.utils import convert_2_5D_to_3D
 
 
 def cal_l1_loss(
@@ -69,6 +70,37 @@ def calculate_metrics(
     mean_distance = torch.mean(distance_joints)
     median_distance = torch.median(distance_joints)
     return {f"EPE_mean_{step}": mean_distance, f"EPE_median_{step}": median_distance}
+
+
+def cal_3d_loss(
+    predicton: Tensor,
+    joints3d_gt: Tensor,
+    scale: Tensor,
+    camera_param: Tensor,
+    joints_valid: Tensor,
+    Z_root_calc: Tensor = None,
+) -> Tensor:
+    """calculates 3d MAE loss over the predicted 2.5 d joints
+
+    Args:
+        predicton (Tensor): batch x 21 x3 , 2.5 d joint predictions
+        joints3d_gt (Tensor): batch x 21 x 2, 3D joint ground truth.
+        scale (Tensor): batch x1, scale, bone between wrist and index mcp
+        camera_param (Tensor): batch x 3 x 3 , camera parametrs
+        joints_valid (Tensor): batch x 21 x 1, flags to show if the joints are valid or not
+        Z_root_calc (Tensor, optional): If model trained with denoiser, refined z_root. Defaults to None.
+
+    Returns:
+        Tensor: MAE between all keypoints.
+    """
+    prediction3d = convert_2_5D_to_3D(
+        predicton, scale, camera_param, is_batch=True, Z_root_calc=Z_root_calc
+    )
+    joints_weight = joints_valid / joints_valid.sum()
+    loss3d = (
+        nn.L1Loss(reduction="none")(prediction3d, joints3d_gt) * joints_weight
+    ).sum() / 3
+    return loss3d
 
 
 def log_metrics(metrics: dict, comet_logger: Experiment, epoch: int, context_val: bool):
