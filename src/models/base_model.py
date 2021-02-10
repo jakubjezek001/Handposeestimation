@@ -2,14 +2,12 @@ import math
 from typing import Dict, Iterator, List, Tuple, Union
 
 import torch
-from torch import optim
-import torchvision
 from easydict import EasyDict as edict
 from pl_bolts.optimizers.lars_scheduling import LARSWrapper
 from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
 from pytorch_lightning.core.lightning import LightningModule
-from torch.optim.lr_scheduler import CosineAnnealingLR
 from src.models.utils import get_resnet
+from torch.optim.lr_scheduler import CosineAnnealingLR
 
 
 class BaseModel(LightningModule):
@@ -102,5 +100,8 @@ class BaseModel(LightningModule):
         metrics = {
             key: torch.stack([x[key] for x in outputs]).mean() for key in metric_keys
         }
-        self.log("checkpoint_saving_loss", metrics["loss"])
+        if "loss_3d" in metrics.keys():
+            self.log("checkpoint_saving_loss", metrics["loss_3d"])
+        else:
+            self.log("checkpoint_saving_loss", metrics["loss"])
         self.validation_metrics_epoch = metrics

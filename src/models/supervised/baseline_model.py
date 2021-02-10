@@ -1,9 +1,11 @@
+from typing import Dict
+
+import torch
 from easydict import EasyDict as edict
 from src.models.base_model import BaseModel
-from src.models.utils import cal_l1_loss
+from src.models.utils import cal_3d_loss, cal_l1_loss
 from src.utils import get_console_logger
-from torch import nn, Tensor
-from typing import Dict
+from torch import Tensor, nn
 
 
 class BaselineModel(BaseModel):
@@ -43,11 +45,17 @@ class BaselineModel(BaseModel):
             prediction, y, scale, joints_valid
         )
         loss = loss_2d + self.config.alpha * loss_z
+        loss3d = None
+        with torch.no_grad():
+            loss3d = cal_3d_loss(
+                prediction, batch["joints3D"], batch["scale"], batch["K"], joints_valid
+            )
         self.train_metrics = {
             "loss": loss.detach(),
             "loss_z": loss_z.detach(),
             "loss_2d": loss_2d.detach(),
             "loss_z_unscaled": loss_z_unscaled.detach(),
+            "loss_3d": loss3d,
         }
         self.plot_params = {
             "prediction": prediction.detach(),
@@ -59,6 +67,7 @@ class BaselineModel(BaseModel):
             "loss_z": loss_z.detach(),
             "loss_2d": loss_2d.detach(),
             "loss_z_unscaled": loss_z_unscaled.detach(),
+            "loss_3d": loss3d,
         }
 
     def validation_step(
@@ -75,11 +84,17 @@ class BaselineModel(BaseModel):
             prediction, y, scale, joints_valid
         )
         loss = loss_2d + self.config.alpha * loss_z
+        loss3d = None
+        with torch.no_grad():
+            loss3d = cal_3d_loss(
+                prediction, batch["joints3D"], batch["scale"], batch["K"], joints_valid
+            )
         metrics = {
             "loss": loss,
             "loss_z": loss_z,
             "loss_2d": loss_2d,
             "loss_z_unscaled": loss_z_unscaled,
+            "loss_3d": loss3d,
         }
         self.plot_params = {"prediction": prediction, "ground_truth": y, "input": x}
 
