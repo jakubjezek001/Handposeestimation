@@ -139,6 +139,11 @@ class YTB_DB(Dataset):
         joints3D = self.joints.mano_to_ait(
             torch.tensor(self.joints_list[idx_]["joints"]).float()
         )
+        if self.joints_list[idx_]["is_left"] == 1:
+            # flipping horizontally to make it right hand
+            img = cv2.flip(img, 1)
+            # width - x coord
+            joints3D[:, 0] = img.shape[1] - joints3D[:, 0]
         joints_raw = joints3D.clone()
         # joints3D = torch.tensor(self.bbox[idx_]["joints"]).float()
 
