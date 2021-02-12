@@ -8,7 +8,12 @@ from src.data_loader.joints import Joints
 from src.data_loader.sample_augmenter import SampleAugmenter
 from src.data_loader.utils import convert_2_5D_to_3D
 from src.experiments.utils import restore_model
-from src.models.supervised import BaselineModel, DenoisedBaselineModel
+from src.models.supervised import (
+    BaselineModel,
+    DenoisedBaselineModel,
+    HeatmapPoseModel,
+    DenoisedHeatmapmodel,
+)
 from src.utils import read_json
 from torchvision import transforms
 
@@ -18,7 +23,7 @@ JOINTS = Joints()
 
 
 def load_model(
-    key: str, resnet_size: str
+    key: str, resnet_size: str, heatmap: bool
 ) -> Union[BaselineModel, DenoisedBaselineModel]:
     """Loads saved model given a key, so far only resnet style models are supported.
 
@@ -32,21 +37,27 @@ def load_model(
     model_config = edict(read_json(SUPERVISED_CONFIG_PATH))
     model_config.resnet_size = resnet_size
     print(f"Loading latest checkpoint of {key}")
-    try:
-        print("Trying DEnoised model!")
-        model = DenoisedBaselineModel(model_config)
+    if heatmap:
+        print("Trying DEnoised heatmap model!")
+        model = DenoisedHeatmapmodel(model_config)
         model = restore_model(model, key, "")
-    except Exception as e:
-        print(e)
-        print("Trying Baseline model!")
+    else:
+
         try:
-            model = BaselineModel(model_config)
+            print("Trying DEnoised model!")
+            model = DenoisedBaselineModel(model_config)
             model = restore_model(model, key, "")
-            print("Model loaded successfully!")
-        except Exception as k:
-            print(k)
-            print(f"Experiment {key} not found !")
-            return None
+        except Exception as e:
+            print(e)
+            print("Trying Baseline model!")
+            try:
+                model = BaselineModel(model_config)
+                model = restore_model(model, key, "")
+                print("Model loaded successfully!")
+            except Exception as k:
+                print(k)
+                print(f"Experiment {key} not found !")
+                return None
     model.eval()
     model.to(dev)
     return model

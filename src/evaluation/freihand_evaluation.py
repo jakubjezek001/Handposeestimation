@@ -32,7 +32,10 @@ def main():
         type=str,
         help="Resnet sizes",
         choices=["18", "34", "50", "101", "152"],
-        default=34,
+        default=50,
+    )
+    parser.add_argument(
+        "--heatmap", action="store_true", help="Choose Resnet", default=False
     )
     parser.add_argument(
         "-split",
@@ -42,7 +45,7 @@ def main():
         choices=["test", "val"],
     )
     args = parser.parse_args()
-    model = load_model(args.key, args.resnet_size)
+    model = load_model(args.key, args.resnet_size, args.heatmap)
     if args.split == "val":
         print(
             "DEBUG MODE ACTIVATED.\n Evaluation pipeline is executed on validation set"
