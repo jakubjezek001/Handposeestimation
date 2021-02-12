@@ -70,7 +70,7 @@ class MPII_DB(Dataset):
         labels = {
             file_name.replace(".json", ""): read_json(
                 os.path.join(self.label_dir_path, file_name)
-            )["hand_pts"]
+            )
             for file_name in label_file_names
         }
         return labels
@@ -120,9 +120,14 @@ class MPII_DB(Dataset):
         img_name = os.path.join(self.image_dir_path, self.img_names[idx_])
         img = cv2.imread(img_name)
         # mpii follow the same strategy as the freihand for joint naming.
-        joints3D = self.joints.freihand_to_ait(
-            torch.tensor(self.labels[self.img_names[idx_].replace(".jpg", "")]).float()
-        )
+        label = self.labels[self.img_names[idx_].replace(".jpg", "")]
+        joints3D = self.joints.freihand_to_ait(torch.tensor(label["hand_pts"]).float())
+        if label["is_left"] == 1:
+            # flipping horizontally to make it right hand
+            img = cv2.flip(img, 1)
+            # width - x coord
+            joints3D[:, 0] = img.shape[1] - joints3D[:, 0]
+
         camera_param = torch.eye(3).float()
         joints_valid = torch.ones_like(joints3D[..., -1:])
         sample = {
