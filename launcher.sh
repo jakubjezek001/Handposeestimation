@@ -218,7 +218,7 @@ launch_hybrid2() {
 }
 
 # $1 : args
-launch_supervised(){
+launch_supervised() {
     bsub -J "supervised" -W "$TIME:00" \-o "/cluster/scratch//adahiya/hybrid2_logs.out" \
         -n $CORES -R "rusage[mem=$MEMORY, ngpus_excl_p=1]" \
         -R "select[gpu_model0==$GPU_MODEL]" \
@@ -226,7 +226,6 @@ launch_supervised(){
         python src/experiments/baseline_experiment.py $1
 
 }
-
 
 seed1=5
 seed2=15
@@ -288,11 +287,11 @@ SUPERVISED)
          -sources freihand "
     echo "Launching supervised baselines "
     declare -a seeds=($seed1
-    $seed2
+        $seed2
     )
     for i in "${seeds[@]}"; do
-        launch_supervised " $args -seed $i  -meta_file $meta_file$i" 
-        launch_supervised " $args -seed $i  -meta_file $meta_file$i -tag denoised --denoiser"  
+        launch_supervised " $args -seed $i  -meta_file $meta_file$i"
+        launch_supervised " $args -seed $i  -meta_file $meta_file$i -tag denoised --denoiser"
         launch_supervised " $args -seed $i  -meta_file $meta_file$i -tag heatmap --heatmap"
         launch_supervised " $args -seed $i  -meta_file $meta_file$i -tag heatmap -tag denoised --heatmap --denoiser"
     done
@@ -734,7 +733,7 @@ CROSS_DATA_HYB2_YTB_DOWN)
 SEMISUPERVISED)
     args=" --rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
          -sources freihand -num_workers $CORES  "
-    echo  "bsub -J 'ssl' -W '$TIME:00' \-o '/cluster/scratch//adahiya/ssl_logs.out' \
+    echo "bsub -J 'ssl' -W '$TIME:00' \-o '/cluster/scratch//adahiya/ssl_logs.out' \
         -n $CORES -R 'rusage[mem=$MEMORY, ngpus_excl_p=1]' \
         -R 'select[gpu_model0==$GPU_MODEL]'  \
         -G ls_infk \
@@ -750,14 +749,14 @@ SEMISUPERVISED)
     #        -experiment_name ssl_hybrid2_512C_CJ_Re128C_Re_Ro  \
     #        -seed  5 \
     #        -tag hyb2_cross -tag no_ytb"
-        # echo  "bsub -J 'ssl' -W '$TIME:00' \-o '/cluster/scratch//adahiya/ssl_logs.out' \
-        # -n $CORES -R 'rusage[mem=$MEMORY, ngpus_excl_p=1]' \
-        # -R 'select[gpu_model0==$GPU_MODEL]'  \
-        # -G ls_infk \
-        # python src/experiments/semi_supervised_experiment.py  $args -experiment_key 7dfc517b9c744264923469cc65bfb543 \
-        #    -experiment_name ssl_hybrid2_512C_CJ_Re_Ro128C_Re_Ro  \
-        #    -seed  5 \
-        #    -tag hyb2_cross -tag no_ytb"
+    # echo  "bsub -J 'ssl' -W '$TIME:00' \-o '/cluster/scratch//adahiya/ssl_logs.out' \
+    # -n $CORES -R 'rusage[mem=$MEMORY, ngpus_excl_p=1]' \
+    # -R 'select[gpu_model0==$GPU_MODEL]'  \
+    # -G ls_infk \
+    # python src/experiments/semi_supervised_experiment.py  $args -experiment_key 7dfc517b9c744264923469cc65bfb543 \
+    #    -experiment_name ssl_hybrid2_512C_CJ_Re_Ro128C_Re_Ro  \
+    #    -seed  5 \
+    #    -tag hyb2_cross -tag no_ytb"
     ;;
 CROSS_DATA_HYB2_YTB_ADAM2)
     echo "Launching hybrid 2 cross dataset with youtube and adam128"
@@ -820,7 +819,7 @@ CROSS_DATA_DOWNSTREAM)
     launch_hybrid2 "$args"
     ;;
 SIMCLR)
-    # excat setup as simclr version1 results. 
+    # excat setup as simclr version1 results.
     meta_file="simclr"
     echo "Launching Simclr ablative studies"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
@@ -962,7 +961,7 @@ E24B)
     #gpu model TeslaV100_SXM2_32GB
     meta_file="e24b"
     args=" -sources freihand --resize  --color_jitter --rotate --crop --random_crop  -epochs 100 -batch_size 128 \
-     -accumulate_grad_batches 16 -save_top_k 1  -save_period 1  -tag e24b  -num_workers $CORES " 
+     -accumulate_grad_batches 16 -save_top_k 1  -save_period 1  -tag e24b  -num_workers $CORES "
     launch_hybrid2 " $args  -meta_file $meta_file$seed1 -seed $seed1 -resnet_size 152"
     launch_hybrid2 " $args  -meta_file $meta_file$seed1 -seed $seed1 -resnet_size 101"
     launch_hybrid2 " $args  -meta_file $meta_file$seed1 -seed $seed1 -resnet_size 50"
@@ -978,7 +977,7 @@ E24Bd)
     experiment_name="hybrid2_128C_CJ_RC_Re_Ro"
     declare -a resnet_trainable_arg=("--encoder_trainable"
     )
-    for i in "${resnet_trainable_arg[@]}";do
+    for i in "${resnet_trainable_arg[@]}"; do
         launch_semisupervised "$args $i -experiment_key d10c0b1d8f0b4b809e57a14ec37f29a1   -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1   -resnet_size 152  "
         launch_semisupervised "$args $i -experiment_key f098380a3aa14cc4886a4026a9da0079   -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1   -resnet_size 101 "
         launch_semisupervised "$args $i -experiment_key 14e382e765f74f579bd059dfbad7276c   -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1  -resnet_size 50 "
@@ -1019,41 +1018,41 @@ E26)
     # Resnet 34 is chosen as bigger model. We train on all of freihand data.
     meta_file="e26"
     args=" -sources freihand --resize  --color_jitter  --rotate --crop --random_crop  -epochs 100 -batch_size 128 \
-     -accumulate_grad_batches 16 -save_top_k -1  -save_period 50  -tag e26  -num_workers $CORES -train_ratio 0.99999999 " 
+     -accumulate_grad_batches 16 -save_top_k -1  -save_period 50  -tag e26  -num_workers $CORES -train_ratio 0.99999999 "
     launch_hybrid2 " $args  -meta_file $meta_file$seed1 -seed $seed1 -resnet_size 34"
     ;;
 E26A)
     # Downstream experiments with reduced training data, unforzen resnet
     meta_file="e26A"
     args=" -sources freihand --resize  --rotate --crop  -epochs 100  -batch_size 128 \
-     -save_top_k 1  -save_period 1  -tag e26   --denoiser -tag denoised -num_workers $CORES --encoder_trainable -resnet_size 34" 
+     -save_top_k 1  -save_period 1  -tag e26   --denoiser -tag denoised -num_workers $CORES --encoder_trainable -resnet_size 34"
     declare -a train_ratio_list=("0.01"
-    "0.10"
-    "0.25"
-    "0.50"
-    "0.75"
-    "0.9"
+        "0.10"
+        "0.25"
+        "0.50"
+        "0.75"
+        "0.9"
     )
-     while IFS=',' read -r experiment_name experiment_key; do
-        for train_ratio in "${train_ratio_list[@]}";do
+    while IFS=',' read -r experiment_name experiment_key; do
+        for train_ratio in "${train_ratio_list[@]}"; do
             launch_semisupervised "$args -experiment_key  $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1 -train_ratio $train_ratio"
         done
-     done <$SAVED_META_INFO_PATH/e26$seed1
-    
+    done <$SAVED_META_INFO_PATH/e26$seed1
+
     ;;
 E26B)
     # Supervised experiment wih reduced data, similar to experiment 26A
     meta_file="e26B"
     args=" -sources freihand --resize  --rotate --crop  -epochs 100  -batch_size 128 \
-     -save_top_k 1  -save_period 1  -tag e26  --denoiser -tag denoised  -num_workers $CORES -resnet_size 34 " 
-     declare -a train_ratio_list=("0.01"
-    "0.10"
-    "0.25"
-    "0.50"
-    "0.75"
-    "0.9"
-     )
-    for train_ratio in "${train_ratio_list[@]}";do
+     -save_top_k 1  -save_period 1  -tag e26  --denoiser -tag denoised  -num_workers $CORES -resnet_size 34 "
+    declare -a train_ratio_list=("0.01"
+        "0.10"
+        "0.25"
+        "0.50"
+        "0.75"
+        "0.9"
+    )
+    for train_ratio in "${train_ratio_list[@]}"; do
         launch_supervised "$args -train_ratio $train_ratio -seed $seed1 -meta_file $meta_file$seed1"
     done
     ;;
@@ -1063,19 +1062,19 @@ E26C)
     #MAKE crop jitter param 0, 0
     meta_file="e26C"
     args=" -sources freihand --resize -crop -epochs 100  -batch_size 128 \
-     -save_top_k 1  -save_period 1  -tag e26 -tag limited_aug  -num_workers --denoiser -tag denoised $CORES --encoder_trainable -resnet_size 34" 
+     -save_top_k 1  -save_period 1  -tag e26 -tag limited_aug  -num_workers --denoiser -tag denoised $CORES --encoder_trainable -resnet_size 34"
     declare -a train_ratio_list=("0.01"
-    "0.10"
-    "0.25"
-    "0.50"
-    "0.75"
-    "0.9"
+        "0.10"
+        "0.25"
+        "0.50"
+        "0.75"
+        "0.9"
     )
-     while IFS=',' read -r experiment_name experiment_key; do
-        for train_ratio in "${train_ratio_list[@]}";do
+    while IFS=',' read -r experiment_name experiment_key; do
+        for train_ratio in "${train_ratio_list[@]}"; do
             launch_semisupervised "$args -experiment_key  $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1 -train_ratio $train_ratio"
         done
-     done <$SAVED_META_INFO_PATH/e26$seed1
+    done <$SAVED_META_INFO_PATH/e26$seed1
     ;;
 E27)
     #Random cropping new strategy.
@@ -1117,6 +1116,150 @@ E27D)
     #     launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2  -meta_file $meta_file$seed2"
     # done <$SAVED_META_INFO_PATH/hybrid2_ablative$seed2
     ;;
+E28)
+    #Cross dataset experiment with bigger batch size.
+    meta_file='e28'
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    args=" -sources freihand -sources youtube --resize --rotate --random_crop --color_jitter --crop  \
+     -epochs 100 -batch_size 128  \
+     -accumulate_grad_batches 16 -save_top_k 1  -save_period 1 -tag e28 -num_workers $CORES "
+    launch_hybrid2 " $i $args -meta_file ${meta_file}_resnet_size50_$seed1 -seed $seed1 -tag res50 -resnet_size 50"
+    launch_hybrid2 " $i $args -meta_file ${meta_file}_resnet_size152_$seed1 -seed $seed1  -tag res152 -resnet_size 152"
+    ;;
+E28D)
+    meta_file='e28D'
+    args=" -sources freihand  --resize --rotate --crop --random_crop -lr 4.42e-5   \
+     -epochs 100 -batch_size 128 -num_workers $CORES \
+     -accumulate_grad_batches 1 -save_top_k 1  -save_period 1 -tag e28 --denoiser -tag updated"
+    launch_supervised " $args -seed $seed1 -tag res50 -resnet_size 50"
+    launch_supervised " $args -seed $seed1 -tag res152 -resnet_size 152"
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -resnet_size 50 --encoder_trainable"
+    done <$SAVED_META_INFO_PATH/e28_resnet_size50_$seed1
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -resnet_size 152 --encoder_trainable"
+    done <$SAVED_META_INFO_PATH/e28_resnet_size152_$seed1
+    ;;
+E29)
+    # supervised experiment with Adrian's parameters
+    meta_file="e29"
+    args=" -sources freihand  --resize --rotate --crop    \
+     -epochs 100 -batch_size 128 -num_workers $CORES  \
+     -accumulate_grad_batches 1 -save_top_k 1  -save_period 1 -tag e29 --denoiser -lr 4.42e-5 -tag res50"
+    launch_supervised " $args -seed $seed1 -resnet_size 50"
+    launch_supervised " $args --random_crop  -seed $seed1 -resnet_size 50"
+    launch_supervised " $args --random_crop --cut_out -seed $seed1 -resnet_size 50"
+    ;;
+E30)
+    # supervised experiment with Adrian's parameters
+    # lr 4.42e-5 was found optimal so far, trainig with 100% data.
+    # also random cropping 0.9 to 1.5 was found optimal so far.
+    # make sure model saving critetera is   -1 and 50
+    meta_file="e30"
+    args=" -sources freihand  --resize --rotate --crop  --random_crop -train_ratio 0.9999999 \
+     -epochs 100 -batch_size 128 -num_workers $CORES  \
+     -accumulate_grad_batches 1 -save_top_k -1  -save_period 50  -tag e29 --denoiser -lr 4.42e-5 -tag res50"
+    launch_supervised " $args -seed $seed1 -resnet_size 50"
+    ;;
+E31)
+    # This experiment is done to train supervised for finetuning + pretraining duration.
+    meta_file='e31'
+    args=" -sources freihand  --resize --rotate --crop --random_crop -lr 4.42e-5   \
+     -epochs 200 -batch_size 128 -num_workers $CORES \
+     -accumulate_grad_batches 1 -save_top_k -1  -save_period 10 -tag e31 --denoiser -tag comp_supervised -tag e28"
+    launch_supervised " $args -seed $seed1 -tag res50 -resnet_size 50"
+    launch_supervised " $args -seed $seed1 -tag res152 -resnet_size 152"
+    ;;
+E32)
+    # This experiment is to see effectiveness of pretraining with 50 epochs but with Adam.
+    meta_file='e32'
+    # mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    args=" -sources freihand -sources youtube --resize --rotate --random_crop --color_jitter --crop  \
+     -epochs 50 -batch_size 128 -optimizer adam -tag adam \
+     -accumulate_grad_batches 1 -save_top_k 1  -save_period 1 -tag e32 -num_workers $CORES "
+    launch_hybrid2 "  $args -meta_file ${meta_file}_resnet_size50_$seed1 -seed $seed1 -tag res50 -resnet_size 50"
+    launch_hybrid2 "  $args -meta_file ${meta_file}_resnet_size152_$seed1 -seed $seed1  -tag res152 -resnet_size 152"
+    launch_hybrid2 "  $args -meta_file ${meta_file}_resnet_size50_$seed2 -seed $seed2 -tag res50 -resnet_size 50"
+    launch_hybrid2 "  $args -meta_file ${meta_file}_resnet_size152_$seed2 -seed $seed2  -tag res152 -resnet_size 152"
+    ;;
+E32D)
+    # This experiment is to see effectiveness of pretrainign with 50 epochs but with Adam.
+    meta_file='e32d'
+    args=" -sources freihand  --resize --rotate --crop --random_crop -lr 4.42e-5   \
+     -epochs 100 -batch_size 128 -num_workers $CORES \
+     -accumulate_grad_batches 1 -save_top_k 1  -save_period 1 -tag e32 --denoiser -tag updated"
+    launch_supervised " $args -seed $seed2 -tag res50 -resnet_size 50"
+    launch_supervised " $args -seed $seed2 -tag res152 -resnet_size 152"
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -resnet_size 50 --encoder_trainable"
+    done <$SAVED_META_INFO_PATH/e32_resnet_size50_$seed1
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2 -resnet_size 50 --encoder_trainable"
+    done <$SAVED_META_INFO_PATH/e32_resnet_size50_$seed2
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -resnet_size 152 --encoder_trainable"
+    done <$SAVED_META_INFO_PATH/e32_resnet_size152_$seed1
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2 -resnet_size 152 --encoder_trainable"
+    done <$SAVED_META_INFO_PATH/e32_resnet_size152_$seed2
+    ;;
+E33)
+    # This experiment is to observe effect of freihand on downstream model. (to compare with cross dataset. E28)
+    meta_file='e33'
+    # mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    args=" -sources freihand --resize --rotate --random_crop --color_jitter --crop  \
+     -epochs 100 -batch_size 128 \
+     -accumulate_grad_batches 16  -save_top_k 1  -save_period 1 -tag e33 -num_workers $CORES "
+    launch_hybrid2 "  $args -meta_file ${meta_file}_resnet_size50_$seed1 -seed $seed1 -tag res50 -resnet_size 50"
+    launch_hybrid2 "  $args -meta_file ${meta_file}_resnet_size152_$seed1 -seed $seed1  -tag res152 -resnet_size 152"
+    ;;
+E33D)
+    # This experiment is to observe effect of freihand on downstream model. (to compare with cross dataset. E28)
+    meta_file='e33d'
+    # mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    args=" -sources freihand  --resize --rotate --crop --random_crop -lr 4.42e-5   \
+     -epochs 100 -batch_size 128 -num_workers $CORES \
+     -accumulate_grad_batches 1 -save_top_k 1  -save_period 1 -tag e33 --denoiser "
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -resnet_size 50 --encoder_trainable"
+    done <$SAVED_META_INFO_PATH/e33_resnet_size50_$seed1
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -resnet_size 152 --encoder_trainable"
+    done <$SAVED_META_INFO_PATH/e33_resnet_size152_$seed1
+    ;;
+E34)
+    # This experiment is for plotting the curve for downstream model vs pretraing time
+    meta_file='e34'
+    # mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    args=" -sources freihand --resize --rotate --random_crop --color_jitter --crop  \
+     -epochs 100 -batch_size 128 \
+     -accumulate_grad_batches 16  -save_top_k -1  -save_period 10 -tag e34 -num_workers $CORES "
+    launch_hybrid2 "  $args -meta_file ${meta_file}_resnet_size50_$seed1 -seed $seed1 -tag res50 -resnet_size 50"
+    # launch_hybrid2 "  $args -meta_file ${meta_file}_resnet_size152_$seed1 -seed $seed1  -tag res152 -resnet_size 152"
+    ;;
+E34D)
+    meta_file='e34d'
+    # mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    args=" -sources freihand  --resize --rotate --crop --random_crop -lr 4.42e-5   \
+     -epochs 50 -batch_size 128 -num_workers $CORES \
+     -accumulate_grad_batches 1 -save_top_k 1  -save_period 1 -tag e34 --denoiser "
+    declare -a checkpoint=("-checkpoint epoch=9.ckpt"
+       "-checkpoint epoch=19.ckpt"
+       "-checkpoint epoch=29.ckpt"
+       "-checkpoint epoch=39.ckpt"
+       "-checkpoint epoch=49.ckpt"
+       "-checkpoint epoch=59.ckpt"
+       "-checkpoint epoch=69.ckpt"
+       "-checkpoint epoch=79.ckpt"
+       "-checkpoint epoch=89.ckpt"
+       "-checkpoint epoch=99.ckpt"
+    )
+    while IFS=',' read -r experiment_name experiment_key; do
+     for i in "${checkpoint[@]}"; do
+            launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name $i  -seed $seed1 -resnet_size 50 "
+        done
+    done <$SAVED_META_INFO_PATH/e34_resnet_size50_$seed1
+    ;;
 *)
     echo "Experiment not recognized!"
     echo "(Run $0 -h for help)"
@@ -1125,7 +1268,6 @@ E27D)
 esac
 
 echo "All experiment successfully launched!"
-
 
 # Resnet 18, hybrid2 batch :512*4 memory 10400 mb
 # Resnet 50, hybrid2 batch:512*4 memory 17084 mb --gpu_model TeslaV100_SXM2_32GB
