@@ -68,11 +68,24 @@ class BaseModel(LightningModule):
             * self.train_iters_per_epoch
             // self.config.num_of_mini_batch
         )
-        max_epochs = (
-            self.trainer.max_epochs
-            * self.train_iters_per_epoch
-            // self.config.num_of_mini_batch
-        )
+        # updating the max epochs for learning rate scheduler for fair comparision of fine-tunes and fully
+        # supervised models.
+        if (
+            "lr_max_epochs" in self.config.keys()
+            and self.config["lr_max_epochs"] is not None
+        ):
+            max_epochs = (
+                self.config["lr_max_epochs"]
+                * self.train_iters_per_epoch
+                // self.config.num_of_mini_batch
+            )
+        else:
+            max_epochs = (
+                self.trainer.max_epochs
+                * self.train_iters_per_epoch
+                // self.config.num_of_mini_batch
+            )
+
         if self.config.optimizer == "LARS":
             optimizer = LARSWrapper(optimizer)
             scheduler = LinearWarmupCosineAnnealingLR(

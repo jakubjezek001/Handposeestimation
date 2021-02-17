@@ -1,4 +1,3 @@
-//crop margin is [0.6,2.0] for pretraining.
 {
     "batch_size": 128,
     "accumulate_grad_batches": 1,
