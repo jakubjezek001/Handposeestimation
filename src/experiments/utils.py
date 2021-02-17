@@ -535,6 +535,7 @@ def restore_model(model, experiment_key: str, checkpoint: str = ""):
     saved_state_dict = torch.load(get_latest_checkpoint(experiment_key, checkpoint))[
         "state_dict"
     ]
+    print(f"REstroing {get_latest_checkpoint(experiment_key, checkpoint)}")
     model.load_state_dict(saved_state_dict)
     return model
 

@@ -198,7 +198,8 @@ def get_latest_checkpoint(experiment_name: str, checkpoint: str = "") -> str:
         SAVED_MODELS_BASE_PATH, experiment_name, "checkpoints"
     )
     if checkpoint == "":
-        latest_checkpoint = sorted(os.listdir(checkpoint_path))[-1]
+        checkpoints = os.listdir(checkpoint_path)
+        latest_checkpoint = sorted(checkpoints, key=lambda x: int(x[6:-5]))[-1]
     else:
         latest_checkpoint = checkpoint
     return os.path.join(checkpoint_path, latest_checkpoint)

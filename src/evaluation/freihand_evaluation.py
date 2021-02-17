@@ -44,8 +44,11 @@ def main():
         default="test",
         choices=["test", "val"],
     )
+    parser.add_argument(
+        "-checkpoint", type=str, help="selectign checkpoint", default=""
+    )
     args = parser.parse_args()
-    model = load_model(args.key, args.resnet_size, args.heatmap)
+    model = load_model(args.key, args.resnet_size, args.heatmap, args.checkpoint)
     if args.split == "val":
         print(
             "DEBUG MODE ACTIVATED.\n Evaluation pipeline is executed on validation set"
