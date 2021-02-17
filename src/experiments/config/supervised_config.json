@@ -2,11 +2,20 @@
     "alpha": 5,
     "batch_size": 128,
     "gpu": true,
+<<<<<<< HEAD
     "lr": 4.42e-5,
+=======
+    "lr": 5e-4,
+>>>>>>> 358fdc274edf77e5e6b50dc4d16863aca6b71484
     "opt_weight_decay": 2e-4,
     "resnet_trainable": true,
     "warmup_epochs": 1,
     "optimizer": "adam",
+<<<<<<< HEAD
     "num_of_mini_batch": 1,
     "resnet_size": "50"
+=======
+    "num_of_mini_batch":1,
+    "resnet_size":"50"
+>>>>>>> 358fdc274edf77e5e6b50dc4d16863aca6b71484
 }
