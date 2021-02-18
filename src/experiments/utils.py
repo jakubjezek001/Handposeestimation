@@ -159,6 +159,12 @@ def get_general_args(
     parser.add_argument(
         "-lr_max_epochs", type=int, help="Top snapshots to save", default=None
     )
+    parser.add_argument(
+        "--use_palm",
+        action="store_true",
+        help="To regress plam instead of wrist.",
+        default=False,
+    )
     args = parser.parse_args()
     return args
 
@@ -289,7 +295,7 @@ def update_train_params(args: argparse.Namespace, train_param: edict) -> edict:
         update_param(
             args,
             train_param,
-            ["batch_size", "epochs", "train_ratio", "num_workers", "seed"],
+            ["batch_size", "epochs", "train_ratio", "num_workers", "seed", "use_palm"],
         )
     )
     train_param.augmentation_flags = update_param(

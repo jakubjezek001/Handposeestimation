@@ -6,7 +6,7 @@ from src.data_loader.freihand_loader import F_DB
 from src.data_loader.interhand_loader import IH_DB
 from src.data_loader.mpii_loader import MPII_DB
 from src.data_loader.sample_augmenter import SampleAugmenter
-from src.data_loader.utils import convert_2_5D_to_3D, convert_to_2_5D
+from src.data_loader.utils import convert_2_5D_to_3D, convert_to_2_5D, JOINTS
 from src.data_loader.youtube_loader import YTB_DB
 from torch.utils.data import Dataset
 
@@ -318,20 +318,28 @@ class Data_Set(Dataset):
                 'joints3D_recreated'
         """
         joints25D_raw, scale = convert_to_2_5D(sample["K"], sample["joints3D"])
-        image, joints25D, transformation_matrix = augmenter.transform_sample(
-            sample["image"], joints25D_raw
-        )
-        # transformation_matrix = torch.inverse(joints25D[1]) @ joints25D_raw[1]
-        sample["K"] = torch.Tensor(transformation_matrix) @ sample["K"]
-        joints3D_recreated = convert_2_5D_to_3D(joints25D, scale, sample["K"])
-        # This variable is for procrustes analysis, only relevant when youtube data is used
         joints_raw = (
             sample["joints_raw"]
             if "joints_raw" in sample.keys()
-            else sample["joints3D"]
+            else sample["joints3D"].clone()
         )
+        image, joints25D, transformation_matrix = augmenter.transform_sample(
+            sample["image"], joints25D_raw
+        )
+        sample["K"] = torch.Tensor(transformation_matrix) @ sample["K"]
+        if self.config.use_palm:
+            sample["joints3D"] = self.move_wrist_to_palm(sample["joints3D"])
+            joints25D, scale = convert_to_2_5D(sample["K"], sample["joints3D"])
+
+        joints3D_recreated = convert_2_5D_to_3D(joints25D, scale, sample["K"])
+        # This variable is for procrustes analysis, only relevant when youtube data is used
+
+        if self.config.use_palm:
+            joints_raw = self.move_wrist_to_palm(joints_raw)
+
         if self.transform:
             image = self.transform(image)
+
         return {
             "image": image,
             "joints": joints25D,
@@ -482,3 +490,9 @@ class Data_Set(Dataset):
             angle = (param1["angle"] - param2["angle"]) % 360
             rel_param.update({"rotation": torch.Tensor([angle])})
         return rel_param
+
+    def move_wrist_to_palm(self, joints3D: torch.Tensor) -> torch.Tensor:
+        wrist_idx = JOINTS.mapping.ait.wrist
+        index_mcp_idx = JOINTS.mapping.ait.index_mcp
+        joints3D[wrist_idx] = (joints3D[wrist_idx] + joints3D[index_mcp_idx]) / 2
+        return joints3D

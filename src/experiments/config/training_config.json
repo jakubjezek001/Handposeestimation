@@ -58,4 +58,6 @@
         "sobel_kernel": 3,
         "noise_std": 25
     }
+    ,
+    "use_palm":true
 }
