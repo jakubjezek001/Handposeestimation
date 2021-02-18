@@ -2,7 +2,7 @@ MODEL36:
   MODEL:
     INIT_WEIGHTS: true
     NAME: pose_hrnet
-    NUM_JOINTS: 42
+    NUM_JOINTS: 128
     PRETRAINED: ''
     TARGET_TYPE: gaussian
     IMAGE_SIZE:
@@ -58,7 +58,7 @@ MODEL48:
   MODEL:
     INIT_WEIGHTS: true
     NAME: pose_hrnet
-    NUM_JOINTS: 42
+    NUM_JOINTS: 128
     PRETRAINED: ''
     TARGET_TYPE: gaussian
     IMAGE_SIZE:
