@@ -156,6 +156,9 @@ def get_general_args(
         default="18",
         choices=["18", "34", "50", "101", "152"],
     )
+    parser.add_argument(
+        "-lr_max_epochs", type=int, help="Top snapshots to save", default=None
+    )
     args = parser.parse_args()
     return args
 
@@ -614,7 +617,9 @@ def get_callbacks(
 
 
 def update_model_params(model_param: edict, args, data_length: int, train_param: edict):
-    model_param = update_param(args, model_param, ["optimizer", "lr", "resnet_size"])
+    model_param = update_param(
+        args, model_param, ["optimizer", "lr", "resnet_size", "lr_max_epochs"]
+    )
     model_param.num_samples = data_length
     model_param.batch_size = train_param.batch_size
     model_param.num_of_mini_batch = train_param.accumulate_grad_batches
