@@ -146,6 +146,7 @@ def model_refined_inference(
     sample: dict,
     augmenter: SampleAugmenter,
     transform: transforms.Compose,
+    is_palm_trained: bool,
 ) -> torch.Tensor:
     """Calculates refined bound box from an initial estimate around image center and uses that bound box to
     predict the joints3D.
@@ -155,6 +156,7 @@ def model_refined_inference(
         sample (dict): image and camera intrinsics dictionary
         augmenter (SampleAugmenter): augmenter for processing image(cropping and resizing)
         transform (transforms.Compose): Transforms on image, normalization and tensor conversion.
+        is_palm_trained (bool): True when palm is regressed during training.
 
     Returns:
         torch.Tensor: predicted I3D joints
@@ -165,6 +167,9 @@ def model_refined_inference(
         {"image": img_orig.copy(), "K": K.clone()}, sudo_bbox, augmenter, transform, 1
     )
     predictions25d = model(sample["image"].to(model.device)).view(21, 3)
+    if is_palm_trained:
+        # this step is done to ensure image is cropped properly by using wrist.
+        predictions25d = move_palm_to_wrist(predictions25d)
     predictions25d[..., -1] = 1.0
     bbox = (
         predictions25d
@@ -188,4 +193,18 @@ def model_refined_inference(
     else:
         predictions3d = convert_2_5D_to_3D(predictions25d.cpu(), 1.0, sample["K"].cpu())
 
+    if is_palm_trained:
+        predictions3d = move_palm_to_wrist(predictions3d)
     return predictions3d
+
+
+def move_palm_to_wrist(joints: torch.Tensor) -> torch.Tensor:
+    """Reverts palm keypoint to wrist's position.
+
+    Args:
+        joints (torch.Tensor): [description]
+    """
+    palm = joints[JOINTS.mapping.ait.wrist]
+    index_mcp = joints[JOINTS.mapping.ait.index_mcp]
+    wrist = 2 * palm - index_mcp
+    joints[JOINTS.mapping.ait.wrist] = wrist

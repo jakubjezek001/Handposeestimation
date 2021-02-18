@@ -38,6 +38,12 @@ def main():
         "--heatmap", action="store_true", help="Choose Resnet", default=False
     )
     parser.add_argument(
+        "--palm_trained",
+        action="store_true",
+        help="Use when palm is regressed during training.",
+        default=False,
+    )
+    parser.add_argument(
         "-split",
         type=str,
         help="For debugging select val split",
@@ -83,7 +89,9 @@ def main():
     with torch.no_grad():
         for i in tqdm(range(len(data))):
             joints3d_normalized = normalize_joints(
-                model_refined_inference(model, data[i], augmenter, transform)
+                model_refined_inference(
+                    model, data[i], augmenter, transform, args.palm_trained
+                )
             )
             if args.split == "val":
                 # DEBUG CODE:
