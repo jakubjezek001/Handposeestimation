@@ -25,9 +25,9 @@ class Hybrid2HeatmapModel(SimCLRHeatmap, Hybrid2Model):
         self, batch: Dict[str, Tensor]
     ) -> Tuple[Tensor, Tensor]:
         if self.config.preserve_heatmap:
-            return self.get_transformed_heatmaps(batch)
+            return self.get_transformed_heatmaps(self, batch)
         else:
-            return Hybrid2Model.get_transformed_projections(batch)
+            return Hybrid2Model.get_transformed_projections(self, batch)
 
     def get_transformed_heatmaps(
         self, batch: Dict[str, Tensor]
