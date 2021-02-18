@@ -4,7 +4,7 @@ from src.models.external.HRnet.pose_hrnet import get_pose_net
 from src.models.external.spatial_2d_soft_argmax import spatial_soft_argmax2d
 from src.models.supervised.baseline_model import BaselineModel
 from src.utils import read_yaml
-from torch import Tensor
+from torch import Tensor, nn
 
 
 class HeatmapPoseModel(BaselineModel):
@@ -13,10 +13,17 @@ class HeatmapPoseModel(BaselineModel):
         self.epsilon = 1e-6
         hrnet_config = read_yaml(HRNET_CONFIG)
         self.encoder = get_pose_net(hrnet_config.MODEL36, True)
+        self.final_layers = nn.Sequential(
+            nn.Conv2d(128, 64, kernel_size=(3, 3), stride=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.Conv2d(64, 42, kernel_size=(3, 3), stride=1),
+        )
 
     def forward(self, x: Tensor) -> Tensor:
         image_h, image_w = x.size()[-2:]
         x = self.encoder(x)
+        x = self.final_layers(x)
         h_star_2d, h_star_z = x[:, :21], x[:, 21:]
         out = self.heatmap_to_joints(h_star_2d, h_star_z, image_h, image_w)
         return out
