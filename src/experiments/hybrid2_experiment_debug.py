@@ -3,6 +3,7 @@ from pprint import pformat
 
 
 from easydict import EasyDict as edict
+
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
@@ -37,7 +38,8 @@ def main():
 
     train_param = edict(read_json(TRAINING_CONFIG_PATH))
     train_param = update_train_params(args, train_param)
-    model_param = edict(read_json(HYBRID2_CONFIG))
+    model_param_path = HYBRID2_HEATMAP_CONFIG if args.heatmap else HYBRID2_CONFIG
+    model_param = edict(read_json(model_param_path))
     console_logger.info(f"Train parameters {pformat(train_param)}")
     seed_everything(train_param.seed)
     experiment_type = "hybrid2"
