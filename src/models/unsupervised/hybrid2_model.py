@@ -60,12 +60,6 @@ class Hybrid2Model(SimCLR):
             **projection1_stat,
             **projection2_stat,
         }
-
-        if "rotate" in self.config.augmentation:
-            # make sure the shape is (batch,-1,3).
-            angles = torch.cat((batch["angle_1"], batch["angle_2"]), dim=0)
-            # rotating the projections in opposite direction
-            projections = rotate_encoding(projections, -angles)
         if "crop" in self.config.augmentation:
             # normalizing jitter with respect to image size.
             # Test it -------
@@ -91,6 +85,12 @@ class Hybrid2Model(SimCLR):
             )
             # moving the encodings by same amount.
             projections = translate_encodings(projections, -jitter_x, -jitter_y)
+
+        if "rotate" in self.config.augmentation:
+            # make sure the shape is (batch,-1,3).
+            angles = torch.cat((batch["angle_1"], batch["angle_2"]), dim=0)
+            # rotating the projections in opposite direction
+            projections = rotate_encoding(projections, -angles)
 
         projections = projections.view((batch_size * 2, -1))
         projection1 = F.normalize(projections[:batch_size])
