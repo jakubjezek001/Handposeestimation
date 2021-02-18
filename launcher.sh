@@ -1260,6 +1260,72 @@ E34D)
         done
     done <$SAVED_META_INFO_PATH/e34_resnet_size50_$seed1
     ;;
+E35)
+    # Launching hybrid experiment with bigger output dim for projection head. + also an experiment to push the numbers on eval set.
+    # the output dim paramter has been chnaged in the hybrid  model config file to 1024 from 128.
+    meta_file='e35'
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    args=" -sources freihand -sources youtube --resize --rotate --random_crop --color_jitter --crop  \
+    -epochs 100 -batch_size 128  \
+    -accumulate_grad_batches 16 -save_top_k 1  -save_period 1 -tag e35 -num_workers $CORES "
+    launch_hybrid2 " $i $args -meta_file ${meta_file}_resnet_size50_$seed1 -seed $seed1 -tag res50 -resnet_size 50"
+    launch_hybrid2 " $i $args -meta_file ${meta_file}_resnet_size152_$seed1 -seed $seed1  -tag res152 -resnet_size 152"
+    ;;
+E35D)
+    meta_file='e35D'
+    args=" -sources freihand  --resize --rotate --crop --random_crop -lr 4.42e-5   \
+     -epochs 100 -batch_size 128 -num_workers $CORES \
+     -accumulate_grad_batches 1 -save_top_k 1  -save_period 1 -tag e35 --denoiser"
+    launch_supervised " $args -seed $seed1 -tag res50 -resnet_size 50"
+    launch_supervised " $args -seed $seed1 -tag res152 -resnet_size 152"
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -resnet_size 50 --encoder_trainable"
+    done <$SAVED_META_INFO_PATH/e35_resnet_size50_$seed1
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -resnet_size 152 --encoder_trainable"
+    done <$SAVED_META_INFO_PATH/e35_resnet_size152_$seed1
+    ;;
+E36)
+    # PArt of hybrid alabtive study redone to compare, rotate+ translate + [], translate + [].
+    # also it is done with bigger projections dimension.
+    meta_file='e36'
+    args=" -sources freihand  --resize  --random_crop --color_jitter --crop  \
+    -epochs 100 -batch_size 512  \
+    -accumulate_grad_batches 4 -save_top_k 1  -save_period 1 -tag e36 -num_workers $CORES "
+    launch_hybrid2 " $args --rotate  -meta_file ${meta_file}$seed1 -seed $seed1 -tag res18 -resnet_size 18"
+    launch_hybrid2 " $args -meta_file ${meta_file}$seed1 -seed $seed1 -tag res18 -resnet_size 18"
+;;
+E36D)
+    # encoder is frozen.
+    meta_file='e36D'
+    args=" -sources freihand  --resize --rotate --crop --random_crop -lr 4.42e-5   \
+     -epochs 50  -batch_size 128 -num_workers $CORES \
+     -accumulate_grad_batches 1 -save_top_k 1  -save_period 1 -tag e36 --denoiser"
+    launch_supervised " $args -seed $seed1 -tag res50 -resnet_size 50"
+    launch_supervised " $args -seed $seed1 -tag res152 -resnet_size 152"
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -resnet_size 18"
+    done <$SAVED_META_INFO_PATH/e36_$seed1
+    ;;
+E37)
+    # Launching hybrid experiment with heatmap style encoder
+    meta_file='e37'
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    args=" -sources freihand -sources youtube --resize --rotate --random_crop --color_jitter --crop  \
+    -epochs 100 -batch_size 128  \
+    -accumulate_grad_batches 16 -save_top_k 1  -save_period 1 -tag e37 -num_workers $CORES "
+    launch_hybrid2 "  $args -meta_file ${meta_file}_$seed1 -seed $seed1 -tag heatmap --heatmap"
+    ;;
+E37D)
+    # TODO
+    ;;
+E38)
+    meta_file='e38'
+    args=" -sources freihand  --resize --rotate --crop --random_crop -lr 4.42e-5   \
+     -epochs 100  -batch_size 128 -num_workers $CORES \
+     -accumulate_grad_batches 1 -save_top_k 1  -save_period 1 -tag e38 --denoiser"
+    launch_supervised " $args -seed $i  -meta_file $meta_file$i -tag heatmap -tag denoised --heatmap --denoiser" 
+;;
 *)
     echo "Experiment not recognized!"
     echo "(Run $0 -h for help)"
