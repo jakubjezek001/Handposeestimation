@@ -16,3 +16,4 @@ comet-ml
 pytorch-lightning
 scikit-learn
 pytorch-lightning-bolts==0.2.2
+kornia
