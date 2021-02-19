@@ -10,9 +10,11 @@ from src.constants import SAVED_META_INFO_PATH, SAVED_MODELS_BASE_PATH
 from src.data_loader.data_set import Data_Set
 from src.experiments.evaluation_utils import evaluate
 from src.models.callbacks.upload_comet_logs import UploadCometLogs
+from src.models.semisupervised.denoised_heatmap_head_model import DenoisedHeatmapHead
 from src.models.semisupervised.denoised_supervised_head_model import (
     DenoisedSupervisedHead,
 )
+from src.models.semisupervised.heatmap_head_model import HeatmapHead
 from src.models.semisupervised.supervised_head_model import SupervisedHead
 from src.models.supervised.baseline_model import BaselineModel
 from src.models.supervised.denoised_baseline import DenoisedBaselineModel
@@ -595,7 +597,11 @@ def get_model(experiment_type: str, heatmap_flag: bool, denoiser_flag: bool):
         else:
             return PairwiseModel
     elif experiment_type == "semisupervised":
-        if denoiser_flag:
+        if heatmap_flag and not denoiser_flag:
+            return HeatmapHead
+        elif heatmap_flag and denoiser_flag:
+            return DenoisedHeatmapHead
+        elif denoiser_flag:
             return DenoisedSupervisedHead
         else:
             return SupervisedHead
