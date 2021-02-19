@@ -104,7 +104,10 @@ def main():
 
     if args.split == "val":
         # DEBUG CODE:
-        print(np.mean(debug_mean), np.max(debug_mean), np.median(debug_mean))
+        print(
+            f"MAE 3d\nMean : {np.mean(debug_mean)}\nMax: { np.max(debug_mean)}"
+            "\nMedian: { np.median(debug_mean)}"
+        )
         exit()
 
     verts = np.zeros((len(xyz_pred), 778, 3)).tolist()

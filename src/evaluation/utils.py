@@ -1,3 +1,4 @@
+from shutil import move
 from typing import Dict, Union
 
 import matplotlib.pyplot as plt
@@ -6,12 +7,11 @@ from easydict import EasyDict as edict
 from src.constants import SUPERVISED_CONFIG_PATH
 from src.data_loader.joints import Joints
 from src.data_loader.sample_augmenter import SampleAugmenter
-from src.data_loader.utils import convert_2_5D_to_3D
+from src.data_loader.utils import convert_2_5D_to_3D, convert_to_2_5D
 from src.experiments.utils import restore_model
 from src.models.supervised import (
     BaselineModel,
     DenoisedBaselineModel,
-    HeatmapPoseModel,
     DenoisedHeatmapmodel,
 )
 from src.utils import read_json
@@ -141,6 +141,50 @@ def process_data(
     }
 
 
+def compute_refined_3d(
+    prediction25d: torch.Tensor,
+    model: Union[BaselineModel, DenoisedBaselineModel],
+    K: torch.Tensor,
+) -> torch.Tensor:
+    """
+    Computes refined 3d coordinates, if denoiser is present in model.
+
+    Args:
+        prediction25d (torch.Tensor): 2.5D predictions.
+        model (Union[BaselineModel, DenoisedBaselineModel]): model instance, for denoising.
+        K (torch.Tensor): camera matrix.
+
+    Returns:
+       torch.Tensor: 3D predcitions, scale normalized with respect to index_mcp and wrist/pam bone.
+    """
+    if hasattr(model, "denoiser"):
+        z_root_calc_denoised = model.get_denoised_z_root_calc(
+            prediction25d.view(1, 21, 3), K.view(1, 3, 3).to(model.device)
+        )
+        predictions3d = convert_2_5D_to_3D(
+            prediction25d.cpu(),
+            1.0,
+            K.cpu(),
+            Z_root_calc=z_root_calc_denoised.cpu().view(-1),
+        )
+    else:
+        predictions3d = convert_2_5D_to_3D(prediction25d.cpu(), 1.0, K.cpu())
+    return predictions3d
+
+
+def move_palm_to_wrist(joints: torch.Tensor) -> torch.Tensor:
+    """Reverts palm keypoint to wrist's position.
+
+    Args:
+        joints (torch.Tensor): [description]
+    """
+    palm = joints[JOINTS.mapping.ait.wrist]
+    index_mcp = joints[JOINTS.mapping.ait.index_mcp]
+    wrist = 2 * palm - index_mcp
+    joints[JOINTS.mapping.ait.wrist] = wrist
+    return joints
+
+
 def model_refined_inference(
     model: Union[BaselineModel, DenoisedBaselineModel],
     sample: dict,
@@ -169,10 +213,13 @@ def model_refined_inference(
     predictions25d = model(sample["image"].to(model.device)).view(21, 3)
     if is_palm_trained:
         # this step is done to ensure image is cropped properly by using wrist.
-        predictions25d = move_palm_to_wrist(predictions25d)
+        # predictions25d = move_palm_to_wrist( predictions25d)
+        predictions3d = compute_refined_3d(predictions25d, model, sample["K"].clone())
+        predictions3d = move_palm_to_wrist(predictions3d)
+        predictions25d, _ = convert_to_2_5D(sample["K"].clone(), predictions3d)
     predictions25d[..., -1] = 1.0
     bbox = (
-        predictions25d
+        predictions25d.to(model.device)
         @ torch.inverse(sample["transformation_matrix"].to(model.device)).T
     )
     # Cropping image with refined crop box.
@@ -180,31 +227,7 @@ def model_refined_inference(
         {"image": img_orig.copy(), "K": K.clone()}, bbox, augmenter, transform, step=2
     )
     predictions25d = model(sample["image"].to(model.device)).view(21, 3)
-    if hasattr(model, "denoiser"):
-        z_root_calc_denoised = model.get_denoised_z_root_calc(
-            predictions25d.view(1, 21, 3), sample["K"].view(1, 3, 3).to(model.device)
-        )
-        predictions3d = convert_2_5D_to_3D(
-            predictions25d.cpu(),
-            1.0,
-            sample["K"].cpu(),
-            Z_root_calc=z_root_calc_denoised.cpu().view(-1),
-        )
-    else:
-        predictions3d = convert_2_5D_to_3D(predictions25d.cpu(), 1.0, sample["K"].cpu())
-
+    predictions3d = compute_refined_3d(predictions25d, model, sample["K"])
     if is_palm_trained:
         predictions3d = move_palm_to_wrist(predictions3d)
     return predictions3d
-
-
-def move_palm_to_wrist(joints: torch.Tensor) -> torch.Tensor:
-    """Reverts palm keypoint to wrist's position.
-
-    Args:
-        joints (torch.Tensor): [description]
-    """
-    palm = joints[JOINTS.mapping.ait.wrist]
-    index_mcp = joints[JOINTS.mapping.ait.index_mcp]
-    wrist = 2 * palm - index_mcp
-    joints[JOINTS.mapping.ait.wrist] = wrist
