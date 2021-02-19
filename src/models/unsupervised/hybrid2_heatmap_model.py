@@ -1,7 +1,6 @@
 from typing import Dict, Tuple
 
 from easydict import EasyDict as edict
-import torch
 from src.models.unsupervised.hybrid2_model import Hybrid2Model
 from src.models.unsupervised.simclr_heatmap_model import SimCLRHeatmap
 from torch import Tensor
