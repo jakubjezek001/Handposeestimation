@@ -219,7 +219,7 @@ launch_hybrid2() {
 
 # $1 : args
 launch_supervised() {
-    bsub -J "supervised" -W "$TIME:00" \-o "/cluster/scratch//adahiya/hybrid2_logs.out" \
+    bsub -J "supervised" -W "$TIME:00" \-o "/cluster/scratch//adahiya/supervised_logs.out" \
         -n $CORES -R "rusage[mem=$MEMORY, ngpus_excl_p=1]" \
         -R "select[gpu_model0==$GPU_MODEL]" \
         -G ls_infk \
@@ -281,18 +281,14 @@ IMAGENET_DOWN)
     ;;
 SUPERVISED)
     meta_file="supervised"
-    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
-    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
-    args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam -num_workers $CORES \
-         -sources freihand "
+    args="--rotate --random_crop --crop --resize  -batch_size 128 -epochs 100 -optimizer adam -num_workers $CORES \
+         -sources freihand -train_ratio 0.9999999 -save_top_k -1 -save_period 50"
     echo "Launching supervised baselines "
     declare -a seeds=($seed1
         $seed2
     )
     for i in "${seeds[@]}"; do
-        launch_supervised " $args -seed $i  -meta_file $meta_file$i"
         launch_supervised " $args -seed $i  -meta_file $meta_file$i -tag denoised --denoiser"
-        launch_supervised " $args -seed $i  -meta_file $meta_file$i -tag heatmap --heatmap"
         launch_supervised " $args -seed $i  -meta_file $meta_file$i -tag heatmap -tag denoised --heatmap --denoiser"
     done
     ;;
@@ -1130,9 +1126,9 @@ E28D)
     meta_file='e28D'
     args=" -sources freihand  --resize --rotate --crop --random_crop -lr 4.42e-5   \
      -epochs 100 -batch_size 128 -num_workers $CORES \
-     -accumulate_grad_batches 1 -save_top_k 1  -save_period 1 -tag e28 --denoiser -tag updated"
-    launch_supervised " $args -seed $seed1 -tag res50 -resnet_size 50"
-    launch_supervised " $args -seed $seed1 -tag res152 -resnet_size 152"
+     -accumulate_grad_batches 1 -save_top_k 1  -save_period 1 -tag e28 --denoiser -tag adjusted_lr  -lr_max_epochs 170"
+    # launch_supervised " $args -seed $seed1 -tag res50 -resnet_size 50"
+    # launch_supervised " $args -seed $seed1 -tag res152 -resnet_size 152"
     while IFS=',' read -r experiment_name experiment_key; do
         launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -resnet_size 50 --encoder_trainable"
     done <$SAVED_META_INFO_PATH/e28_resnet_size50_$seed1
@@ -1218,13 +1214,15 @@ E33D)
     meta_file='e33d'
     # mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
     args=" -sources freihand  --resize --rotate --crop --random_crop -lr 4.42e-5   \
-     -epochs 100 -batch_size 128 -num_workers $CORES \
-     -accumulate_grad_batches 1 -save_top_k 1  -save_period 1 -tag e33 --denoiser "
+     -batch_size 128 -num_workers $CORES \
+     -accumulate_grad_batches 1 -save_top_k 1  -save_period 1 -tag e33 --denoiser -lr_max_epochs 170 "
+    launch_supervised " $args -seed $seed1  -meta_file $meta_file$seed1   -resnet_size 50 -epochs 170"
+    launch_supervised " $args -seed $seed1  -meta_file $meta_file$seed1   -resnet_size 152 -epochs 170"
     while IFS=',' read -r experiment_name experiment_key; do
-        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -resnet_size 50 --encoder_trainable"
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -resnet_size 50 --encoder_trainable -epochs 100"
     done <$SAVED_META_INFO_PATH/e33_resnet_size50_$seed1
     while IFS=',' read -r experiment_name experiment_key; do
-        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -resnet_size 152 --encoder_trainable"
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -resnet_size 152 --encoder_trainable -epochs 100"
     done <$SAVED_META_INFO_PATH/e33_resnet_size152_$seed1
     ;;
 E34)
@@ -1244,18 +1242,18 @@ E34D)
      -epochs 50 -batch_size 128 -num_workers $CORES \
      -accumulate_grad_batches 1 -save_top_k 1  -save_period 1 -tag e34 --denoiser "
     declare -a checkpoint=("-checkpoint epoch=9.ckpt"
-       "-checkpoint epoch=19.ckpt"
-       "-checkpoint epoch=29.ckpt"
-       "-checkpoint epoch=39.ckpt"
-       "-checkpoint epoch=49.ckpt"
-       "-checkpoint epoch=59.ckpt"
-       "-checkpoint epoch=69.ckpt"
-       "-checkpoint epoch=79.ckpt"
-       "-checkpoint epoch=89.ckpt"
-       "-checkpoint epoch=99.ckpt"
+        "-checkpoint epoch=19.ckpt"
+        "-checkpoint epoch=29.ckpt"
+        "-checkpoint epoch=39.ckpt"
+        "-checkpoint epoch=49.ckpt"
+        "-checkpoint epoch=59.ckpt"
+        "-checkpoint epoch=69.ckpt"
+        "-checkpoint epoch=79.ckpt"
+        "-checkpoint epoch=89.ckpt"
+        "-checkpoint epoch=99.ckpt"
     )
     while IFS=',' read -r experiment_name experiment_key; do
-     for i in "${checkpoint[@]}"; do
+        for i in "${checkpoint[@]}"; do
             launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name $i  -seed $seed1 -resnet_size 50 "
         done
     done <$SAVED_META_INFO_PATH/e34_resnet_size50_$seed1
@@ -1294,18 +1292,16 @@ E36)
     -accumulate_grad_batches 4 -save_top_k 1  -save_period 1 -tag e36 -num_workers $CORES "
     launch_hybrid2 " $args --rotate  -meta_file ${meta_file}$seed1 -seed $seed1 -tag res18 -resnet_size 18"
     launch_hybrid2 " $args -meta_file ${meta_file}$seed1 -seed $seed1 -tag res18 -resnet_size 18"
-;;
+    ;;
 E36D)
     # encoder is frozen.
     meta_file='e36D'
     args=" -sources freihand  --resize --rotate --crop --random_crop -lr 4.42e-5   \
      -epochs 50  -batch_size 128 -num_workers $CORES \
      -accumulate_grad_batches 1 -save_top_k 1  -save_period 1 -tag e36 --denoiser"
-    launch_supervised " $args -seed $seed1 -tag res50 -resnet_size 50"
-    launch_supervised " $args -seed $seed1 -tag res152 -resnet_size 152"
     while IFS=',' read -r experiment_name experiment_key; do
         launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -resnet_size 18"
-    done <$SAVED_META_INFO_PATH/e36_$seed1
+    done <$SAVED_META_INFO_PATH/e36$seed1
     ;;
 E37)
     # Launching hybrid experiment with heatmap style encoder
@@ -1317,15 +1313,24 @@ E37)
     launch_hybrid2 "  $args -meta_file ${meta_file}_$seed1 -seed $seed1 -tag heatmap --heatmap"
     ;;
 E37D)
-    # TODO
+    args=" -sources freihand  --resize --rotate --crop --random_crop -lr 4.42e-5   \
+      -batch_size 128 -num_workers $CORES \
+     -accumulate_grad_batches 1 -save_top_k 1  -save_period 1 -tag e37 --denoiser --heatmap"
+    # launch_supervised " $args -seed $seed1 -lr_max_epochs 170 -epochs 170"
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -lr_max_epochs 170 -epochs 100 --encoder_trainable "
+    done <$SAVED_META_INFO_PATH/e37_$seed1
     ;;
 E38)
     meta_file='e38'
     args=" -sources freihand  --resize --rotate --crop --random_crop -lr 4.42e-5   \
      -epochs 100  -batch_size 128 -num_workers $CORES \
      -accumulate_grad_batches 1 -save_top_k 1  -save_period 1 -tag e38 --denoiser"
-    launch_supervised " $args -seed $i  -meta_file $meta_file$i -tag heatmap -tag denoised --heatmap --denoiser" 
-;;
+    launch_supervised " $args -seed $seed1  -meta_file $meta_file$seed1 -tag heatmap -tag denoised --heatmap --denoiser"
+    launch_supervised " $args -seed $seed1  -meta_file $meta_file$seed1 -tag heatmap -tag denoised --heatmap --denoiser --use_palm -tag palm"
+    launch_supervised " $args -seed $seed1  -meta_file $meta_file$seed1 -tag heatmap -tag denoised  --denoiser -resnet_size 50"
+    launch_supervised " $args -seed $seed1  -meta_file $meta_file$seed1 -tag heatmap -tag denoised  --denoiser --use_palm -resnet_size 50 -tag palm"
+    ;;
 *)
     echo "Experiment not recognized!"
     echo "(Run $0 -h for help)"
