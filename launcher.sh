@@ -364,7 +364,7 @@ SIM_ABL)
         "gaussian_noise"
         "sobel_filter")
     args="--resize  -batch_size 512 -epochs 100 -accumulate_grad_batches 4 \
-         -sources freihand  -tag sim_abl -tag iccv  -save_top_k 1  -save_period 1 -resnet_size 18"
+         -sources freihand  -tag sim_abl -tag iccv  -save_top_k 1  -save_period 1 -resnet_size 18 -num_worker $CORES"
     for j in "${augmentations[@]}"; do
         echo "$j $seed1"
         launch_simclr " --$j  $args  -meta_file ${meta_file}$seed1 -seed  $seed1"
@@ -425,7 +425,7 @@ SIM_ABL_DOWN)
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
     args="--rotate --crop --resize -random_crop -batch_size 128 -epochs 50 -optimizer adam \
-         -sources freihand -tag sim_abl -tag iccv -resnet_size 18"
+         -sources freihand -tag sim_abl -tag iccv -resnet_size 18 -num_worker $CORES"
     while IFS=',' read -r experiment_name experiment_key; do
         launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
     done <$SAVED_META_INFO_PATH/simclr_ablative$seed1
@@ -476,7 +476,7 @@ HYB2_ABL)
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
     args="  --resize -batch_size 512 -epochs 100 -accumulate_grad_batches 4  \
-         -sources freihand  -tag hyb2_abl -tag iccv  -save_top_k 1  -save_period 1 -resnet_size 18"
+         -sources freihand  -tag hyb2_abl -tag iccv  -save_top_k 1  -save_period 1 -resnet_size 18 -num_worker $CORES"
     declare -a seeds=($seed1
         $seed2
     )
@@ -506,7 +506,7 @@ HYB2_ABL_DOWN)
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
     args="--rotate --crop --resize --random_crop  -batch_size 128 -epochs 50 -optimizer adam \
-         -sources freihand -tag hyb2_abl -tag iccv -resnet_size 18"
+         -sources freihand -tag hyb2_abl -tag iccv -resnet_size 18 -num_worker $CORES"
     while IFS=',' read -r experiment_name experiment_key; do
         launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
     done <$SAVED_META_INFO_PATH/hybrid2_ablative$seed1
