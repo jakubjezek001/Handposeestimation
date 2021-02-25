@@ -1344,6 +1344,27 @@ E38)
     launch_supervised " $args -seed $seed1  -meta_file $meta_file$seed1 -tag heatmap -tag denoised  --denoiser -resnet_size 50"
     launch_supervised " $args -seed $seed1  -meta_file $meta_file$seed1 -tag heatmap -tag denoised  --denoiser --use_palm -resnet_size 50 -tag palm"
     ;;
+LABEL_EFF)
+    meta_file='label_eff'
+    # Label effincey experiment , use pretrained  models from hyb2_abl
+    args=" -sources freihand --resize  --rotate --crop  -epochs 50  -batch_size 128 \
+     -save_top_k 1  -save_period 1   -tag iccv -tag label_efficiency   -num_workers $CORES --encoder_trainable -resnet_size 18"
+    declare -a train_ratio_list=("0.01"
+        "0.10"
+        "0.25"
+        "0.50"
+        "0.75"
+        "0.9"
+        "0.9999999999"
+    )
+    pretrained_exp_name='hybrid2_512C_CJ_RC_Re_Ro'
+    seed1_key='2ff92deb49744e65b85ff896261e92e1'
+    seed2_key='822e4a2b26244ceba5f7374a5ad186af'
+    for train_ratio in "${train_ratio_list[@]}"; do
+        launch_semisupervised "$args -experiment_key  $seed1_key -experiment_name $pretrained_exp_name  -seed $seed1 -meta_file $meta_file$seed1 -train_ratio $train_ratio"
+        launch_supervised "$args  -seed $seed1 -meta_file ${meta_file}_supervised_${seed1} -train_ratio $train_ratio"
+    done
+
 *)
     echo "Experiment not recognized!"
     echo "(Run $0 -h for help)"
