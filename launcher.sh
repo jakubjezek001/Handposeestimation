@@ -1026,15 +1026,15 @@ E25d)
 E26)
     # Resnet 34 is chosen as bigger model. We train on all of freihand data.
     meta_file="e26"
-    args=" -sources freihand --resize  --color_jitter  --rotate --crop --random_crop  -epochs 100 -batch_size 128 \
-     -accumulate_grad_batches 16 -save_top_k -1  -save_period 50  -tag e26  -num_workers $CORES -train_ratio 0.99999999 "
-    launch_hybrid2 " $args  -meta_file $meta_file$seed1 -seed $seed1 -resnet_size 34"
+    args=" -sources freihand --resize  --color_jitter  --rotate --crop --random_crop  -epochs 100 -batch_size 512 \
+     -accumulate_grad_batches 4  -save_top_k 1  -save_period 1  -tag e26 -tag iccv -tag label_efficiency  -num_workers $CORES -train_ratio 0.99999999 "
+    launch_hybrid2 " $args  -meta_file $meta_file$seed1 -seed $seed1 -resnet_size 18"
     ;;
 E26A)
     # Downstream experiments with reduced training data, unforzen resnet
     meta_file="e26A"
     args=" -sources freihand --resize  --rotate --crop  -epochs 100  -batch_size 128 \
-     -save_top_k 1  -save_period 1  -tag e26   --denoiser -tag denoised -num_workers $CORES --encoder_trainable -resnet_size 34"
+     -save_top_k 1  -save_period 1  -tag e26   -tag iccv -tag label_efficiency  --denoiser -tag denoised -num_workers $CORES --encoder_trainable -resnet_size 18"
     declare -a train_ratio_list=("0.01"
         "0.10"
         "0.25"
