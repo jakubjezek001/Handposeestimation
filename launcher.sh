@@ -424,7 +424,7 @@ SIM_ABL_DOWN)
     meta_file="simclr_ablative_down"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
-    args="--rotate --crop --resize -random_crop -batch_size 128 -epochs 50 -optimizer adam \
+    args="--rotate --crop --resize --random_crop -batch_size 128 -epochs 50 -optimizer adam \
          -sources freihand -tag sim_abl -tag iccv -resnet_size 18 -num_worker $CORES"
     while IFS=',' read -r experiment_name experiment_key; do
         launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
