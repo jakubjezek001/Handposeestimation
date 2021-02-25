@@ -1364,7 +1364,7 @@ LABEL_EFF)
         launch_semisupervised "$args -experiment_key  $seed1_key -experiment_name $pretrained_exp_name  -seed $seed1 -meta_file $meta_file$seed1 -train_ratio $train_ratio"
         launch_supervised "$args  -seed $seed1 -meta_file ${meta_file}_supervised_${seed1} -train_ratio $train_ratio"
     done
-
+;;
 *)
     echo "Experiment not recognized!"
     echo "(Run $0 -h for help)"
