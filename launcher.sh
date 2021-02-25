@@ -714,14 +714,13 @@ CROSS_DATA_HYB2_YTB)
     meta_file="hybrid2_crossdataset_ytb"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
-    args=" -sources freihand -sources youtube --resize   -epochs 100 -batch_size 512 \
-     -accumulate_grad_batches 4 -save_top_k 1  -save_period 1 -tag hyb2_cross -tag youtube"
-    declare -a augment=("--rotate --color_jitter --crop  "
-        "--color_jitter --crop  "
+    args=" -sources freihand -sources youtube --resize   -epochs 100 -batch_size 128 \
+     -accumulate_grad_batches 16 -save_top_k 1  -save_period 1 -tag hyb2_cross -tag iccv"
+    declare -a augment=("--rotate --color_jitter --crop  --random_crop"
     )
     for i in "${augment[@]}"; do
-        launch_hybrid2 " $i $args -meta_file $meta_file$seed1 -seed $seed1"
-        launch_hybrid2 "$i $args -meta_file $meta_file$seed2 -seed $seed2"
+        launch_hybrid2 " $i $args -meta_file $meta_file$seed1 -seed $seed1 -resnet_size 50"
+        launch_hybrid2 " $i $args -meta_file $meta_file$seed1 -seed $seed1 -resnet_size 152"
     done
     ;;
 CROSS_DATA_HYB2_YTB_DOWN)
