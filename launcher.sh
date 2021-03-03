@@ -229,6 +229,7 @@ launch_supervised() {
 
 seed1=5
 seed2=15
+seed3=25
 # Main process
 case $EXPERIMENT in
 A1)
@@ -354,6 +355,7 @@ SIM_ABL)
     echo "Launching Simclr ablative studies"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed3" "$SAVED_META_INFO_PATH/${meta_file}$seed3.bkp.$DATE"
     declare -a augmentations=("color_drop"
         "color_jitter"
         "crop"
@@ -363,8 +365,11 @@ SIM_ABL)
         "rotate"
         "gaussian_noise"
         "sobel_filter")
-    args="--resize  -batch_size 512 -epochs 100 -accumulate_grad_batches 4 \
-         -sources freihand  -tag sim_abl -tag iccv  -save_top_k 1  -save_period 1 -resnet_size 18 -num_worker $CORES"
+    # args="--resize  -batch_size 512 -epochs 100 -accumulate_grad_batches 4 -train_ratio 0.9\
+    #      -sources freihand  -tag sim_abl -tag iccv  -save_top_k 1  -save_period 1 -resnet_size 18 -num_worker $CORES"
+    # # For larger Resnets
+    args="--resize  -batch_size 128 -epochs 100 -accumulate_grad_batches 16 -train_ratio 0.9\
+         -sources freihand  -tag sim_abl -tag iccv  -save_top_k 1  -save_period 1 -resnet_size 50  -num_worker $CORES"
     for j in "${augmentations[@]}"; do
         echo "$j $seed1"
         launch_simclr " --$j  $args  -meta_file ${meta_file}$seed1 -seed  $seed1"
@@ -373,6 +378,10 @@ SIM_ABL)
         echo "$j $seed2"
         launch_simclr " --$j  $args  -meta_file ${meta_file}$seed2 -seed $seed2"
     done
+#    for j in "${augmentations[@]}"; do
+#         echo "$j $seed3"
+#         launch_simclr " --$j  $args  -meta_file ${meta_file}$seed3 -seed $seed2"
+#     done
     ;;
 SIM_ABL_HIGH_LR)
     # This experiment is to check the effectof high learnig rate (same as that of simclr paper 0.075*(sqrt(batch_size)))
@@ -418,20 +427,29 @@ PAIR_ABL)
         echo "$j $seed2"
         launch_pairwise " --$j  $args  -meta_file ${meta_file}$seed2 -seed $seed2"
     done
+   
     ;;
 SIM_ABL_DOWN)
     echo "Launching downstream simclr ablative studies"
     meta_file="simclr_ablative_down"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
-    args="--rotate --crop --resize --random_crop -batch_size 128 -epochs 50 -optimizer adam \
-         -sources freihand -tag sim_abl -tag iccv -resnet_size 18 -num_worker $CORES"
-    while IFS=',' read -r experiment_name experiment_key; do
-        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
-    done <$SAVED_META_INFO_PATH/simclr_ablative$seed1
-    while IFS=',' read -r experiment_name experiment_key; do
-        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2 -meta_file $meta_file$seed2"
-    done <$SAVED_META_INFO_PATH/simclr_ablative$seed2
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed3" "$SAVED_META_INFO_PATH/${meta_file}$seed3.bkp.$DATE"
+    args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam -train_ratio 0.9 \
+         -sources freihand -tag sim_abl -tag iccv -resnet_size 50 -num_worker $CORES  -save_top_k 1  -save_period 1"
+    # while IFS=',' read -r experiment_name experiment_key; do
+    #     launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
+    # done <$SAVED_META_INFO_PATH/simclr_ablative$seed1
+    # while IFS=',' read -r experiment_name experiment_key; do
+    #     launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2 -meta_file $meta_file$seed2"
+    # done <$SAVED_META_INFO_PATH/simclr_ablative$seed2
+    launch_semisupervised "$args -seed $seed1 -experiment_key imagenet50 -experiment_name imagenet50"
+    launch_semisupervised "$args -seed $seed2 -experiment_key imagenet50 -experiment_name imagenet50"
+    launch_semisupervised "$args -seed $seed1 -experiment_key ResNet50 -experiment_name resnet50"
+    launch_semisupervised "$args -seed $seed2 -experiment_key ResNet50 -experiment_name resnet50"
+    # while IFS=',' read -r experiment_name experiment_key; do
+    #     launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed3 -meta_file $meta_file$seed2"
+    # done <$SAVED_META_INFO_PATH/simclr_ablative$seed3
     ;;
 PAIR_ABL_DOWN)
     echo "Launching Pairwise ablative studies"
@@ -475,8 +493,8 @@ HYB2_ABL)
     meta_file="hybrid2_ablative"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
-    args="  --resize -batch_size 512 -epochs 100 -accumulate_grad_batches 4  \
-         -sources freihand  -tag hyb2_abl -tag iccv  -save_top_k 1  -save_period 1 -resnet_size 18 -num_worker $CORES"
+    args="  --resize -batch_size 128 -epochs 100 -accumulate_grad_batches 16 -train_ratio 0.9 \
+         -sources freihand  -tag hyb2_abl -tag iccv  -save_top_k 1  -save_period 1 -resnet_size 50 -num_worker $CORES"
     declare -a seeds=($seed1
         $seed2
     )
@@ -493,7 +511,8 @@ HYB2_ABL)
         "--crop --random_crop "
         "--rotate"
         "--crop"
-        "--rotate --color_jitter --crop --random_crop --sobel_filter")
+        "--rotate --color_jitter --crop --random_crop --sobel_filter"
+        "--rotate  --crop --random_crop --sobel_filter")
     for seed in "${seeds[@]}"; do
         for i in "${augment[@]}"; do
             launch_hybrid2 " $args -meta_file $meta_file$seed  $i  -seed $seed"
@@ -505,8 +524,8 @@ HYB2_ABL_DOWN)
     meta_file='hybrid2_ablative_down'
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
-    args="--rotate --crop --resize --random_crop  -batch_size 128 -epochs 50 -optimizer adam \
-         -sources freihand -tag hyb2_abl -tag iccv -resnet_size 18 -num_worker $CORES"
+    args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam -train_ratio 0.9\
+         -sources freihand -tag hyb2_abl -tag iccv -resnet_size 50 -num_worker $CORES  -save_top_k 1  -save_period 1"
     while IFS=',' read -r experiment_name experiment_key; do
         launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
     done <$SAVED_META_INFO_PATH/hybrid2_ablative$seed1
@@ -648,22 +667,16 @@ SIMCLR_ABL_COMP)
     echo "Launching Simclr ablative studies for comparison"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
-    # declare -a augmentations=("--rotate --color_jitter --crop  "
-    #     "--rotate --color_jitter"
-    #     "--rotate --crop  "
-    #     "--rotate"
-    #     "--color_jitter --crop  "
-    #     "--crop  "
-    #     "--color_jitter"
-    # )
-    declare -a augment=("--rotate --color_jitter --crop --random_crop "
-        "--rotate --crop --random_crop "
-        "--crop --random_crop "
-        "--rotate"
-        "--crop"
-        "--rotate --color_jitter --crop --random_crop --sobel_filter")
-    args="--resize  -batch_size 512 -epochs 100 -accumulate_grad_batches 4 \
-         -sources freihand  -tag sim_abl_comp -save_top_k 1  -save_period 1 -resnet_size 18"
+    # declare -a augmentations=("--rotate --color_jitter --crop --random_crop "
+    #     "--color_jitter --random_crop --gaussian_blur"
+    #     "--color_jitter --random_crop")
+    declare -a augmentations=("--crop --random_crop"
+        "--crop --sobel_filter --random_crop"
+        "--crop --sobel_filter --random_crop --color_jitter"
+        "--crop --sobel_filter --random_crop --color_jitter --gaussian_noise"
+        "--crop  --random_crop --color_jitter --gaussian_noise")
+    args="--resize  -batch_size 128 -epochs 100 -accumulate_grad_batches 16 -train_ratio 0.9 \
+         -sources freihand  -tag sim_abl_comp -tag sim_abl -tag iccv  -save_top_k 1  -save_period 1 -resnet_size 50 -num_workers $CORES "
     for j in "${augmentations[@]}"; do
         echo "$j $seed1"
         launch_simclr " $j  $args  -meta_file ${meta_file}$seed1 -seed  $seed1"
@@ -679,8 +692,8 @@ SIMCLR_ABL_COMP_DOWN)
     meta_file="simclr_ablative_comp_down"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
-    args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
-         -sources freihand -tag sim_abl_comp "
+    args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam -train_ratio 0.9\
+         -sources freihand -tag sim_abl_comp -tag iccv -tag sim_abl -resnet_size 50 "
     while IFS=',' read -r experiment_name experiment_key; do
         launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
     done <$SAVED_META_INFO_PATH/simclr_ablative_comp$seed1
@@ -709,34 +722,40 @@ CROSS_DATA_HYB1_MPII)
     launch_hybrid1 "$args -meta_file $meta_file$seed2 -seed $seed2"
     ;;
 CROSS_DATA_HYB2_YTB)
-    # Launches hybrid 2 experiment with top two augmentation composition
+    # Launches hybrid 2 experiment with top augmentation composition.
+    # Also trains simclr model with best set of augmentation.
     echo "Launching hybrid 2 cross dataset with youtube"
     meta_file="hybrid2_crossdataset_ytb"
-    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
-    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
-    args=" -sources freihand -sources youtube --resize   -epochs 100 -batch_size 128 \
-     -accumulate_grad_batches 16 -save_top_k 1  -save_period 1 -tag hyb2_cross -tag iccv"
+    # mv "$SAVED_META_INFO_PATH/${meta_file}_res50_$seed1" "$SAVED_META_INFO_PATH/${meta_file}_res50_$seed1.bkp.$DATE"
+    # mv "$SAVED_META_INFO_PATH/${meta_file}_res152_$seed2" "$SAVED_META_INFO_PATH/${meta_file}_res152_$seed2.bkp.$DATE"
+    args=" -sources freihand -sources youtube  --resize   -epochs 100 -batch_size 128 \
+     -accumulate_grad_batches 16 -save_top_k 1  -save_period 1 -tag hyb2_cross  -tag no_ytb -tag iccv -num_workers $CORES"
     declare -a augment=("--rotate --color_jitter --crop  --random_crop"
     )
-    for i in "${augment[@]}"; do
-        launch_hybrid2 " $i $args -meta_file $meta_file$seed1 -seed $seed1 -resnet_size 50"
-        launch_hybrid2 " $i $args -meta_file $meta_file$seed1 -seed $seed1 -resnet_size 152"
-    done
+    # for i in "${augment[@]}"; do
+    #     launch_hybrid2 " $i $args -meta_file ${meta_file}_res50_$seed1 -seed $seed1 -resnet_size 50"
+    #     launch_hybrid2 " $i $args -meta_file ${meta_file}_res152_$seed1 -seed $seed1 -resnet_size 152"
+    # done
+    launch_simclr "--color_jitter --random_crop  $args -meta_file ${meta_file}_res50_$seed1 -seed $seed1 -resnet_size 50"
+    launch_simclr "--color_jitter --random_crop $args -meta_file ${meta_file}_res152_$seed1 -seed $seed1 -resnet_size 152"
     ;;
 CROSS_DATA_HYB2_YTB_DOWN)
     # Launches hybrid 2 experiment with top two augmentation composition
+    # EDIT: Send the downstream model to Adrian for training.
     echo "Launching hybrid 2 cross dataset with youtube downstream"
     meta_file="hybrid2_crossdataset_ytb_down"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
-    args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
-         -sources freihand  -tag hyb2_cross -tag youtube --encoder_trainable"
+    args="--rotate --crop --resize --random_crop  -batch_size 128  -optimizer adam -num_workers $CORES\
+         -sources freihand  -tag hyb2_cross -tag iccv  --encoder_trainable --denoiser -train_ratio 0.99999999 -save_top_k 1 -save_period 1"
     while IFS=',' read -r experiment_name experiment_key; do
-        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
-    done <$SAVED_META_INFO_PATH/hybrid2_crossdataset_ytb$seed1
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1 -epochs 100 -resnet_size 50"
+    done <$SAVED_META_INFO_PATH/hybrid2_crossdataset_ytb_res50_$seed1
+    launch_supervised "$args -epochs 100 -resnet_size 50"
     while IFS=',' read -r experiment_name experiment_key; do
-        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2 -meta_file $meta_file$seed2"
-    done <$SAVED_META_INFO_PATH/hybrid2_crossdataset_ytb$seed2
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1 -epochs 100 -resnet_size 152"
+    done <$SAVED_META_INFO_PATH/hybrid2_crossdataset_ytb_res152_$seed1
+    launch_supervised "$args -epochs 100 -resnet_size 152"
     ;;
 SEMISUPERVISED)
     args=" --rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
@@ -1346,22 +1365,21 @@ E38)
 LABEL_EFF)
     meta_file='label_eff'
     # Label effincey experiment , use pretrained  models from hyb2_abl
-    args=" -sources freihand --resize  --rotate --crop  -epochs 50  -batch_size 128 \
-     -save_top_k 1  -save_period 1   -tag iccv -tag label_efficiency   -num_workers $CORES --encoder_trainable -resnet_size 18"
-    declare -a train_ratio_list=("0.01"
-        "0.10"
-        "0.25"
-        "0.50"
-        "0.75"
-        "0.9"
-        "0.9999999999"
+    args=" -sources freihand --resize  --rotate --crop --random_crop  -epochs 50  -batch_size 128 -tag no_ytb\
+     -save_top_k 1  -save_period 1   -tag iccv -tag label_efficiency   -num_workers $CORES --encoder_trainable -resnet_size 152 --denoiser"
+    declare -a train_ratio_list=("0.10"
+        "0.20"
+        "0.40"
+        "0.80"
+        "0.95"
     )
-    pretrained_exp_name='hybrid2_512C_CJ_RC_Re_Ro'
-    seed1_key='2ff92deb49744e65b85ff896261e92e1'
-    seed2_key='822e4a2b26244ceba5f7374a5ad186af'
+    pretrained_exp_name='hybrid2_128C_CJ_RC_Re_Ro'
+    seed1_key='09a779ab82f84d10a1f6ebb6b25ea141'
+    # seed1_key='2ff92deb49744e65b85ff896261e92e1'
+    # seed2_key='822e4a2b26244ceba5f7374a5ad186af'
     for train_ratio in "${train_ratio_list[@]}"; do
         launch_semisupervised "$args -experiment_key  $seed1_key -experiment_name $pretrained_exp_name  -seed $seed1 -meta_file $meta_file$seed1 -train_ratio $train_ratio"
-        launch_supervised "$args  -seed $seed1 -meta_file ${meta_file}_supervised_${seed1} -train_ratio $train_ratio"
+        # launch_supervised "$args  -seed $seed1 -meta_file ${meta_file}_supervised_${seed1} -train_ratio $train_ratio"
     done
 ;;
 *)
