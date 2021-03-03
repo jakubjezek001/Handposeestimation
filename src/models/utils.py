@@ -1,6 +1,6 @@
 import os
-from typing import Dict, Tuple
-
+from typing import Dict, Tuple, Union
+import kornia
 import numpy as np
 import torch
 import torchvision
@@ -418,3 +418,76 @@ def get_resnet(resnet_size: str, **kwargs):
     else:
         raise NotImplementedError
     return model
+
+
+def get_heatmap_transformation_matrix(
+    jitter_x: Tensor,
+    jitter_y: Tensor,
+    scale: Tensor,
+    angle: Tensor,
+    heatmap_dim: Tensor,
+) -> Tensor:
+    """
+    Generates transfromation matric to revert the transformation on heatmap.
+
+    Args:
+        jitter_x (Tensor): x Pixels by which heatmap should be jittered (batch)
+        jitter_y (Tensor): y Pixels by which heatmap should be jittered (batch)
+        scale (Tensor): Scale factor from crop margin (batch).
+        angle (Tensor): Rotation angle (batch)
+        heatmap_dim (Tensor): Height and width of heatmap (1x2)
+
+    Returns:
+        [Tensor]: Transformation matrix (batch x 2 x3).
+    """
+    # Making a translation matrix
+    translations = torch.cat(
+        [jitter_x.view(-1, 1), jitter_y.view(-1, 1)], axis=1
+    ).float()
+    origin = torch.zeros_like(translations)
+    zero_angle = torch.zeros_like(jitter_x[:, 0])
+    unit_scale = torch.ones_like(translations)
+    # NOTE: The function below returns a batch x 3 x 3 matrix.
+    translation_matrix = kornia.get_affine_matrix2d(
+        translations=translations, center=origin, angle=zero_angle, scale=unit_scale
+    )
+    # Making a rotation matrix.
+    center_of_rotation = torch.ones_like(translations) * ((heatmap_dim / 2).view(1, 2))
+    # NOTE: The function below returns a batch x 2 x 3 matrix.
+    rotation_matrix = kornia.get_rotation_matrix2d(
+        center=center_of_rotation.float(),
+        angle=angle.float(),
+        scale=scale.repeat(1, 2).float(),
+    )
+    # Applying transformations in the order.
+    return torch.bmm(rotation_matrix, translation_matrix)
+
+
+def affine_mat_to_theta(
+    affine_mat: Tensor, w: Union[int, float], h: Union[int, float]
+) -> Tensor:
+    """
+    Converts affine matrix in opencv format to theta expected by torch.functional.affine_grid().
+    Implementation inspired from
+    https://discuss.pytorch.org/t/how-to-convert-an-affine-transform-matrix-into-theta-to-use-torch-nn-functional-affine-grid/24315/2
+
+    Args:
+        affine_mat (Tensor): Affine matrix of shape (batch x 2  x 3)
+        w (Union[int, float]): width of image/heatmap
+        h (Union[int, float]): width of image/heatmap
+
+    Returns:
+       theta (Tensor): Affine matrix expected by torch.nn.functional.affine_grid()
+    """
+    theta = torch.zeros_like(affine_mat)
+    theta[:, 0, 0] = affine_mat[:, 0, 0]
+    theta[:, 0, 1] = affine_mat[:, 0, 1] * h / w
+    theta[:, 0, 2] = (
+        affine_mat[:, 0, 2] * 2 / w + affine_mat[:, 0, 0] + affine_mat[:, 0, 1] - 1
+    )
+    theta[:, 1, 0] = affine_mat[:, 1, 0] * w / h
+    theta[:, 1, 1] = affine_mat[:, 1, 1]
+    theta[:, 1, 2] = (
+        affine_mat[:, 1, 2] * 2 / h + affine_mat[:, 1, 0] + affine_mat[:, 1, 1] - 1
+    )
+    return theta

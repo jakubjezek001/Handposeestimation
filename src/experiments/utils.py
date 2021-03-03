@@ -10,9 +10,11 @@ from src.constants import SAVED_META_INFO_PATH, SAVED_MODELS_BASE_PATH
 from src.data_loader.data_set import Data_Set
 from src.experiments.evaluation_utils import evaluate
 from src.models.callbacks.upload_comet_logs import UploadCometLogs
+from src.models.semisupervised.denoised_heatmap_head_model import DenoisedHeatmapHead
 from src.models.semisupervised.denoised_supervised_head_model import (
     DenoisedSupervisedHead,
 )
+from src.models.semisupervised.heatmap_head_model import HeatmapHead
 from src.models.semisupervised.supervised_head_model import SupervisedHead
 from src.models.supervised.baseline_model import BaselineModel
 from src.models.supervised.denoised_baseline import DenoisedBaselineModel
@@ -159,6 +161,12 @@ def get_general_args(
     parser.add_argument(
         "-lr_max_epochs", type=int, help="Top snapshots to save", default=None
     )
+    parser.add_argument(
+        "--use_palm",
+        action="store_true",
+        help="To regress plam instead of wrist.",
+        default=False,
+    )
     args = parser.parse_args()
     return args
 
@@ -289,7 +297,7 @@ def update_train_params(args: argparse.Namespace, train_param: edict) -> edict:
         update_param(
             args,
             train_param,
-            ["batch_size", "epochs", "train_ratio", "num_workers", "seed"],
+            ["batch_size", "epochs", "train_ratio", "num_workers", "seed", "use_palm"],
         )
     )
     train_param.augmentation_flags = update_param(
@@ -492,6 +500,7 @@ def downstream_evaluation(
             val_dataset = data.datasets[i]
             val_dataset.config.augmentation_params.max_angle = max_rotate_angle
             val_dataset.config.augmentation_params.min_angle = min_rotate_angle
+            val_dataset.config.augmentation_flags.random_crop = False
             val_dataset.config.augmentation_params.crop_box_jitter = [
                 0.0,
                 max_crop_jitter,
@@ -519,6 +528,7 @@ def downstream_evaluation(
         data.config.augmentation_params.max_angle = max_rotate_angle
         data.config.augmentation_params.min_angle = min_rotate_angle
         data.config.augmentation_params.crop_box_jitter = [0.0, max_crop_jitter]
+        data.config.augmentation_flags.random_crop = False
         data.augmenter = data.get_sample_augmenter(
             data.config.augmentation_params, data.config.augmentation_flags
         )
@@ -589,7 +599,11 @@ def get_model(experiment_type: str, heatmap_flag: bool, denoiser_flag: bool):
         else:
             return PairwiseModel
     elif experiment_type == "semisupervised":
-        if denoiser_flag:
+        if heatmap_flag and not denoiser_flag:
+            return HeatmapHead
+        elif heatmap_flag and denoiser_flag:
+            return DenoisedHeatmapHead
+        elif denoiser_flag:
             return DenoisedSupervisedHead
         else:
             return SupervisedHead

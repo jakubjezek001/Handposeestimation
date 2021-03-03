@@ -1,6 +1,6 @@
 {
     "batch_size": 128,
-    "lr": 5e-4,
+    "lr": 4.42e-5,
     "opt_weight_decay":2e-4,
     "warmup_epochs": 0,
     "saved_model_name": "",
