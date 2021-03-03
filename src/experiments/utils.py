@@ -500,6 +500,7 @@ def downstream_evaluation(
             val_dataset = data.datasets[i]
             val_dataset.config.augmentation_params.max_angle = max_rotate_angle
             val_dataset.config.augmentation_params.min_angle = min_rotate_angle
+            val_dataset.config.augmentation_flags.random_crop = False
             val_dataset.config.augmentation_params.crop_box_jitter = [
                 0.0,
                 max_crop_jitter,
@@ -527,6 +528,7 @@ def downstream_evaluation(
         data.config.augmentation_params.max_angle = max_rotate_angle
         data.config.augmentation_params.min_angle = min_rotate_angle
         data.config.augmentation_params.crop_box_jitter = [0.0, max_crop_jitter]
+        data.config.augmentation_flags.random_crop = False
         data.augmenter = data.get_sample_augmenter(
             data.config.augmentation_params, data.config.augmentation_flags
         )
