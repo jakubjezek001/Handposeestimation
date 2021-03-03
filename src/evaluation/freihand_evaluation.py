@@ -113,6 +113,7 @@ def main():
     verts = np.zeros((len(xyz_pred), 778, 3)).tolist()
     save_json([xyz_pred, verts], f"{args.key}_pred.json")
     subprocess.call(["zip", "-j", f"{args.key}_pred.zip", f"{args.key}_pred.json"])
+    subprocess.call(["rm", f"{args.key}_pred.json"])
 
 
 if __name__ == "__main__":
