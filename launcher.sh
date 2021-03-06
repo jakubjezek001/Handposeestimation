@@ -443,10 +443,10 @@ SIM_ABL_DOWN)
     # while IFS=',' read -r experiment_name experiment_key; do
     #     launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2 -meta_file $meta_file$seed2"
     # done <$SAVED_META_INFO_PATH/simclr_ablative$seed2
-    launch_semisupervised "$args -seed $seed1 -experiment_key imagenet50 -experiment_name imagenet50"
-    launch_semisupervised "$args -seed $seed2 -experiment_key imagenet50 -experiment_name imagenet50"
-    launch_semisupervised "$args -seed $seed1 -experiment_key ResNet50 -experiment_name resnet50"
-    launch_semisupervised "$args -seed $seed2 -experiment_key ResNet50 -experiment_name resnet50"
+    launch_semisupervised "$args -seed $seed1 -experiment_key imagenet50 -experiment_name imagenet50 -tag rgb"
+    launch_semisupervised "$args -seed $seed2 -experiment_key imagenet50 -experiment_name imagenet50 -tag rgb"
+    launch_semisupervised "$args -seed $seed1 -experiment_key ResNet50 -experiment_name resnet50 -tag rgb"
+    launch_semisupervised "$args -seed $seed2 -experiment_key ResNet50 -experiment_name resnet50 -tag rgb"
     # while IFS=',' read -r experiment_name experiment_key; do
     #     launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed3 -meta_file $meta_file$seed2"
     # done <$SAVED_META_INFO_PATH/simclr_ablative$seed3
@@ -747,15 +747,17 @@ CROSS_DATA_HYB2_YTB_DOWN)
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
     args="--rotate --crop --resize --random_crop  -batch_size 128  -optimizer adam -num_workers $CORES\
-         -sources freihand  -tag hyb2_cross -tag iccv  --encoder_trainable --denoiser -train_ratio 0.99999999 -save_top_k 1 -save_period 1"
+         -sources freihand  -tag hyb2_cross -tag iccv -tag fp32 --encoder_trainable --denoiser -train_ratio 0.99999999 -save_top_k 1 -save_period 1"
     while IFS=',' read -r experiment_name experiment_key; do
         launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1 -epochs 100 -resnet_size 50"
     done <$SAVED_META_INFO_PATH/hybrid2_crossdataset_ytb_res50_$seed1
     launch_supervised "$args -epochs 100 -resnet_size 50"
+    launch_supervised "$args -epochs 170 -resnet_size 50"
     while IFS=',' read -r experiment_name experiment_key; do
         launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1 -epochs 100 -resnet_size 152"
     done <$SAVED_META_INFO_PATH/hybrid2_crossdataset_ytb_res152_$seed1
     launch_supervised "$args -epochs 100 -resnet_size 152"
+    launch_supervised "$args -epochs 170 -resnet_size 152"
     ;;
 SEMISUPERVISED)
     args=" --rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
