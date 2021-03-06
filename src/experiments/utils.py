@@ -29,6 +29,7 @@ from src.models.unsupervised.pairwise_model import PairwiseModel
 from src.models.unsupervised.simclr_heatmap_model import SimCLRHeatmap
 from src.models.unsupervised.simclr_model import SimCLR
 from src.models.utils import get_latest_checkpoint
+from src.models.callbacks.model_checkpoint import UpdatedModelCheckpoint
 from src.utils import get_console_logger
 from torch.utils.data import WeightedRandomSampler
 from torch.utils.data.dataset import ConcatDataset
@@ -621,7 +622,7 @@ def get_callbacks(
     )
     lr_monitor = LearningRateMonitor(logging_interval=logging_interval)
     # saving the best model as per the validation loss.
-    checkpoint_callback = ModelCheckpoint(
+    checkpoint_callback = UpdatedModelCheckpoint(
         save_top_k=save_top_k, period=period, monitor=monitor
     )
     return {

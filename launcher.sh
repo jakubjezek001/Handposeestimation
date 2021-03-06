@@ -729,13 +729,13 @@ CROSS_DATA_HYB2_YTB)
     # mv "$SAVED_META_INFO_PATH/${meta_file}_res50_$seed1" "$SAVED_META_INFO_PATH/${meta_file}_res50_$seed1.bkp.$DATE"
     # mv "$SAVED_META_INFO_PATH/${meta_file}_res152_$seed2" "$SAVED_META_INFO_PATH/${meta_file}_res152_$seed2.bkp.$DATE"
     args=" -sources freihand -sources youtube  --resize   -epochs 100 -batch_size 128 \
-     -accumulate_grad_batches 16 -save_top_k 1  -save_period 1 -tag hyb2_cross  -tag no_ytb -tag iccv -num_workers $CORES"
+     -accumulate_grad_batches 16 -save_top_k 1  -save_period 1 -tag hyb2_cross -tag iccv -tag wrapper_model -num_workers $CORES"
     declare -a augment=("--rotate --color_jitter --crop  --random_crop"
     )
-    # for i in "${augment[@]}"; do
-    #     launch_hybrid2 " $i $args -meta_file ${meta_file}_res50_$seed1 -seed $seed1 -resnet_size 50"
-    #     launch_hybrid2 " $i $args -meta_file ${meta_file}_res152_$seed1 -seed $seed1 -resnet_size 152"
-    # done
+    for i in "${augment[@]}"; do
+        launch_hybrid2 " $i $args -meta_file ${meta_file}_res50_$seed1 -seed $seed1 -resnet_size 50"
+        launch_hybrid2 " $i $args -meta_file ${meta_file}_res152_$seed1 -seed $seed1 -resnet_size 152"
+    done
     launch_simclr "--color_jitter --random_crop  $args -meta_file ${meta_file}_res50_$seed1 -seed $seed1 -resnet_size 50"
     launch_simclr "--color_jitter --random_crop $args -meta_file ${meta_file}_res152_$seed1 -seed $seed1 -resnet_size 152"
     ;;

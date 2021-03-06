@@ -14,6 +14,8 @@ from src.visualization.visualize import (
 )
 from torch import Tensor, nn
 from src.data_loader.utils import convert_2_5D_to_3D
+from easydict import EasyDict as edict
+from src.models.external.wrapper_model import WrapperModel
 
 
 def cal_l1_loss(
@@ -418,6 +420,22 @@ def get_resnet(resnet_size: str, **kwargs):
     else:
         raise NotImplementedError
     return model
+
+
+def get_wrapper_model(config: edict, pretrained: bool):
+    cfg = edict(
+        {
+            "model": {
+                "backend_model": "resnet" + config.resnet_size,
+                "norm_layer": "bn",
+                "use_var": False,
+                "pretrained": pretrained,
+            },
+            "dataset": {"np": 21},
+            "loss": {"hmap": {"enabled": False}},
+        }
+    )
+    return WrapperModel(cfg)
 
 
 def get_heatmap_transformation_matrix(

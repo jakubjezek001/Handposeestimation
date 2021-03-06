@@ -6,7 +6,7 @@ from easydict import EasyDict as edict
 from pl_bolts.optimizers.lars_scheduling import LARSWrapper
 from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
 from pytorch_lightning.core.lightning import LightningModule
-from src.models.utils import get_resnet
+from src.models.utils import get_resnet, get_wrapper_model
 from torch.optim.lr_scheduler import CosineAnnealingLR
 
 
@@ -19,7 +19,8 @@ class BaseModel(LightningModule):
     def __init__(self, config: edict):
         super().__init__()
         if "resnet_size" in config.keys():
-            self.encoder = get_resnet(config.resnet_size, pretrained=True)
+            # self.encoder = get_resnet(config.resnet_size, pretrained=True)
+            self.encoder = get_wrapper_model(config, pretrained=True)
         self.config = config
         self.train_metrics_epoch = {}
         self.train_metrics = {}
