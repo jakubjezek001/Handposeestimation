@@ -118,7 +118,7 @@ class MPII_DB(Dataset):
             idx = idx.tolist()
         idx_ = self.indices[idx]
         img_name = os.path.join(self.image_dir_path, self.img_names[idx_])
-        img = cv2.imread(img_name)
+        img = cv2.cvtColor(cv2.imread(img_name), cv2.COLOR_BGR2RGB)
         # mpii follow the same strategy as the freihand for joint naming.
         label = self.labels[self.img_names[idx_].replace(".jpg", "")]
         joints3D = self.joints.freihand_to_ait(torch.tensor(label["hand_pts"]).float())
@@ -127,7 +127,6 @@ class MPII_DB(Dataset):
             img = cv2.flip(img, 1)
             # width - x coord
             joints3D[:, 0] = img.shape[1] - joints3D[:, 0]
-
         camera_param = torch.eye(3).float()
         joints_valid = torch.ones_like(joints3D[..., -1:])
         sample = {

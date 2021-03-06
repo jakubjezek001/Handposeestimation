@@ -135,7 +135,9 @@ class YTB_DB(Dataset):
         img_name = os.path.join(
             self.root_dir, self.img_dict[self.joints_list[idx_]["image_id"]]["name"]
         )
-        img = cv2.imread(img_name.replace(".png", ".jpg"))
+        img = cv2.cvtColor(
+            cv2.imread(img_name.replace(".png", ".jpg")), cv2.COLOR_BGR2RGB
+        )
         joints3D = self.joints.mano_to_ait(
             torch.tensor(self.joints_list[idx_]["joints"]).float()
         )

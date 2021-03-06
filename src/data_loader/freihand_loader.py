@@ -167,7 +167,7 @@ class F_DB(Dataset):
             idx = idx.tolist()
         idx_ = self.indices[idx]
         img_name = os.path.join(self.img_path, self.img_names[idx_])
-        img = cv2.imread(img_name)
+        img = cv2.cvtColor(cv2.imread(img_name),cv2.COLOR_BGR2RGB)
         if self.labels is not None:
             camera_param = torch.tensor(self.camera_param[idx_ % 32560]).float()
             joints3D = self.joints.freihand_to_ait(
