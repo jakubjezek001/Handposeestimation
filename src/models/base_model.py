@@ -19,8 +19,8 @@ class BaseModel(LightningModule):
     def __init__(self, config: edict):
         super().__init__()
         if "resnet_size" in config.keys():
-            # self.encoder = get_resnet(config.resnet_size, pretrained=True)
-            self.encoder = get_wrapper_model(config, pretrained=True)
+            self.encoder = get_resnet(config.resnet_size, pretrained=True)
+            # self.encoder = get_wrapper_model(config, pretrained=True)
         self.config = config
         self.train_metrics_epoch = {}
         self.train_metrics = {}
