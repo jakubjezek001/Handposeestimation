@@ -166,15 +166,11 @@ def plot_hybrid2_images(img1, img2, params, comet_logger):
 
     fig = plt.figure(figsize=(10, 10))
     ax = fig.add_subplot(121)
-    plt.imshow(
-        cv2.cvtColor(np.array(transforms.ToPILImage()(img1.cpu())), cv2.COLOR_BGR2RGB)
-    )
+    plt.imshow(np.array(transforms.ToPILImage()(img1.cpu())))
     title1 = "\n".join([f"{k}: {v}" for k, v in params.items() if "_1" in k])
     ax.set_title(f"Image 1 \n {title1}")
     ax = fig.add_subplot(122)
-    plt.imshow(
-        cv2.cvtColor(np.array(transforms.ToPILImage()(img2.cpu())), cv2.COLOR_BGR2RGB)
-    )
+    plt.imshow(np.array(transforms.ToPILImage()(img2.cpu())))
     title2 = "\n".join([f"{k}: {v}" for k, v in params.items() if "_2" in k])
     ax.set_title(f"Image 2 \n {title2}")
     fig.suptitle("Hybrid model sample")
