@@ -3,8 +3,8 @@ import os
 MASTER_THESIS_DIR = os.environ.get("MASTER_THESIS_PATH")
 # Data paths
 DATA_PATH = os.environ.get("DATA_PATH")
-# FREIHAND_DATA = os.path.join(DATA_PATH, "freihand_dataset")
-FREIHAND_DATA = os.path.join("/cluster/scratch/adahiya/data/raw/FreiHAND_pub_v2")
+FREIHAND_DATA = os.path.join(DATA_PATH, "freihand_dataset")
+# FREIHAND_DATA = os.path.join("/cluster/scratch/adahiya/data/raw/FreiHAND_pub_v2")
 INTERHAND_DATA = os.path.join(DATA_PATH, "InterHand")
 YOUTUBE_DATA = os.path.join(DATA_PATH, "youtube_3d_hands", "data")
 MPII_DATA = os.path.join(DATA_PATH, "mpii_dataset", "hand_labels")
