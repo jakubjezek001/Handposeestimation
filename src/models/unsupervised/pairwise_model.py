@@ -27,6 +27,8 @@ class PairwiseModel(BaseModel):
             self.jitter_head = self.get_jitter_head()
         if "color_jitter" in self.config.augmentation:
             self.color_jitter_head = self.get_color_jitter_head()
+        if "random_crop" in self.config.augmentation:
+            self.scale_head = self.get_scale_head()
 
     def get_base_transformation_head(self, output_dim: int) -> nn.Sequential:
         return nn.Sequential(
@@ -61,6 +63,12 @@ class PairwiseModel(BaseModel):
         self.log_sigma_color_jitter = nn.Parameter(torch.zeros(1, 1))
         return self.get_base_transformation_head(output_dim=4)
 
+    def get_scale_head(self) -> nn.Sequential:
+        self.regress_scale = True
+        self.log_keys += ["loss_scale", "sigma_scale"]
+        self.log_sigma_scale = nn.Parameter(torch.zeros(1, 1))
+        return self.get_base_transformation_head(output_dim=1)
+
     def regress_rotation(
         self,
         rotation_gt: Tensor,
@@ -79,6 +87,26 @@ class PairwiseModel(BaseModel):
             }
         )
         pred_gt.update({"rotation": [rotation_gt, rotation_pred]})
+        return loss
+
+    def regress_scaling(
+        self,
+        scale_gt: Tensor,
+        encoding: Tensor,
+        loss: Tensor,
+        log: dict,
+        pred_gt: Tensor,
+    ) -> Tensor:
+        scale_pred = self.scale_head(encoding)
+        loss_scale = L1Loss()(scale_gt, scale_pred)
+        loss += loss_scale / torch.exp(self.log_sigma_scale) + self.log_sigma_scale
+        log.update(
+            {
+                "loss_scale": loss_scale.detach(),
+                "sigma_scale": torch.exp(self.log_sigma_scale).detach(),
+            }
+        )
+        pred_gt.update({"scale": [scale_gt, scale_pred]})
         return loss
 
     def regress_jittering(
@@ -151,6 +179,9 @@ class PairwiseModel(BaseModel):
             loss = self.regress_color_jittering(
                 color_jitter_gt, encoding, loss, log, pred_gt
             )
+        if self.regress_scale:
+            scale_gt = batch["scale"]
+            loss = self.regress_scaling(scale_gt, encoding, loss, log, pred_gt)
         return (loss, log, pred_gt)
 
     def get_encodings(self, batch_images: Tensor) -> Tensor:
