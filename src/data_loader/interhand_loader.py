@@ -20,6 +20,8 @@ class IH_DB(Dataset):
     Refer to joint_mapping.json in src/data_loader/utils.
     """
 
+    IS_LEFT = True
+
     def __init__(
         self,
         root_dir: str,
@@ -107,17 +109,19 @@ class IH_DB(Dataset):
 
     def get_joints(
         self, capture_id: Union[int, str], frame_idx: Union[int, str]
-    ) -> Tuple[np.array, np.array]:
+    ) -> Tuple[np.array, np.array, bool]:
         joint_item = self.joints_dict[str(capture_id)][str(frame_idx)]
         if joint_item["hand_type"] == "left":
             return (
                 np.array(joint_item["world_coord"][-21:]),
                 np.array(joint_item["joint_valid"][-21:]),
+                IH_DB.IS_LEFT,
             )
         elif joint_item["hand_type"] == "right":
             return (
                 np.array(joint_item["world_coord"][:21]),
                 np.array(joint_item["joint_valid"][:21]),
+                not IH_DB.IS_LEFT,
             )
         else:
             raise NotImplementedError
@@ -171,11 +175,18 @@ class IH_DB(Dataset):
                 image_item.file_name,
             )
         )
-        joints, joints_valid = self.get_joints(image_item.capture, image_item.frame_idx)
+        joints, joints_valid, is_left = self.get_joints(
+            image_item.capture, image_item.frame_idx
+        )
         joints, joints_valid = (
             self.joints.interhand_to_ait(joints),
             self.joints.interhand_to_ait(joints_valid),
         )
+        # if is_left:
+        #     print("This sample is left")
+        #     image = cv2.flip(image, 1)
+        # joints[:, 0] = image.shape[1] - joints[:, 0]
+
         intrinsic_camera_matrix, camera_rot, camera_t = self.get_camera_params(
             image_item.camera, image_item.capture
         )
