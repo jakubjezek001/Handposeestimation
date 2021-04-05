@@ -349,6 +349,7 @@ class Data_Set(Dataset):
             "joints3D_recreated": joints3D_recreated,
             "joints_valid": sample["joints_valid"],
             "joints_raw": joints_raw,
+            "T": torch.Tensor(transformation_matrix),
         }
 
     def prepare_hybrid1_sample(
