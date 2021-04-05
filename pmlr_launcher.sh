@@ -256,14 +256,10 @@ SIM_ABL)
         echo "$j $seed1"
         launch_simclr " --$j  $args  -meta_file ${meta_file}$seed1 -seed  $seed1"
     done
-    for j in "${augmentations[@]}"; do
-        echo "$j $seed2"
-        launch_simclr " --$j  $args  -meta_file ${meta_file}$seed2 -seed $seed2"
-    done
-#    for j in "${augmentations[@]}"; do
-#         echo "$j $seed3"
-#         launch_simclr " --$j  $args  -meta_file ${meta_file}$seed3 -seed $seed2"
-#     done
+    # for j in "${augmentations[@]}"; do
+    #     echo "$j $seed2"
+    #     launch_simclr " --$j  $args  -meta_file ${meta_file}$seed2 -seed $seed2"
+    # done
     ;;
 SIM_ABL_DOWN)
     echo "Launching downstream simclr ablative studies"
@@ -272,7 +268,7 @@ SIM_ABL_DOWN)
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed3" "$SAVED_META_INFO_PATH/${meta_file}$seed3.bkp.$DATE"
     args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam -train_ratio 0.9 \
-         -sources freihand -tag sim_abl -tag iccv -resnet_size 50 -num_worker $CORES  -save_top_k 1  -save_period 1"
+         -sources freihand -tag sim_abl -tag pmlr -resnet_size 18 -num_worker $CORES  -save_top_k 1  -save_period 1"
     # while IFS=',' read -r experiment_name experiment_key; do
     #     launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
     # done <$SAVED_META_INFO_PATH/simclr_ablative$seed1
@@ -297,15 +293,15 @@ PAIR_ABL_FH)
         "rotate"
         "random_crop")
     args="--resize  -batch_size 512 -epochs 100 -accumulate_grad_batches 4 -train_ratio 0.9\
-         -sources freihand  -tag pair_abl -tag pmlr  -save_top_k 1  -save_period 1 -resnet_size 18 -num_worker $CORES"
+         -sources freihand  -tag pair_abl -tag pmlr -tag pair_comp -save_top_k 1  -save_period 1 -resnet_size 18 -num_worker $CORES"
     for j in "${augmentations[@]}"; do
         echo "$j $seed1"
         launch_pairwise " --$j  $args  -meta_file ${meta_file}$seed1 -seed $seed1"
     done
-    for j in "${augmentations[@]}"; do
-        echo "$j $seed2"
-        launch_pairwise " --$j  $args  -meta_file ${meta_file}$seed2 -seed $seed2"
-    done
+    # for j in "${augmentations[@]}"; do
+    #     echo "$j $seed2"
+    #     launch_pairwise " --$j  $args  -meta_file ${meta_file}$seed2 -seed $seed2"
+    # done
     ;;
 PAIR_ABL_FH_DOWN)
     echo "Launching Pairwise ablative studies"
@@ -313,47 +309,13 @@ PAIR_ABL_FH_DOWN)
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
     args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
-         -sources freihand -tag pair_abl -tag pmlr"
+         -sources freihand -tag pair_abl -tag pmlr -tag pair_comp -resnet_size 18"
     while IFS=',' read -r experiment_name experiment_key; do
         launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
     done <$SAVED_META_INFO_PATH/pair_ablative_fh$seed1
-    while IFS=',' read -r experiment_name experiment_key; do
-        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2 -meta_file $meta_file$seed2"
-    done <$SAVED_META_INFO_PATH/pair_ablative_fh$seed2
-    ;;
-PAIR_ABL_IH)
-    meta_file="pair_ablative_ih"
-    echo "Launching Pair ablative studies"
-    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
-    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
-    declare -a augmentations=("color_jitter"
-        "crop"
-        "rotate"
-        "random_crop")
-    args="--resize  -batch_size 512 -epochs 100 -accumulate_grad_batches 4 -train_ratio 0.9\
-         -sources interhand  -tag pair_abl -tag pmlr  -save_top_k 1  -save_period 1 -resnet_size 18 -num_worker $CORES"
-    for j in "${augmentations[@]}"; do
-        echo "$j $seed1"
-        launch_pairwise " --$j  $args  -meta_file ${meta_file}$seed1 -seed $seed1"
-    done
-    for j in "${augmentations[@]}"; do
-        echo "$j $seed2"
-        launch_pairwise " --$j  $args  -meta_file ${meta_file}$seed2 -seed $seed2"
-    done
-    ;;
-PAIR_ABL_IH_DOWN)
-    echo "Launching Pairwise ablative studies"
-    meta_file="pair_ablative_ih_down"
-    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
-    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
-    args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
-         -sources freihand -tag pair_abl -tag pmlr"
-    while IFS=',' read -r experiment_name experiment_key; do
-        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
-    done <$SAVED_META_INFO_PATH/pair_ablative_ih$seed1
-    while IFS=',' read -r experiment_name experiment_key; do
-        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2 -meta_file $meta_file$seed2"
-    done <$SAVED_META_INFO_PATH/pair_ablative_ih$seed2
+    # while IFS=',' read -r experiment_name experiment_key; do
+    #     launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2 -meta_file $meta_file$seed2"
+    # done <$SAVED_META_INFO_PATH/pair_ablative_fh$seed2
     ;;
 PAIR_COMPOSITION_SEARCH)
     meta_file="pair_comp"
@@ -372,8 +334,8 @@ PAIR_COMPOSITION_SEARCH)
     "--rotate --crop"
     "--crop --random_crop"
     )
-    args="--resize  -batch_size 512 -epochs 100 -accumulate_grad_batches 4 -train_ratio 0.9\
-         -sources freihand  -tag sim_abl -tag pmlr  -save_top_k 1  -save_period 1 -resnet_size 18 -num_worker $CORES"
+    args="--resize  -batch_size 512 -epochs 100 -accumulate_grad_batches 4 -train_ratio 0.9 -resnet_size 18\
+         -sources freihand  -tag pair_comp -tag pmlr  -save_top_k 1  -save_period 1 -resnet_size 18 -num_worker $CORES"
     for j in "${augmentations[@]}"; do
         echo "$j $seed1"
         launch_pairwise " $j  $args  -meta_file ${meta_file}$seed1 -seed $seed1"
@@ -389,7 +351,7 @@ PAIR_COMPOSITION_SEARCH_DOWN)
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
     args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
-         -sources freihand -tag pair_abl -tag pmlr"
+         -sources freihand -tag pair_comp -tag pmlr -resnet_size 18"
     while IFS=',' read -r experiment_name experiment_key; do
         launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
     done <$SAVED_META_INFO_PATH/pair_comp$seed1
@@ -397,13 +359,55 @@ PAIR_COMPOSITION_SEARCH_DOWN)
     #     launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2 -meta_file $meta_file$seed2"
     # done <$SAVED_META_INFO_PATH/pair_ablative_ih$seed2
     ;;
+SIM_COMPOSITION_SEARCH)
+    meta_file="sim_comp"
+    echo "Launching simclr exhaustive studies"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    declare -a augmentations=("--color_jitter --rotate --crop --random_crop"
+    "--color_jitter --rotate --crop"
+    "--color_jitter --rotate --random_crop"
+    "--color_jitter --crop --random_crop"
+    "--rotate --crop --random_crop"
+    "--color_jitter --rotate"
+    "--color_jitter --crop"
+    "--color_jitter --random_crop"
+    "--rotate --random_crop"
+    "--rotate --crop"
+    "--crop --random_crop"
+    )
+    args="--resize  -batch_size 512 -epochs 100 -accumulate_grad_batches 4 -train_ratio 0.9 -resnet_size 18\
+         -sources freihand  -tag sim_comp -tag pmlr  -save_top_k 1  -save_period 1 -resnet_size 18 -num_worker $CORES"
+    for j in "${augmentations[@]}"; do
+        echo "$j $seed1"
+        launch_simclr " $j  $args  -meta_file ${meta_file}$seed1 -seed $seed1"
+    done
+    # for j in "${augmentations[@]}"; do
+    #     echo "$j $seed2"
+    #     launch_pairwise " --$j  $args  -meta_file ${meta_file}$seed2 -seed $seed2"
+    # done
+    ;;
+AIR_COMPOSITION_SEARCH_DOWN)
+    echo "Launching Simclr exhaustive comp studies"
+    meta_file="sim_comp_down"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
+         -sources freihand -tag sim_comp -tag pmlr -resnet_size 18"
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
+    done <$SAVED_META_INFO_PATH/sim_comp$seed1
+    # while IFS=',' read -r experiment_name experiment_key; do
+    #     launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2 -meta_file $meta_file$seed2"
+    # done <$SAVED_META_INFO_PATH/sim_comp$seed2
+    ;;
 HYB1_ABL)
     echo "Launching hybrid1 ablative studies"
     meta_file="hybrid1_ablative"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
     args="  -batch_size 512 -epochs 100 -accumulate_grad_batches 4  \
-         -sources freihand  -tag hyb1_abl -save_top_k 1  -save_period 1 "
+         -sources freihand -resnet_size 18 -tag hyb1_abl -save_top_k 1  -save_period 1 "
     declare -a seeds=($seed1
         $seed2
     )
@@ -419,46 +423,6 @@ HYB1_ABL)
             done
         done
     done
-    ;;
-SIMCLR_ABL_COMP)
-    #  experiment with same augmentation as hybrid 1 and 2 ablative to observe improvement.
-    meta_file="simclr_ablative_comp"
-    echo "Launching Simclr ablative studies for comparison"
-    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
-    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
-    # declare -a augmentations=("--rotate --color_jitter --crop --random_crop "
-    #     "--color_jitter --random_crop --gaussian_blur"
-    #     "--color_jitter --random_crop")
-    declare -a augmentations=("--crop --random_crop"
-        "--crop --sobel_filter --random_crop"
-        "--crop --sobel_filter --random_crop --color_jitter"
-        "--crop --sobel_filter --random_crop --color_jitter --gaussian_noise"
-        "--crop  --random_crop --color_jitter --gaussian_noise")
-    args="--resize  -batch_size 128 -epochs 100 -accumulate_grad_batches 16 -train_ratio 0.9 \
-         -sources freihand  -tag sim_abl_comp -tag sim_abl -tag iccv  -save_top_k 1  -save_period 1 -resnet_size 50 -num_workers $CORES "
-    for j in "${augmentations[@]}"; do
-        echo "$j $seed1"
-        launch_simclr " $j  $args  -meta_file ${meta_file}$seed1 -seed  $seed1"
-    done
-    for j in "${augmentations[@]}"; do
-        echo "$j $seed2"
-        launch_simclr " $j  $args  -meta_file ${meta_file}$seed2 -seed $seed2"
-    done
-    ;;
-SIMCLR_ABL_COMP_DOWN)
-    #  experiment with same augmentation as hybrid 1 and 2 ablative to observe improvement.
-    echo "Launching downstream simclr ablative studies"
-    meta_file="simclr_ablative_comp_down"
-    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
-    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
-    args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam -train_ratio 0.9\
-         -sources freihand -tag sim_abl_comp -tag iccv -tag sim_abl -resnet_size 50 "
-    while IFS=',' read -r experiment_name experiment_key; do
-        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
-    done <$SAVED_META_INFO_PATH/simclr_ablative_comp$seed1
-    while IFS=',' read -r experiment_name experiment_key; do
-        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2 -meta_file $meta_file$seed2"
-    done <$SAVED_META_INFO_PATH/simclr_ablative_comp$seed2
     ;;
 CROSS_DATA_HYB1)
     echo "Launching hybrid 1 cross dataset"
@@ -497,6 +461,40 @@ SEMISUPERVISED)
     #    -experiment_name ssl_hybrid2_512C_CJ_Re_Ro128C_Re_Ro  \
     #    -seed  5 \
     #    -tag hyb2_cross -tag no_ytb"
+    ;;
+PAIR_ABL_IH)
+    meta_file="pair_ablative_ih"
+    echo "Launching Pair ablative studies"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    declare -a augmentations=("color_jitter"
+        "crop"
+        "rotate"
+        "random_crop")
+    args="--resize  -batch_size 512 -epochs 100 -accumulate_grad_batches 4 -train_ratio 0.9 -resnet_size 18\
+         -sources interhand  -tag pair_abl -tag pmlr  -save_top_k 1  -save_period 1 -resnet_size 18 -num_worker $CORES"
+    for j in "${augmentations[@]}"; do
+        echo "$j $seed1"
+        launch_pairwise " --$j  $args  -meta_file ${meta_file}$seed1 -seed $seed1"
+    done
+    # for j in "${augmentations[@]}"; do
+    #     echo "$j $seed2"
+    #     launch_pairwise " --$j  $args  -meta_file ${meta_file}$seed2 -seed $seed2"
+    # done
+    ;;
+PAIR_ABL_IH_DOWN)
+    echo "Launching Pairwise ablative studies"
+    meta_file="pair_ablative_ih_down"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
+         -sources freihand -tag pair_abl -resnet_size 18 -tag pmlr"
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
+    done <$SAVED_META_INFO_PATH/pair_ablative_ih$seed1
+    # while IFS=',' read -r experiment_name experiment_key; do
+    #     launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2 -meta_file $meta_file$seed2"
+    # done <$SAVED_META_INFO_PATH/pair_ablative_ih$seed2
     ;;
 *)
     echo "Experiment not recognized!"
