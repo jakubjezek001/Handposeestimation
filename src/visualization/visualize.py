@@ -23,6 +23,7 @@ def plot_hand(
     linewidth: str = "1",
     linestyle: str = "-",
     alpha: float = 1.0,
+    ms=1,
 ):
     """Makes a hand stick figure from the coordinates wither in uv plane or xyz plane on the passed axes object.
     Code adapted from:  https://github.com/lmb-freiburg/freihand/blob/master/utils/eval_util.py
@@ -38,7 +39,7 @@ def plot_hand(
     colors = np.array(
         read_json(
             os.path.join(MASTER_THESIS_DIR, "src", "visualization", "joint_color.json")
-        )["joint_colors"]
+        )["joint_color2"]
     )
     coords_hand = joints.ait_to_freihand(coords_hand)
     # define connections and colors of the bones
@@ -89,6 +90,7 @@ def plot_hand(
                 color=colors[i, :],
                 linestyle=linestyle,
                 alpha=alpha,
+                ms=ms,
             )
 
 

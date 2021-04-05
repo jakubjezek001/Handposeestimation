@@ -538,6 +538,7 @@ def downstream_evaluation(
         )
     with logger.experiment.validate():
         logger.experiment.log_metrics(validate_results)
+    # return validate_results
 
 
 def restore_model(model, experiment_key: str, checkpoint: str = ""):
