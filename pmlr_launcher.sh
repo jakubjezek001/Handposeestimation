@@ -402,12 +402,13 @@ SIM_COMPOSITION_SEARCH_DOWN)
     # done <$SAVED_META_INFO_PATH/sim_comp$seed2
     ;;
 CROSS_DATA_SIM)
+# NOTE: Remember to set the warmup epoch as 4 and checkpoint saving on train set.
     echo "Launching sim cross dataset"
     meta_file="sim_crossdataset"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
     args="-sources freihand -sources interhand --color_jitter --random_crop -epochs 100 -batch_size 512 \
-     -accumulate_grad_batches 4 -save_top_k 1  -save_period 1 -tag sim_cross -tag pmlr"
+     -accumulate_grad_batches 4 -save_top_k 1  -save_period 1 -tag sim_cross -tag pmlr -train_ratio 0.999999999999"
     launch_simclr "$args -meta_file $meta_file$seed1 -seed $seed1"
     # launch_simclr "$args -meta_file $meta_file$seed2 -seed $seed2"
     ;;
@@ -417,7 +418,7 @@ CROSS_DATA_SIM_DOWN)
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
     args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
-         -sources freihand -tag sim_cross -tag pmlr -resnet_size 18"
+         -sources freihand -tag sim_cross -tag pmlr -resnet_size 18 -train_ratio 0.999999999999"
     while IFS=',' read -r experiment_name experiment_key; do
         launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
     done <$SAVED_META_INFO_PATH/sim_comp$seed1
