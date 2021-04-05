@@ -490,6 +490,11 @@ class Data_Set(Dataset):
         if augmenter.rotate:
             angle = (param1["angle"] - param2["angle"]) % 360
             rel_param.update({"rotation": torch.Tensor([angle])})
+
+        if augmenter._crop_margin_scale:
+            scale = (param1["crop_margin_scale"] / param2["crop_margin_scale"]) % 360
+            rel_param.update({"scale": torch.Tensor([scale])})
+
         return rel_param
 
     def move_wrist_to_palm(self, joints3D: torch.Tensor) -> torch.Tensor:
