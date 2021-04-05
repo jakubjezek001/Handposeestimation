@@ -387,7 +387,7 @@ SIM_COMPOSITION_SEARCH)
     #     launch_pairwise " --$j  $args  -meta_file ${meta_file}$seed2 -seed $seed2"
     # done
     ;;
-AIR_COMPOSITION_SEARCH_DOWN)
+SIM_COMPOSITION_SEARCH_DOWN)
     echo "Launching Simclr exhaustive comp studies"
     meta_file="sim_comp_down"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
