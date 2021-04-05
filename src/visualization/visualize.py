@@ -148,14 +148,10 @@ def plot_pairwise_images(img1, img2, gt_pred, comet_logger):
     fig = plt.figure(figsize=(10, 10))
     title = "\n".join([f"{k}: gt:{v[0]}, pred:{v[1]}" for k, v in gt_pred.items()])
     ax = fig.add_subplot(121)
-    plt.imshow(
-        cv2.cvtColor(np.array(transforms.ToPILImage()(img1.cpu())), cv2.COLOR_BGR2RGB)
-    )
+    plt.imshow(np.array(transforms.ToPILImage()(img1.cpu())))
     ax.set_title("Image 1")
     ax = fig.add_subplot(122)
-    plt.imshow(
-        cv2.cvtColor(np.array(transforms.ToPILImage()(img2.cpu())), cv2.COLOR_BGR2RGB)
-    )
+    plt.imshow(np.array(transforms.ToPILImage()(img2.cpu())))
     ax.set_title("Image 2")
     fig.suptitle(title)
     if comet_logger is not None:
