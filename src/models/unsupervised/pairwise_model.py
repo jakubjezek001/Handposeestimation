@@ -18,6 +18,7 @@ class PairwiseModel(BaseModel):
         self.regress_rotate = False
         self.regress_jitter = False
         self.regress_color_jitter = False
+        self.regress_scale = False
         self.log_keys = ["loss"]
 
         # transformation head.
