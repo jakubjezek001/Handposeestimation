@@ -321,6 +321,26 @@ PAIR_ABL_FH_DOWN)
         launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2 -meta_file $meta_file$seed2"
     done <$SAVED_META_INFO_PATH/pair_ablative_fh$seed2
     ;;
+PAIR_ABL_IH)
+    meta_file="pair_ablative_ih"
+    echo "Launching Pair ablative studies"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    declare -a augmentations=("color_jitter"
+        "crop"
+        "rotate"
+        "random_crop")
+    args="--resize  -batch_size 512 -epochs 100 -accumulate_grad_batches 4 -train_ratio 0.9\
+         -sources interhand  -tag sim_abl -tag pmlr  -save_top_k 1  -save_period 1 -resnet_size 18 -num_worker $CORES"
+    for j in "${augmentations[@]}"; do
+        echo "$j $seed1"
+        launch_pairwise " --$j  $args  -meta_file ${meta_file}$seed1 -seed $seed1"
+    done
+    for j in "${augmentations[@]}"; do
+        echo "$j $seed2"
+        launch_pairwise " --$j  $args  -meta_file ${meta_file}$seed2 -seed $seed2"
+    done
+    ;;
 HYB1_ABL)
     echo "Launching hybrid1 ablative studies"
     meta_file="hybrid1_ablative"
