@@ -265,23 +265,16 @@ SIM_ABL_DOWN)
     echo "Launching downstream simclr ablative studies"
     meta_file="simclr_ablative_down"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
-    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
-    mv "$SAVED_META_INFO_PATH/${meta_file}$seed3" "$SAVED_META_INFO_PATH/${meta_file}$seed3.bkp.$DATE"
+    # mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    # mv "$SAVED_META_INFO_PATH/${meta_file}$seed3" "$SAVED_META_INFO_PATH/${meta_file}$seed3.bkp.$DATE"
     args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam -train_ratio 0.9 \
          -sources freihand -tag sim_abl -tag pmlr -resnet_size 18 -num_worker $CORES  -save_top_k 1  -save_period 1"
-    # while IFS=',' read -r experiment_name experiment_key; do
-    #     launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
-    # done <$SAVED_META_INFO_PATH/simclr_ablative$seed1
+    while IFS=',' read -r experiment_name experiment_key; do
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
+    done <$SAVED_META_INFO_PATH/simclr_ablative$seed1
     # while IFS=',' read -r experiment_name experiment_key; do
     #     launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2 -meta_file $meta_file$seed2"
     # done <$SAVED_META_INFO_PATH/simclr_ablative$seed2
-    launch_semisupervised "$args -seed $seed1 -experiment_key imagenet50 -experiment_name imagenet50 -tag rgb"
-    launch_semisupervised "$args -seed $seed2 -experiment_key imagenet50 -experiment_name imagenet50 -tag rgb"
-    launch_semisupervised "$args -seed $seed1 -experiment_key ResNet50 -experiment_name resnet50 -tag rgb"
-    launch_semisupervised "$args -seed $seed2 -experiment_key ResNet50 -experiment_name resnet50 -tag rgb"
-    # while IFS=',' read -r experiment_name experiment_key; do
-    #     launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed3 -meta_file $meta_file$seed2"
-    # done <$SAVED_META_INFO_PATH/simclr_ablative$seed3
     ;;
 PAIR_ABL_FH)
     meta_file="pair_ablative_fh"
