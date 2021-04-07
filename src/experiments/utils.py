@@ -162,6 +162,7 @@ def get_general_args(
     parser.add_argument(
         "-lr_max_epochs", type=int, help="Top snapshots to save", default=None
     )
+    parser.add_argument("-warmup_epochs", type=int, help="Warmup epochs", default=10)
     parser.add_argument(
         "--use_palm",
         action="store_true",
@@ -634,7 +635,9 @@ def get_callbacks(
 
 def update_model_params(model_param: edict, args, data_length: int, train_param: edict):
     model_param = update_param(
-        args, model_param, ["optimizer", "lr", "resnet_size", "lr_max_epochs"]
+        args,
+        model_param,
+        ["optimizer", "lr", "resnet_size", "lr_max_epochs", "warmup_epochs"],
     )
     model_param.num_samples = data_length
     model_param.batch_size = train_param.batch_size
