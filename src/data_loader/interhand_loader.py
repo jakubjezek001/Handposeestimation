@@ -182,14 +182,17 @@ class IH_DB(Dataset):
             self.joints.interhand_to_ait(joints),
             self.joints.interhand_to_ait(joints_valid),
         )
-        # if is_left:
-        #     print("This sample is left")
-        #     image = cv2.flip(image, 1)
-        # joints[:, 0] = image.shape[1] - joints[:, 0]
-
         intrinsic_camera_matrix, camera_rot, camera_t = self.get_camera_params(
             image_item.camera, image_item.capture
         )
+        if is_left:
+            image = cv2.flip(image, 1)
+            _, W = image.shape[:2]
+            intrinsic_camera_matrix = (
+                np.float32([[-1, 0, W - 1], [0, 1, 0], [0, 0, 1]])
+                @ intrinsic_camera_matrix
+            )
+
         joints_camera_frame = (joints - camera_t) @ camera_rot.T
         # To avoid division by zero.
         joints_camera_frame[:, -1] += 1e-5
