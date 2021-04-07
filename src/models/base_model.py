@@ -109,10 +109,10 @@ class BaseModel(LightningModule):
             key: torch.stack([x[key] for x in outputs]).mean() for key in metric_keys
         }
         # NOTE: Comment this part and uncomment the similar block to stop based on validation metrics
-        # if "loss_3d" in metric_keys:
-        #     self.log("checkpoint_saving_loss", self.train_metrics_epoch["loss_3d"])
-        # else:
-        #     self.log("checkpoint_saving_loss", self.train_metrics_epoch["loss"])
+        if "loss_3d" in metric_keys:
+            self.log("checkpoint_saving_loss", self.train_metrics_epoch["loss_3d"])
+        else:
+            self.log("checkpoint_saving_loss", self.train_metrics_epoch["loss"])
 
     def validation_epoch_end(self, outputs: List[dict]):
         metric_keys = outputs[0].keys()
@@ -120,8 +120,8 @@ class BaseModel(LightningModule):
             key: torch.stack([x[key] for x in outputs]).mean() for key in metric_keys
         }
         # NOTE: Comment this part and uncomment the similar block to stop based on train metrics
-        if "loss_3d" in metrics.keys():
-            self.log("checkpoint_saving_loss", metrics["loss_3d"])
-        else:
-            self.log("checkpoint_saving_loss", metrics["loss"])
+        # if "loss_3d" in metrics.keys():
+        #     self.log("checkpoint_saving_loss", metrics["loss_3d"])
+        # else:
+        #     self.log("checkpoint_saving_loss", metrics["loss"])
         self.validation_metrics_epoch = metrics
