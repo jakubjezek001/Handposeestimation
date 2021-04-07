@@ -302,7 +302,7 @@ PAIR_ABL_FH_DOWN)
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
     args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
-         -sources freihand -tag pair_abl -tag pmlr -tag pair_comp -resnet_size 18"
+         -sources freihand -tag pair_abl -tag pmlr -tag pair_comp -resnet_size 18 -save_top_k 1  -save_period 1 "
     while IFS=',' read -r experiment_name experiment_key; do
         launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
     done <$SAVED_META_INFO_PATH/pair_ablative_fh$seed1
@@ -344,7 +344,7 @@ PAIR_COMPOSITION_SEARCH_DOWN)
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
     args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
-         -sources freihand -tag pair_comp -tag pmlr -resnet_size 18"
+         -sources freihand -tag pair_comp -tag pmlr -resnet_size 18 -save_top_k 1  -save_period 1 "
     while IFS=',' read -r experiment_name experiment_key; do
         launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
     done <$SAVED_META_INFO_PATH/pair_comp$seed1
@@ -395,12 +395,12 @@ SIM_COMPOSITION_SEARCH_DOWN)
     # done <$SAVED_META_INFO_PATH/sim_comp$seed2
     ;;
 CROSS_DATA_SIM)
-# NOTE: Remember to set the warmup epoch as 4 and checkpoint saving on train set.
+    # NOTE: Remember to set the warmup epoch as 3 and checkpoint saving on train set.
     echo "Launching sim cross dataset"
     meta_file="sim_crossdataset"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
-    args="-sources freihand -sources interhand --color_jitter --random_crop -epochs 100 -batch_size 512 \
+    args="-sources freihand -sources interhand --color_jitter --random_crop --crop -warmup_epochs 3 -epochs 26 -batch_size 512 \
      -accumulate_grad_batches 4 -save_top_k 1  -save_period 1 -tag sim_cross -tag pmlr -train_ratio 0.999999999999"
     launch_simclr "$args -meta_file $meta_file$seed1 -seed $seed1"
     # launch_simclr "$args -meta_file $meta_file$seed2 -seed $seed2"
@@ -410,15 +410,40 @@ CROSS_DATA_SIM_DOWN)
     meta_file="sim_crossdataset_down"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
-    args="--rotate --crop --resize  -batch_size 128 -epochs 50 -optimizer adam \
-         -sources freihand -tag sim_cross -tag pmlr -resnet_size 18 -train_ratio 0.999999999999"
+    args="--rotate --crop --resize  -batch_size 128 -optimizer adam \
+         -sources freihand -save_top_k 1  -save_period 1  -tag sim_cross -tag pmlr -resnet_size 18 -train_ratio 0.999999999999999"
     while IFS=',' read -r experiment_name experiment_key; do
-        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1"
-    done <$SAVED_META_INFO_PATH/sim_comp$seed1
-    # while IFS=',' read -r experiment_name experiment_key; do
-    #     launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed2 -meta_file $meta_file$seed2"
-    # done <$SAVED_META_INFO_PATH/sim_comp$seed2
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1 -epochs 100 --encoder_trainable"
+        launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1 -epochs 100 -tag frozen"
+    done <$SAVED_META_INFO_PATH/sim_crossdataset$seed1
     ;;
+SIM_HEATMAP)
+    # NOTE: Remember to set the warmup epoch as 3 and checkpoint saving on train set.
+    echo "Launching simclr heatmap based model."
+    meta_file="sim_heatmap"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    args="--heatmap --color_jitter --random_crop --crop  -batch_size 128 \
+     -accumulate_grad_batches 16 -save_top_k 1  -save_period 1 -tag sim_heatmap -tag pmlr -train_ratio 0.999999999999"
+    launch_simclr "$args -meta_file $meta_file$seed1 -seed $seed1 -sources freihand -sources interhand -warmup_epochs 3 -epochs 26 -tag ih_fh"
+    launch_simclr "$args -meta_file $meta_file$seed1 -seed $seed1 -sources freihand -warmup_epochs 10 -epochs 100 -tag fh"
+    launch_simclr "$args -meta_file $meta_file$seed1 -seed $seed1 -sources interhand -warmup_epochs 4 -epochs 35 -tag ih"
+    # launch_simclr "$args -meta_file $meta_file$seed2 -seed $seed2"
+    ;;
+SIM_HEATMAP_DOWN)
+    echo "Launching Simclr exhaustive comp studies"
+    meta_file="sim_heatmap_down"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
+    mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
+    args=" --heatmap --rotate --crop --resize  -batch_size 128 -optimizer adam \
+     -tag sim_cross -tag pmlr -train_ratio 0.999999999999999"
+    launch_semisupervised "$args -experiment_key <ADD_key> -experiment_name simclr_heat_ih_fh -seed $seed1 -meta_file $meta_file$seed1 -epochs 100 -sources freihand --encoder_trainable"
+    launch_semisupervised "$args -experiment_key <ADD_key> -experiment_name simclr_heat_ih_fh -seed $seed1 -meta_file $meta_file$seed1 -epochs 100 --encoder_trainable"
+    # while IFS=',' read -r experiment_name experiment_key; do
+    #     launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1 -epochs 100 --encoder_trainable"
+    #     launch_semisupervised "$args -experiment_key $experiment_key -experiment_name $experiment_name -seed $seed1 -meta_file $meta_file$seed1 -epochs 100 -tag frozen"
+    # done <$SAVED_META_INFO_PATH/sim_crossdataset$seed1
+
 HYB1_ABL)
     echo "Launching hybrid1 ablative studies"
     meta_file="hybrid1_ablative"
