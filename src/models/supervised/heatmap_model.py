@@ -13,10 +13,14 @@ class HeatmapPoseModel(BaselineModel):
         self.epsilon = 1e-6
         hrnet_config = read_yaml(HRNET_CONFIG)
         self.encoder = get_pose_net(hrnet_config.MODEL36, True)
+        # self.final_layers = nn.Sequential(
+        #     nn.Conv2d(128, 64, kernel_size=(3, 3), stride=1),
+        #     nn.BatchNorm2d(64),
+        #     nn.ReLU(),
+        #     nn.Conv2d(64, 42, kernel_size=(3, 3), stride=1),
+        # )
         self.final_layers = nn.Sequential(
             nn.Conv2d(128, 64, kernel_size=(3, 3), stride=1),
-            nn.BatchNorm2d(64),
-            nn.ReLU(),
             nn.Conv2d(64, 42, kernel_size=(3, 3), stride=1),
         )
 

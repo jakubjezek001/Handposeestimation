@@ -21,9 +21,10 @@ class BaselineModel(BaseModel):
             self.console_logger.warning("Freeizing the underlying  Resnet!")
             for param in self.encoder.parameters():
                 param.requires_grad = False
-        self.final_layers = nn.Sequential(
-            nn.Linear(512, 128), nn.BatchNorm1d(128), nn.ReLU(), nn.Linear(128, 21 * 3)
-        )
+        # self.final_layers = nn.Sequential(
+        #     nn.Linear(512, 128), nn.BatchNorm1d(128), nn.ReLU(), nn.Linear(128, 21 * 3)
+        # )
+        self.final_layers = nn.Sequential(nn.Linear(512, 21 * 3))
 
     def forward(self, x: Tensor) -> Tensor:
         x = self.encoder(x)
