@@ -1,4 +1,5 @@
 from shutil import move
+from src.models.supervised.heatmap_model import HeatmapPoseModel
 from typing import Dict, Union
 
 import matplotlib.pyplot as plt
@@ -39,9 +40,16 @@ def load_model(
     checkpoint = f"epoch={checkpoint}.ckpt" if checkpoint != "" else ""
     print(f"Loading latest checkpoint of {key}")
     if heatmap:
-        print("Trying DEnoised heatmap model!")
-        model = DenoisedHeatmapmodel(model_config)
-        model = restore_model(model, key, checkpoint)
+        try:
+            print("Trying DEnoised heatmap model!")
+            model = DenoisedHeatmapmodel(model_config)
+            model = restore_model(model, key, checkpoint)
+        except Exception as e:
+            print(e)
+            print("Trying heatmap model")
+            model = HeatmapPoseModel(model_config)
+            model = restore_model(model, key, checkpoint)
+
     else:
 
         try:
