@@ -115,3 +115,4 @@ notebooks/test
 notebooks/model_restoration.ipynb
 src/models/external/wrapper_model.py
 src/models/external/aneesh_model
+*.csv
