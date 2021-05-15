@@ -15,12 +15,17 @@ make env      # to make a virtual environment
 make requirements  # to install all the requirements and setting up of githooks
 source env_name/bin/activate  #to activate the environment
 ```
+# Models
+## Contrastive model
+![Contrastive model](pmlr_contrastive.png)
 
+## Relative model
+![Relative model](pmlr_relative.png)
 # Training
 The models were trained on [ETH's GPU cluster](https://scicomp.ethz.ch/wiki/Leonhard) 
 For reference, use ``pmlr_launcher.sh`` to retrain the models on other architectures
 
-### Augmentations Visulaization and Model Evaluation.
+### Augmentations visualization and Model Evaluation.
 ```
 voila notebooks/01-Data_handler.ipynb --theme=dark
 voila notebooks/02-Model-Evaluation.ipynb --theme=dark
@@ -35,8 +40,6 @@ Project Organization
 ├── notebooks
 │   ├── 01-Data_handler.ipynb
 │   ├── 02-Model-Evaluation.ipynb
-│   ├── 03-Interhand_analysis.ipynb
-│   ├── 04-Image_for_proposal.ipynb
 ├── reports
 │   ├── figures
 ├── src
