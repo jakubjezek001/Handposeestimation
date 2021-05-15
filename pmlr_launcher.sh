@@ -436,7 +436,7 @@ SIM_HEATMAP_DOWN)
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed1" "$SAVED_META_INFO_PATH/${meta_file}$seed1.bkp.$DATE"
     mv "$SAVED_META_INFO_PATH/${meta_file}$seed2" "$SAVED_META_INFO_PATH/${meta_file}$seed2.bkp.$DATE"
     args=" --heatmap --rotate --crop --resize  -batch_size 128 -optimizer adam \
-     -tag sim_cross -tag pmlr -train_ratio 0.999999999999999"
+     -tag sim_cross -tag pmlr -train_ratio 0.999999999999999 -save_top_k 1  -save_period 1"
     launch_semisupervised "$args -experiment_key <ADD_key> -experiment_name simclr_heat_ih_fh -seed $seed1 -meta_file $meta_file$seed1 -epochs 100 -sources freihand --encoder_trainable"
     launch_semisupervised "$args -experiment_key <ADD_key> -experiment_name simclr_heat_ih_fh -seed $seed1 -meta_file $meta_file$seed1 -epochs 100 --encoder_trainable"
     # while IFS=',' read -r experiment_name experiment_key; do
