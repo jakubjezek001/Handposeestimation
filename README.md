@@ -1,16 +1,16 @@
-Master Thesis
+Exploring self-supervised learning techniques for hand pose estimation
 ==============================
+Abstract
 
-Code repository for thesis on handpose estimation
+3D hand pose estimation from monocular RGB is a challenging problem due to significantly varying environmental conditions such as lighting or variation in subject appearances. One way to improve performance across board is to introduce more data. However, acquiring 3D annotated data for hands is a laborious task, as it involves heavy multi-camera set up leading to lab-like training data which does not generalize well. Alternatively, one could make use of unsupervised pre-training in order to significantly increase the training data size one can train on. More recently, contrastive learning has shown promising results on tasks such as image classification. Yet, no study has been made on how it affects structured regression problems such as hand pose estimation. We hypothesize that the contrastive objective does extend well to such downstream task due to its inherent invariance and instead propose a relation objective, promoting equivariance. Our goal is to perform extensive experiments to validate our hypothesis.
 
 Setup
 ------------
 ```
 make env      # to make a virtual environment 
 make requirements  # to install all the requirements and setting up of githooks
-source master_thesis_env/bin/activate  #to activate the environment
+source env_name/bin/activate  #to activate the environment
 ```
-TODO: Add instruction for installing pytorch, pytorch_lightening, comet_ml and easydict.
 
 #### OpenCV installation instructions
  from source:
