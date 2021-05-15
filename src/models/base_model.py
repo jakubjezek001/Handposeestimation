@@ -6,7 +6,7 @@ from easydict import EasyDict as edict
 from pl_bolts.optimizers.lars_scheduling import LARSWrapper
 from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
 from pytorch_lightning.core.lightning import LightningModule
-from src.models.utils import get_resnet, get_wrapper_model
+from src.models.utils import get_resnet
 from torch.optim.lr_scheduler import CosineAnnealingLR
 
 
