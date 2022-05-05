@@ -22,10 +22,12 @@ class UploadCometLogs(Callback):
         self.console_logger = console_logger
         self.valid_logger = False
         self.experiment_type = experiment_type
-        if experiment_type in ["simclr", "pairwise", "hybrid1", "hybrid2"]:
-            self.supervised = False
-        else:
-            self.supervised = True
+        self.supervised = experiment_type not in [
+            "simclr",
+            "pairwise",
+            "hybrid1",
+            "hybrid2",
+        ]
 
     def on_fit_start(self, trainer, pl_module):
         if isinstance(pl_module.logger.experiment, Experiment):
@@ -144,62 +146,63 @@ class UploadCometLogs(Callback):
     def on_validation_batch_end(
         self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx
     ):
-        if self.valid_logger:
-            if self.supervised and batch_idx == 4:
-                try:
-                    log_image(
-                        prediction=pl_module.plot_params["prediction"],
-                        y=pl_module.plot_params["ground_truth"],
-                        x=pl_module.plot_params["input"],
-                        gpu=pl_module.config.gpu,
+        if not self.valid_logger:
+            return
+        if self.supervised and batch_idx == 4:
+            try:
+                log_image(
+                    prediction=pl_module.plot_params["prediction"],
+                    y=pl_module.plot_params["ground_truth"],
+                    x=pl_module.plot_params["input"],
+                    gpu=pl_module.config.gpu,
+                    context_val=True,
+                    comet_logger=pl_module.logger.experiment,
+                )
+            except Exception as e:
+                self.console_logger.error("Unable to upload the images to logger")
+                self.console_logger.info(e)
+
+        elif not self.supervised and batch_idx == 4:
+            try:
+                if self.experiment_type == "simclr":
+                    log_simclr_images(
+                        img1=pl_module.plot_params["image1"],
+                        img2=pl_module.plot_params["image2"],
                         context_val=True,
                         comet_logger=pl_module.logger.experiment,
                     )
-                except Exception as e:
-                    self.console_logger.error("Unable to upload the images to logger")
-                    self.console_logger.info(e)
-
-            elif not self.supervised and batch_idx == 4:
-                try:
-                    if self.experiment_type == "simclr":
+                elif self.experiment_type == "pairwise":
+                    log_pairwise_images(
+                        img1=pl_module.plot_params["image1"],
+                        img2=pl_module.plot_params["image2"],
+                        gt_pred=pl_module.plot_params["gt_pred"],
+                        context_val=True,
+                        comet_logger=pl_module.logger.experiment,
+                    )
+                elif self.experiment_type == "hybrid1":
+                    if pl_module.plot_params_contrastive is not None:
                         log_simclr_images(
-                            img1=pl_module.plot_params["image1"],
-                            img2=pl_module.plot_params["image2"],
+                            img1=pl_module.plot_params_contrastive["image1"],
+                            img2=pl_module.plot_params_contrastive["image2"],
                             context_val=True,
                             comet_logger=pl_module.logger.experiment,
                         )
-                    elif self.experiment_type == "pairwise":
+                    if pl_module.plot_params_pairwise is not None:
                         log_pairwise_images(
-                            img1=pl_module.plot_params["image1"],
-                            img2=pl_module.plot_params["image2"],
-                            gt_pred=pl_module.plot_params["gt_pred"],
+                            img1=pl_module.plot_params_pairwise["image1"],
+                            img2=pl_module.plot_params_pairwise["image2"],
+                            gt_pred=pl_module.plot_params_pairwise["gt_pred"],
                             context_val=True,
                             comet_logger=pl_module.logger.experiment,
                         )
-                    elif self.experiment_type == "hybrid1":
-                        if pl_module.plot_params_contrastive is not None:
-                            log_simclr_images(
-                                img1=pl_module.plot_params_contrastive["image1"],
-                                img2=pl_module.plot_params_contrastive["image2"],
-                                context_val=True,
-                                comet_logger=pl_module.logger.experiment,
-                            )
-                        if pl_module.plot_params_pairwise is not None:
-                            log_pairwise_images(
-                                img1=pl_module.plot_params_pairwise["image1"],
-                                img2=pl_module.plot_params_pairwise["image2"],
-                                gt_pred=pl_module.plot_params_pairwise["gt_pred"],
-                                context_val=True,
-                                comet_logger=pl_module.logger.experiment,
-                            )
-                    elif self.experiment_type == "hybrid2":
-                        log_hybrid2_images(
-                            img1=pl_module.plot_params["image1"],
-                            img2=pl_module.plot_params["image2"],
-                            params=pl_module.plot_params["params"],
-                            context_val=True,
-                            comet_logger=pl_module.logger.experiment,
-                        )
-                except Exception as e:
-                    self.console_logger.error("Unable to upload the images to logger")
-                    self.console_logger.info(e)
+                elif self.experiment_type == "hybrid2":
+                    log_hybrid2_images(
+                        img1=pl_module.plot_params["image1"],
+                        img2=pl_module.plot_params["image2"],
+                        params=pl_module.plot_params["params"],
+                        context_val=True,
+                        comet_logger=pl_module.logger.experiment,
+                    )
+            except Exception as e:
+                self.console_logger.error("Unable to upload the images to logger")
+                self.console_logger.info(e)

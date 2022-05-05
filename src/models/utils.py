@@ -97,10 +97,9 @@ def cal_3d_loss(
         predicton, scale, camera_param, is_batch=True, Z_root_calc=Z_root_calc
     )
     joints_weight = joints_valid / joints_valid.sum()
-    loss3d = (
+    return (
         nn.L1Loss(reduction="none")(prediction3d, joints3d_gt) * joints_weight
     ).sum() / 3
-    return loss3d
 
 
 def log_metrics(metrics: dict, comet_logger: Experiment, epoch: int, context_val: bool):
@@ -181,8 +180,7 @@ def vanila_contrastive_loss(z1: Tensor, z2: Tensor, temperature: float = 0.5) ->
     # Positive similarity :
     pos = torch.exp(torch.sum(z1 * z2, dim=-1) / temperature)
     pos = torch.cat([pos, pos], dim=0)
-    loss = -torch.log(pos / neg).mean()
-    return loss
+    return -torch.log(pos / neg).mean()
 
 
 def get_latest_checkpoint(experiment_name: str, checkpoint: str = "") -> str:
@@ -197,7 +195,7 @@ def get_latest_checkpoint(experiment_name: str, checkpoint: str = "") -> str:
     checkpoint_path = os.path.join(
         SAVED_MODELS_BASE_PATH, experiment_name, "checkpoints"
     )
-    if checkpoint == "":
+    if not checkpoint:
         checkpoints = os.listdir(checkpoint_path)
         latest_checkpoint = sorted(checkpoints, key=lambda x: int(x[6:-5]))[-1]
     else:
@@ -218,10 +216,11 @@ def get_encoder_state_dict(saved_model_path: str, checkpoint: str) -> dict:
     saved_state_dict = torch.load(get_latest_checkpoint(saved_model_path, checkpoint))[
         "state_dict"
     ]
-    encoder_state_dict = {
-        key[8:]: value for key, value in saved_state_dict.items() if "encoder" in key
+    return {
+        key[8:]: value
+        for key, value in saved_state_dict.items()
+        if "encoder" in key
     }
-    return encoder_state_dict
 
 
 def log_pairwise_images(

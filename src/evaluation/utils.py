@@ -169,15 +169,15 @@ def compute_refined_3d(
         z_root_calc_denoised = model.get_denoised_z_root_calc(
             prediction25d.view(1, 21, 3), K.view(1, 3, 3).to(model.device)
         )
-        predictions3d = convert_2_5D_to_3D(
+        return convert_2_5D_to_3D(
             prediction25d.cpu(),
             1.0,
             K.cpu(),
             Z_root_calc=z_root_calc_denoised.cpu().view(-1),
         )
+
     else:
-        predictions3d = convert_2_5D_to_3D(prediction25d.cpu(), 1.0, K.cpu())
-    return predictions3d
+        return convert_2_5D_to_3D(prediction25d.cpu(), 1.0, K.cpu())
 
 
 def move_palm_to_wrist(joints: torch.Tensor) -> torch.Tensor:

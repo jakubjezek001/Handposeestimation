@@ -49,8 +49,7 @@ class PairwiseModel(BaseModel):
         self.regress_rotate = True
         self.log_keys += ["loss_rotation", "sigma_rotation"]
         self.log_sigma_rotate = nn.Parameter(torch.zeros(1, 1))
-        rotation_head = self.get_base_transformation_head(output_dim=1)
-        return rotation_head
+        return self.get_base_transformation_head(output_dim=1)
 
     def get_jitter_head(self) -> nn.Sequential:
         self.regress_jitter = True
@@ -81,12 +80,11 @@ class PairwiseModel(BaseModel):
         rotation_pred = self.rotation_head(encoding)
         loss_rotation = L1Loss()(rotation_gt, rotation_pred)
         loss += loss_rotation / torch.exp(self.log_sigma_rotate) + self.log_sigma_rotate
-        log.update(
-            {
-                "loss_rotation": loss_rotation.detach(),
-                "sigma_rotation": torch.exp(self.log_sigma_rotate).detach(),
-            }
-        )
+        log |= {
+            "loss_rotation": loss_rotation.detach(),
+            "sigma_rotation": torch.exp(self.log_sigma_rotate).detach(),
+        }
+
         pred_gt.update({"rotation": [rotation_gt, rotation_pred]})
         return loss
 
@@ -101,12 +99,11 @@ class PairwiseModel(BaseModel):
         scale_pred = self.scale_head(encoding)
         loss_scale = L1Loss()(scale_gt, scale_pred)
         loss += loss_scale / torch.exp(self.log_sigma_scale) + self.log_sigma_scale
-        log.update(
-            {
-                "loss_scale": loss_scale.detach(),
-                "sigma_scale": torch.exp(self.log_sigma_scale).detach(),
-            }
-        )
+        log |= {
+            "loss_scale": loss_scale.detach(),
+            "sigma_scale": torch.exp(self.log_sigma_scale).detach(),
+        }
+
         pred_gt.update({"scale": [scale_gt, scale_pred]})
         return loss
 
@@ -121,12 +118,11 @@ class PairwiseModel(BaseModel):
         jitter_pred = self.jitter_head(encoding)
         loss_jitter = L1Loss()(jitter_gt, jitter_pred)
         loss += loss_jitter / torch.exp(self.log_sigma_jitter) + self.log_sigma_jitter
-        log.update(
-            {
-                "loss_jitter": loss_jitter.detach(),
-                "sigma_jitter": torch.exp(self.log_sigma_jitter).detach(),
-            }
-        )
+        log |= {
+            "loss_jitter": loss_jitter.detach(),
+            "sigma_jitter": torch.exp(self.log_sigma_jitter).detach(),
+        }
+
         pred_gt.update({"jitter": [jitter_gt, jitter_pred]})
         return loss
 
@@ -144,12 +140,11 @@ class PairwiseModel(BaseModel):
             loss_color_jitter / torch.exp(self.log_sigma_color_jitter)
             + self.log_sigma_color_jitter
         )
-        log.update(
-            {
-                "loss_color_jitter": loss_color_jitter.detach(),
-                "sigma_color_jitter": torch.exp(self.log_sigma_color_jitter).detach(),
-            }
-        )
+        log |= {
+            "loss_color_jitter": loss_color_jitter.detach(),
+            "sigma_color_jitter": torch.exp(self.log_sigma_color_jitter).detach(),
+        }
+
         pred_gt.update({"color_jitter": [color_jitter_gt, color_jitter_pred]})
         return loss
 
@@ -189,8 +184,7 @@ class PairwiseModel(BaseModel):
         return self.encoder(batch_images)
 
     def forward(self, x: Tensor) -> Tensor:
-        embedding = self.get_encodings(x)
-        return embedding
+        return self.get_encodings(x)
 
     def training_step(self, batch: Tensor, batch_idx: int) -> Dict[str, Tensor]:
         loss, losses, gt_pred = self.transformation_regression_step(batch)

@@ -108,11 +108,10 @@ class F_DB(Dataset):
         Returns:
             list: List of all the the coordinates(32650).
         """
-        if self.split in ["train", "val"]:
-            labels_path = os.path.join(self.root_dir, "training_xyz.json")
-            return read_json(labels_path)
-        else:
+        if self.split not in ["train", "val"]:
             return None
+        labels_path = os.path.join(self.root_dir, "training_xyz.json")
+        return read_json(labels_path)
 
     def get_scale(self) -> list:
         """Extacts the scale from freihand data."""
@@ -180,10 +179,9 @@ class F_DB(Dataset):
                 joints2d_orthogonal, scale=1.0, K=camera_param.clone()
             )
         joints_valid = torch.ones_like(joints3D[..., -1:])
-        sample = {
+        return {
             "image": img,
             "K": camera_param,
             "joints3D": joints3D,
             "joints_valid": joints_valid,
         }
-        return sample

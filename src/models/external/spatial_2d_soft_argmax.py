@@ -59,13 +59,9 @@ class SpatialSoftArgmax2d(nn.Module):
 
     def forward(self, input: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         if not torch.is_tensor(input):
-            raise TypeError(
-                "Input input type is not a torch.Tensor. Got {}".format(type(input))
-            )
-        if not len(input.shape) == 4:
-            raise ValueError(
-                "Invalid input shape, we expect BxCxHxW. Got: {}".format(input.shape)
-            )
+            raise TypeError(f"Input input type is not a torch.Tensor. Got {type(input)}")
+        if len(input.shape) != 4:
+            raise ValueError(f"Invalid input shape, we expect BxCxHxW. Got: {input.shape}")
         # unpack shapes and create view from input tensor
         batch_size, channels, height, width = input.shape
         x: torch.Tensor = input.view(batch_size, channels, -1)

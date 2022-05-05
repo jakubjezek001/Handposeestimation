@@ -48,7 +48,7 @@ class IH_DB(Dataset):
         self.annotation_sampling_folder = "InterHand2.6M.annotations.5.fps"
         self.image_sampling_folder = "InterHand2.6M_5fps_batch0/images"
         self._split = split
-        self.split = "train" if split in ["train", "val"] else split
+        self.split = "train" if split in {"train", "val"} else split
         (
             self.image_info,
             self.annotations_info,
@@ -196,10 +196,9 @@ class IH_DB(Dataset):
         joints_camera_frame = (joints - camera_t) @ camera_rot.T
         # To avoid division by zero.
         joints_camera_frame[:, -1] += 1e-5
-        sample = {
+        return {
             "image": image,
             "K": torch.tensor(intrinsic_camera_matrix).float(),
             "joints3D": torch.tensor(joints_camera_frame).float() / 1000.0,
             "joints_valid": torch.tensor(joints_valid),
         }
-        return sample

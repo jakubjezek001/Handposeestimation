@@ -55,14 +55,13 @@ class YTB_DB(Dataset):
         )
         if os.path.exists(joints_path) and os.path.exists(images_json_path):
             return read_json(joints_path), read_json(images_json_path)
-        else:
-            data_json = read_json(data_json_path)
-            images_dict = data_json["images"]
-            save_json(images_dict, images_json_path)
-            annotations_dict = data_json["annotations"]
-            joints = self.get_joints_from_annotations(annotations_dict)
-            save_json(joints, joints_path)
-            return joints, images_dict
+        data_json = read_json(data_json_path)
+        images_dict = data_json["images"]
+        save_json(images_dict, images_json_path)
+        annotations_dict = data_json["annotations"]
+        joints = self.get_joints_from_annotations(annotations_dict)
+        save_json(joints, joints_path)
+        return joints, images_dict
 
     def get_joints_from_annotations(self, annotations: dict) -> dict:
         """Converts vertices corresponding to mano mesh to 21 coordinates signifying
@@ -100,12 +99,7 @@ class YTB_DB(Dataset):
         """
         if self.split == "train":
             return np.arange(len(self.joints_list))
-        elif self.split == "val":
-            valid_index_df = pd.read_csv(
-                os.path.join(self.root_dir, f"youtube_{self.split}_invalid_index.csv")
-            )
-            return valid_index_df[valid_index_df.valid]["joint_idx"].values
-        elif self.split == "test":
+        elif self.split in ["val", "test"]:
             valid_index_df = pd.read_csv(
                 os.path.join(self.root_dir, f"youtube_{self.split}_invalid_index.csv")
             )
@@ -154,11 +148,10 @@ class YTB_DB(Dataset):
         joints3D[..., -1] = 1.0
         camera_param = torch.eye(3).float()
         joints_valid = torch.zeros_like(joints3D[..., -1:])
-        sample = {
+        return {
             "image": img,
             "K": camera_param,
             "joints3D": joints3D,
             "joints_valid": joints_valid,
             "joints_raw": joints_raw,
         }
-        return sample

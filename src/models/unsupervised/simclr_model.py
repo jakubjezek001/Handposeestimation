@@ -18,7 +18,7 @@ class SimCLR(BaseModel):
         self.projection_head = self.get_projection_head()
 
     def get_projection_head(self) -> nn.Sequential:
-        projection_head = nn.Sequential(
+        return nn.Sequential(
             nn.Linear(
                 self.config.projection_head_input_dim,
                 self.config.projection_head_hidden_dim,
@@ -32,7 +32,6 @@ class SimCLR(BaseModel):
                 bias=False,
             ),
         )
-        return projection_head
 
     def contrastive_step(self, batch: Dict[str, Tensor]) -> Tensor:
         batch_size = batch["transformed_image1"].size()[0]
@@ -45,8 +44,7 @@ class SimCLR(BaseModel):
             nn.functional.normalize(concat_projections[:batch_size]),
             nn.functional.normalize(concat_projections[batch_size:]),
         )
-        loss = vanila_contrastive_loss(projection1, projection2)
-        return loss
+        return vanila_contrastive_loss(projection1, projection2)
 
     def get_encodings(self, batch_images: Tensor) -> Tensor:
         return self.encoder(batch_images)

@@ -29,8 +29,7 @@ class HeatmapPoseModel(BaselineModel):
         x = self.encoder(x)
         x = self.final_layers(x)
         h_star_2d, h_star_z = x[:, :21], x[:, 21:]
-        out = self.heatmap_to_joints(h_star_2d, h_star_z, image_h, image_w)
-        return out
+        return self.heatmap_to_joints(h_star_2d, h_star_z, image_h, image_w)
 
     def heatmap_to_joints(
         self, h_star_2d: Tensor, h_star_z: Tensor, image_h: int, image_w: int

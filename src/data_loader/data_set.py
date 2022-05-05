@@ -163,19 +163,8 @@ class Data_Set(Dataset):
         """
 
         joints25D, _ = convert_to_2_5D(sample["K"], sample["joints3D"])
-        if augmenter.crop:
-            override_jitter = None
-        else:
-            # Zero jitter is added incase the cropping is off. It is done to trigger the
-            # cropping but always with no translation in image.
-            override_jitter = [0, 0]
-        if augmenter.rotate:
-            override_angle = None
-        else:
-            override_angle = None
-            # override_angle = random.uniform(1, 360)
-            # uncomment line above to add this rotation  to both channels
-
+        override_jitter = None if augmenter.crop else [0, 0]
+        override_angle = None
         img1, _, _ = augmenter.transform_sample(
             sample["image"], joints25D.clone(), override_angle, override_jitter
         )
@@ -259,18 +248,8 @@ class Data_Set(Dataset):
                 'jitter' ...
         """
         joints25D, _ = convert_to_2_5D(sample["K"], sample["joints3D"])
-        if augmenter.crop:
-            override_jitter = None
-        else:
-            # Zero jitter is added incase the cropping is off. It is done to trigger the
-            # cropping but always with no translation in image.
-            override_jitter = [0, 0]
-        if augmenter.rotate:
-            override_angle = None
-        else:
-            override_angle = None
-            # override_angle = random.uniform(1, 360)
-            # uncomment line above to add this rotation  to both channels
+        override_jitter = None if augmenter.crop else [0, 0]
+        override_angle = None
         img1, joints1, _ = augmenter.transform_sample(
             sample["image"], joints25D.clone(), override_angle, override_jitter
         )
@@ -320,9 +299,10 @@ class Data_Set(Dataset):
         joints25D_raw, scale = convert_to_2_5D(sample["K"], sample["joints3D"])
         joints_raw = (
             sample["joints_raw"]
-            if "joints_raw" in sample.keys()
+            if "joints_raw" in sample
             else sample["joints3D"].clone()
         )
+
         image, joints25D, transformation_matrix = augmenter.transform_sample(
             sample["image"], joints25D_raw
         )
@@ -380,12 +360,7 @@ class Data_Set(Dataset):
 
     def prepare_hybrid2_sample(self, sample: dict, augmenter: SampleAugmenter) -> dict:
         joints25D, _ = convert_to_2_5D(sample["K"], sample["joints3D"])
-        if augmenter.crop:
-            override_jitter = None
-        else:
-            # Zero jitter is added incase the cropping is off. It is done to trigger the
-            # cropping but always with no translation in image.
-            override_jitter = [0, 0]
+        override_jitter = None if augmenter.crop else [0, 0]
         img1, joints1, _ = augmenter.transform_sample(
             sample["image"], joints25D.clone(), None, override_jitter
         )
@@ -474,26 +449,26 @@ class Data_Set(Dataset):
         if augmenter.crop:
             jitter_x = param1["jitter_x"] - param2["jitter_x"]
             jitter_y = param1["jitter_y"] - param2["jitter_y"]
-            rel_param.update({"jitter": torch.tensor([jitter_x, jitter_y])})
+            rel_param["jitter"] = torch.tensor([jitter_x, jitter_y])
 
         if augmenter.color_jitter:
             h = param1["h"] - param2["h"]
             s = param1["s"] - param2["s"]
             a = param1["a"] - param2["a"]
             b = param1["b"] - param2["b"]
-            rel_param.update({"color_jitter": torch.tensor([h, s, a, b])})
+            rel_param["color_jitter"] = torch.tensor([h, s, a, b])
 
         if augmenter.gaussian_blur:
             blur_flag = param1["blur_flag"] ^ param2["blur_flag"]
-            rel_param.update({"blur": torch.Tensor([blur_flag * 1])})
+            rel_param["blur"] = torch.Tensor([blur_flag * 1])
 
         if augmenter.rotate:
             angle = (param1["angle"] - param2["angle"]) % 360
-            rel_param.update({"rotation": torch.Tensor([angle])})
+            rel_param["rotation"] = torch.Tensor([angle])
 
         if augmenter._crop_margin_scale:
             scale = (param1["crop_margin_scale"] / param2["crop_margin_scale"]) % 360
-            rel_param.update({"scale": torch.Tensor([scale])})
+            rel_param["scale"] = torch.Tensor([scale])
 
         return rel_param
 

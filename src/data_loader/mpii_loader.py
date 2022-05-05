@@ -30,7 +30,7 @@ class MPII_DB(Dataset):
         self.split = split
         self.seed = seed
         self.train_ratio = train_ratio
-        split_set = "train" if self.split in ["train", "val"] else split
+        split_set = "train" if self.split in {"train", "val"} else split
         self.image_dir_path = os.path.join(self.root_dir, f"manual_{split_set}")
         self.label_dir_path = os.path.join(self.root_dir, f"manual_{split_set}")
         self.img_names = self.get_image_names()
@@ -67,13 +67,12 @@ class MPII_DB(Dataset):
             for file_name in next(os.walk(self.label_dir_path))[2]
             if ".json" in file_name
         ]
-        labels = {
+        return {
             file_name.replace(".json", ""): read_json(
                 os.path.join(self.label_dir_path, file_name)
             )
             for file_name in label_file_names
         }
-        return labels
 
     def create_train_val_split(self) -> np.array:
         """Creates split for train and val data in mpii
@@ -129,11 +128,9 @@ class MPII_DB(Dataset):
             joints3D[:, 0] = img.shape[1] - joints3D[:, 0]
         camera_param = torch.eye(3).float()
         joints_valid = torch.ones_like(joints3D[..., -1:])
-        sample = {
+        return {
             "image": img,
             "K": camera_param,
             "joints3D": joints3D,
             "joints_valid": joints_valid,
         }
-
-        return sample

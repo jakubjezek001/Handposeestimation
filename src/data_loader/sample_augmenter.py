@@ -306,11 +306,10 @@ class SampleAugmenter:
             Tuple[np.array, JOINTS_25D]: Transfomed image and joints as is.
         """
         kernel_size = tuple(
-            [
-                i + 1 if i % 2 == 0 else i
-                for i in (np.array(image.shape[:2]) * 0.1).astype(int)
-            ]
+            i + 1 if i % 2 == 0 else i
+            for i in (np.array(image.shape[:2]) * 0.1).astype(int)
         )
+
         sigma = random.uniform(0.1, 2.0)
         self.sigma = sigma
         image = cv2.GaussianBlur(image, kernel_size, sigma)
@@ -328,19 +327,17 @@ class SampleAugmenter:
         Returns:
             Tuple[np.array, JOINTS_25D]: Transfomed image and joints as is.
         """
-        # randomly dropping color
-        if True:
-            # randomly picking a hand coordiate to occlude.
-            hand_center = np.random.randint(0, 20, 1)
-            dim0_bounds, dim1_bounds = self.get_random_cut_out_box(
-                image.shape[0],
-                image.shape[1],
-                joints[hand_center, 0],
-                joints[hand_center, 1],
-            )
-            image[
-                dim0_bounds[0] : dim0_bounds[1], dim1_bounds[0] : dim1_bounds[1]
-            ] = np.uint8(np.random.randint(0, 255, 1))
+        # randomly picking a hand coordiate to occlude.
+        hand_center = np.random.randint(0, 20, 1)
+        dim0_bounds, dim1_bounds = self.get_random_cut_out_box(
+            image.shape[0],
+            image.shape[1],
+            joints[hand_center, 0],
+            joints[hand_center, 1],
+        )
+        image[
+            dim0_bounds[0] : dim0_bounds[1], dim1_bounds[0] : dim1_bounds[1]
+        ] = np.uint8(np.random.randint(0, 255, 1))
         return image, joints
 
     def get_random_cut_out_box(

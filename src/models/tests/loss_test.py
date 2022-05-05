@@ -19,9 +19,9 @@ class TestStringMethods(unittest.TestCase):
         loss_2d, loss_z, loss_z_unscaled = cal_l1_loss(
             pred_joints, true_joints, scale, joints_valid
         )
-        self.assertTrue(((loss_z - 1.0) < 1e-6).tolist())
-        self.assertTrue(((loss_2d - 1.0) < 1e-6).tolist())
-        self.assertTrue(((loss_z_unscaled - 10.0) < 1e-6).tolist())
+        self.assertTrue((loss_z < 1.000001).tolist())
+        self.assertTrue((loss_2d < 1.000001).tolist())
+        self.assertTrue((loss_z_unscaled < 10.000001).tolist())
 
     def test_cal_loss3d(self):
         print("Running test on 3d loss calculation")
@@ -49,7 +49,7 @@ class TestStringMethods(unittest.TestCase):
             print(loss3d)
             break
 
-        self.assertTrue((loss3d - 5 < 1e-6).tolist())
+        self.assertTrue((loss3d < 5.000001).tolist())
 
 
 if __name__ == "__main__":

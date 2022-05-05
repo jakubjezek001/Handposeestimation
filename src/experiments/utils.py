@@ -169,8 +169,7 @@ def get_general_args(
         help="To regress plam instead of wrist.",
         default=False,
     )
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def get_hybrid1_args(
@@ -256,8 +255,7 @@ def get_hybrid1_args(
     parser.add_argument(
         "-save_top_k", type=int, help="Top snapshots to save", default=3
     )
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def update_hybrid1_train_args(args: argparse.Namespace, train_param: edict) -> edict:
@@ -426,8 +424,7 @@ def get_nips_a1_args():
     parser.add_argument(
         "augmentation", type=str, default=None, help="Select augmentation to apply"
     )
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def get_nips_a2_args():
@@ -437,8 +434,7 @@ def get_nips_a2_args():
     parser.add_argument(
         "augmentation", type=str, default=None, help="Select augmentation to apply"
     )
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def get_downstream_args():
@@ -572,44 +568,33 @@ def get_checkpoints(experiment_key: str, number: int = 3) -> List[str]:
 
 
 def get_model(experiment_type: str, heatmap_flag: bool, denoiser_flag: bool):
-    if experiment_type == "supervised":
-        if heatmap_flag and not denoiser_flag:
-            return HeatmapPoseModel
-        elif heatmap_flag and denoiser_flag:
-            return DenoisedHeatmapmodel
-        elif denoiser_flag:
-            return DenoisedBaselineModel
-        else:
-            return BaselineModel
-    elif experiment_type == "simclr":
-        if heatmap_flag:
-            return SimCLRHeatmap
-        else:
-            return SimCLR
+    if experiment_type == "hybrid1":
+        return Hybrid1HeatmapModel if heatmap_flag else Hybrid1Model
     elif experiment_type == "hybrid2":
-        if heatmap_flag:
-            return Hybrid2HeatmapModel
-        else:
-            return Hybrid2Model
-    elif experiment_type == "hybrid1":
-        if heatmap_flag:
-            return Hybrid1HeatmapModel
-        else:
-            return Hybrid1Model
+        return Hybrid2HeatmapModel if heatmap_flag else Hybrid2Model
     elif experiment_type == "pairwise":
-        if heatmap_flag:
-            return PairwiseHeatmapModel
-        else:
-            return PairwiseModel
+        return PairwiseHeatmapModel if heatmap_flag else PairwiseModel
     elif experiment_type == "semisupervised":
         if heatmap_flag and not denoiser_flag:
             return HeatmapHead
-        elif heatmap_flag and denoiser_flag:
+        elif heatmap_flag:
             return DenoisedHeatmapHead
         elif denoiser_flag:
             return DenoisedSupervisedHead
         else:
             return SupervisedHead
+
+    elif experiment_type == "simclr":
+        return SimCLRHeatmap if heatmap_flag else SimCLR
+    elif experiment_type == "supervised":
+        if heatmap_flag and not denoiser_flag:
+            return HeatmapPoseModel
+        elif heatmap_flag:
+            return DenoisedHeatmapmodel
+        elif denoiser_flag:
+            return DenoisedBaselineModel
+        else:
+            return BaselineModel
 
 
 def get_callbacks(

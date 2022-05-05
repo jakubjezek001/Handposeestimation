@@ -76,15 +76,15 @@ def calculate_predicted_3D(
     Returns:
         torch.tensor: predicted joints in 3D (#sample x 21 x 3)
     """
-    predicted_3D_coords = []
-    for i in tqdm(range(len(joints))):
-        predicted_3D_coords.append(
-            convert_2_5D_to_3D(
-                joints[i].to(torch.device("cpu")),
-                scales[i].to(torch.device("cpu")),
-                camera_params[i].to(torch.device("cpu")),
-            )
+    predicted_3D_coords = [
+        convert_2_5D_to_3D(
+            joints[i].to(torch.device("cpu")),
+            scales[i].to(torch.device("cpu")),
+            camera_params[i].to(torch.device("cpu")),
         )
+        for i in tqdm(range(len(joints)))
+    ]
+
     return torch.stack(predicted_3D_coords, axis=0)
 
 
@@ -309,10 +309,7 @@ def cal_auc_joints(
             for i in range(21)
         ]
     )
-    if per_joint:
-        return auc_per_joint
-    else:
-        return np.mean(auc_per_joint)
+    return auc_per_joint if per_joint else np.mean(auc_per_joint)
 
 
 def calc_procrustes_transform(
@@ -450,7 +447,7 @@ def get_procrustes_statistics(
         "Median_EPE_3D_procrustes": epe_3D_t["median"].cpu(),
         "auc_procrustes": auc_t,
     }
-    if "predictions_3d_denoised" in pred.keys():
+    if "predictions_3d_denoised" in pred:
         pred_3d_t_denoised, _, _, _ = calc_procrustes_transform(
             pred["joints_raw"].to(device), pred["predictions_3d_denoised"]
         )

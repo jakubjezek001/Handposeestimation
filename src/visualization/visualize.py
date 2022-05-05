@@ -44,9 +44,12 @@ def plot_hand(
     coords_hand = joints.ait_to_freihand(coords_hand)
     # define connections and colors of the bones
     bones = [
-        ((i, i + 1), colors[1 + i, :]) if i % 4 != 0 else ((0, i + 1), colors[1 + i, :])
-        for i in range(0, 20)
+        ((i, i + 1), colors[1 + i, :])
+        if i % 4 != 0
+        else ((0, i + 1), colors[1 + i, :])
+        for i in range(20)
     ]
+
     # Making connection between the joints.
     for connection, color in bones:
         coord1 = coords_hand[connection[0], :]

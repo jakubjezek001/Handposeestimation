@@ -21,25 +21,8 @@ class SimCLRHeatmap(SimCLR):
 
     def get_projection_head(self) -> nn.Sequential:
 
-        #     projection_head = nn.Sequential(
-        #         nn.Conv2d(42, 32, kernel_size=(8, 8), stride=8),
-        #         nn.Flatten(),
-        #         nn.Linear(
-        #             self.config.projection_head_input_dim,
-        #             self.config.projection_head_hidden_dim,0
-        #             bias=True,
-        #         ),
-        #         nn.BatchNorm1d(self.config.projection_head_hidden_dim),
-        #         nn.ReLU(),
-        #         nn.Linear(
-        #             self.config.projection_head_hidden_dim,
-        #             self.config.output_dim,
-        #             bias=False,
-        #         ),
-        #     )
-        if self.config.preserve_heatmap:
-            # outputs heatmap as is.
-            projection_head = nn.Sequential(
+        return (
+            nn.Sequential(
                 nn.Conv2d(
                     self.config.projection_head_input_dim,
                     self.config.projection_head_hidden_dim,
@@ -55,9 +38,8 @@ class SimCLRHeatmap(SimCLR):
                     stride=1,
                 ),
             )
-        else:
-            # Outputs keypoints from the heatmap.
-            projection_head = nn.Sequential(
+            if self.config.preserve_heatmap
+            else nn.Sequential(
                 nn.Conv2d(
                     self.config.projection_head_input_dim,
                     self.config.projection_head_hidden_dim,
@@ -77,5 +59,4 @@ class SimCLRHeatmap(SimCLR):
                 ),
                 nn.Flatten(),
             )
-
-        return projection_head
+        )

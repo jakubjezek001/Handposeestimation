@@ -37,9 +37,11 @@ class Joints:
     def get_set1_to_set2_index_map(
         self, set1: str = "freihand", set2: str = "ait"
     ) -> np.array:
-        index_map = []
-        for i in self.mapping.ait.keys():
-            index_map.append([self.mapping[set1][i], self.mapping[set2][i]])
+        index_map = [
+            [self.mapping[set1][i], self.mapping[set2][i]]
+            for i in self.mapping.ait.keys()
+        ]
+
         return np.array(sorted(index_map, key=lambda x: x[0]))
 
     def freihand_to_ait(self, joints_3D: JOINTS_3D) -> JOINTS_3D:

@@ -60,12 +60,11 @@ def convert_2_5D_to_3D(
             (-1, 1, 1)
         )
         camera_projection[:, :, -1] = 1.0
-        joints_3D = torch.bmm(camera_projection, torch.transpose(K_inv, 1, 2)) * Z_coord
+        return torch.bmm(camera_projection, torch.transpose(K_inv, 1, 2)) * Z_coord
     else:
         Z_coord = (joints_25D[:, -1:] + Z_root) * scale
         camera_projection[:, -1] = 1.0
-        joints_3D = (camera_projection @ (K_inv.T)) * Z_coord
-    return joints_3D
+        return (camera_projection @ (K_inv.T)) * Z_coord
 
 
 def get_root_depth(
@@ -278,28 +277,26 @@ def get_train_val_split(
 def get_data(
     data_class, train_param, sources: list, experiment_type: str, split: str = "train"
 ):
-    datasets = []
-    sources = ["freihand"] if len(sources) == 0 else sources
-    for source in sources:
-        datasets.append(
-            data_class(
-                config=train_param,
-                transform=transforms.Compose(
-                    [
-                        transforms.ToTensor(),
-                        transforms.Normalize(
-                            (0.485, 0.456, 0.406), (0.229, 0.224, 0.225)
-                        ),
-                    ]
-                ),
-                split=split,
-                experiment_type=experiment_type,
-                source=source,
-            )
+    sources = sources or ["freihand"]
+    datasets = [
+        data_class(
+            config=train_param,
+            transform=transforms.Compose(
+                [
+                    transforms.ToTensor(),
+                    transforms.Normalize(
+                        (0.485, 0.456, 0.406), (0.229, 0.224, 0.225)
+                    ),
+                ]
+            ),
+            split=split,
+            experiment_type=experiment_type,
+            source=source,
         )
+        for source in sources
+    ]
 
-    data = ConcatDataset(datasets)
-    return data
+    return ConcatDataset(datasets)
 
 
 def get_zroot_constraint_terms(
